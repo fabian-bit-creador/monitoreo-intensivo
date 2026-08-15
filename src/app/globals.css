@@ -410,6 +410,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .import-icon { margin-left: auto; margin-right: auto; }
 .import-panel h3 { color: var(--navy); margin: 0; }
 .import-panel p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 9px auto 20px; max-width: 430px; }
+.import-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.import-panel p.import-note { max-width: 430px; margin: 16px auto 0; font-size: 11px; }
 
 .student-sheet { width: min(680px, 100%); max-height: calc(100vh - 30px); overflow-y: auto; background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 30px 80px rgba(8, 20, 37, 0.28); }
 .sheet-handle { display: none; }
@@ -552,6 +554,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
   .status-actions small { display: none; }
   .progress-picker > div { grid-template-columns: repeat(4, 1fr); }
   .form-row { grid-template-columns: 1fr; }
+  .import-actions { grid-template-columns: 1fr; }
   .toast { bottom: 82px; width: max-content; max-width: calc(100% - 24px); }
 }
 

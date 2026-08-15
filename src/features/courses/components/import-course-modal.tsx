@@ -1,6 +1,10 @@
 import { ChangeEvent, useRef, useState } from "react";
-import { FileSpreadsheet, LoaderCircle, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, LoaderCircle, Upload } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import {
+  ROSTER_NAME_HEADER,
+  downloadRosterTemplate,
+} from "@/features/courses/lib/roster-template";
 
 type ImportCourseModalProps = {
   suggestedCourseName: string;
@@ -11,7 +15,7 @@ type ImportCourseModalProps = {
 };
 
 const NAME_HEADERS = [
-  "Nombre Completo Alumno",
+  ROSTER_NAME_HEADER,
   "Nombre completo",
   "Nombre",
   "Estudiante",
@@ -59,8 +63,9 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
         <div className="import-icon"><FileSpreadsheet size={30} /></div>
         <h3>Excel o CSV</h3>
         <p>
-          Buscaremos una columna llamada “Nombre Completo Alumno”, “Nombre”, “Estudiante”
-          o “Alumno”. No se importarán RUT ni correos.
+          Descarga la plantilla, escribe un estudiante por fila y vuelve a subirla.
+          También aceptamos tu propia planilla si tiene una columna “Nombre Completo
+          Alumno”, “Nombre”, “Estudiante” o “Alumno”. No se importarán RUT ni correos.
         </p>
         <input
           ref={fileInput}
@@ -69,16 +74,30 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
           accept=".xlsx,.xls,.csv"
           onChange={importFile}
         />
-        <button
-          className="primary-button wide"
-          onClick={() => fileInput.current?.click()}
-          disabled={busy || reading}
-        >
-          {busy || reading
-            ? <LoaderCircle className="spin" size={18} />
-            : <Upload size={18} />}
-          Seleccionar planilla
-        </button>
+        <div className="import-actions">
+          <button
+            className="secondary-button wide"
+            onClick={() => void downloadRosterTemplate().catch(
+              () => onError("No fue posible generar la plantilla."),
+            )}
+          >
+            <Download size={18} /> Descargar plantilla
+          </button>
+          <button
+            className="primary-button wide"
+            onClick={() => fileInput.current?.click()}
+            disabled={busy || reading}
+          >
+            {busy || reading
+              ? <LoaderCircle className="spin" size={18} />
+              : <Upload size={18} />}
+            Subir planilla
+          </button>
+        </div>
+        <p className="import-note">
+          Los puestos no van en la planilla: se asignan aquí, sobre el mapa del curso,
+          con «Mover puestos».
+        </p>
       </div>
     </Modal>
   );

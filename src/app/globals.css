@@ -382,8 +382,18 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .beta-warning .card-heading > svg { color: #ad7600; }
 .beta-warning > p { margin: 0; color: #6b5a37; font-size: 12px; line-height: 1.65; }
 
-.modal-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 18px; background: rgba(12, 24, 42, 0.58); backdrop-filter: blur(3px); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 18px; background: rgba(12, 24, 42, 0.58); backdrop-filter: blur(3px); opacity: 1; transition: opacity var(--dur-modal) var(--ease-out); }
+@starting-style { .modal-backdrop { opacity: 0; } }
 .modal-card { width: min(620px, 100%); max-height: calc(100vh - 36px); overflow-y: auto; background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 30px 80px rgba(8, 20, 37, 0.28); }
+.modal-card, .student-sheet {
+  transform-origin: center;
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  transition: opacity var(--dur-modal) var(--ease-out), transform var(--dur-modal) var(--ease-out);
+}
+@starting-style {
+  .modal-card, .student-sheet { opacity: 0; transform: scale(0.96) translateY(8px); }
+}
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 20px; }
 .modal-header h2 { margin: 0; color: var(--navy); font-size: 21px; }
 .form-stack { display: flex; flex-direction: column; gap: 14px; }
@@ -414,7 +424,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .note-field small { font-weight: 400; color: #8993a2; }
 .status-prompt { margin: 18px 0 9px; color: #4e5b6e; font-size: 12px; font-weight: 700; }
 .status-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
-.status-actions button { min-height: 115px; border-radius: 14px; padding: 12px; display: flex; align-items: flex-start; flex-direction: column; text-align: left; cursor: pointer; }
+.status-actions button { min-height: 115px; border-radius: 14px; padding: 12px; display: flex; align-items: flex-start; flex-direction: column; text-align: left; cursor: pointer; transition: transform var(--dur-press) var(--ease-out), background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+.status-actions button:active { transform: scale(0.98); }
 .status-actions b { width: 31px; height: 31px; border-radius: 9px; display: grid; place-items: center; font-size: 17px; margin-bottom: 8px; }
 .status-actions span { font-weight: 800; font-size: 12px; }
 .status-actions small { margin-top: 3px; line-height: 1.35; font-size: 9px; }
@@ -424,10 +435,22 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .action-r b { background: #c9ddff; }
 .action-c { color: #126c4b; background: var(--c-soft); border: 1px solid #afe0ca; }
 .action-c b { background: #c5ebd9; }
-.progress-picker { margin-top: 10px; padding: 12px; border-radius: 12px; background: #f4f7fb; }
+.progress-reveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--dur-base) var(--ease-out); }
+.progress-reveal.open { grid-template-rows: 1fr; }
+.progress-reveal-inner { min-height: 0; overflow: hidden; visibility: hidden; transition: visibility var(--dur-base); }
+.progress-reveal.open .progress-reveal-inner { visibility: visible; }
+.progress-picker { margin-top: 10px; padding: 12px; border-radius: 12px; background: #f4f7fb; opacity: 0; transition: opacity var(--dur-base) var(--ease-out); }
+.progress-reveal.open .progress-picker { opacity: 1; }
 .progress-picker p { margin: 0 0 9px; color: #536176; font-size: 11px; }
 .progress-picker > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
-.progress-picker button { height: 40px; border: 1px solid #bfd0e7; background: #fff; color: #285d9f; border-radius: 9px; font-weight: 800; cursor: pointer; }
+.progress-picker button { height: 40px; border: 1px solid #bfd0e7; background: #fff; color: #285d9f; border-radius: 9px; font-weight: 800; cursor: pointer; opacity: 0; transform: translateY(-4px); transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+.progress-reveal.open .progress-picker button { opacity: 1; transform: none; }
+.progress-reveal.open .progress-picker button:nth-child(1) { transition-delay: 40ms; }
+.progress-reveal.open .progress-picker button:nth-child(2) { transition-delay: 80ms; }
+.progress-reveal.open .progress-picker button:nth-child(3) { transition-delay: 120ms; }
+.progress-reveal.open .progress-picker button:nth-child(4) { transition-delay: 160ms; }
+/* Especificidad mayor que la regla .open que fija transform: none. */
+.progress-reveal.open .progress-picker button:active { transform: scale(0.97); }
 .absence-link { margin: 17px auto 0; border: 0; background: transparent; color: #7c8798; display: flex; align-items: center; gap: 7px; font-size: 11px; cursor: pointer; }
 .absent-panel { text-align: center; padding: 25px 10px 8px; color: #6e798b; }
 .absent-panel svg { color: #7c8796; }
@@ -515,7 +538,11 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
   .pending-checklist { grid-template-columns: 1fr; }
   .pending-checklist span { min-height: 46px; justify-content: flex-start; padding-left: 14px; }
   .modal-backdrop { align-items: end; padding: 0; }
-  .student-sheet, .modal-card { width: 100%; max-height: 92vh; border-radius: 22px 22px 0 0; padding: 17px 14px calc(18px + env(safe-area-inset-bottom)); }
+  .student-sheet, .modal-card { width: 100%; max-height: 92vh; border-radius: 22px 22px 0 0; padding: 17px 14px calc(18px + env(safe-area-inset-bottom)); transform: translateY(0); transition: transform 320ms var(--ease-drawer), opacity var(--dur-fast) var(--ease-out); }
+  /* En celular la hoja sube desde el borde inferior en vez de escalar. */
+  @starting-style {
+    .student-sheet, .modal-card { opacity: 1; transform: translateY(100%); }
+  }
   .sheet-handle { display: block; width: 42px; height: 4px; border-radius: 999px; background: #d3d9e2; margin: -7px auto 13px; }
   .student-sheet-header { grid-template-columns: 46px minmax(0, 1fr) 40px; }
   .student-avatar { width: 46px; height: 46px; }
@@ -550,9 +577,15 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
   /* El feedback de presión también es movimiento: se anula. */
   .primary-button:active, .secondary-button:active, .finish-button:active,
   .ghost-button:active, .move-button:active, .icon-button:active,
-  .round-control button:active, .view-toggle button:active {
+  .round-control button:active, .view-toggle button:active,
+  .status-actions button:active,
+  .progress-reveal.open .progress-picker button:active {
     transform: none;
   }
+  /* Modales y hoja: entran con opacidad, sin desplazamiento ni escala. */
+  .modal-card, .student-sheet { transform: none !important; }
+  .progress-picker button { transform: none !important; }
+  .progress-reveal { transition: none !important; }
   /* La elevación de hover es decorativa: sin ella no se pierde información. */
   @media (hover: hover) and (pointer: fine) {
     .primary-button:hover, .finish-button:hover, .student-card:hover { transform: none; }

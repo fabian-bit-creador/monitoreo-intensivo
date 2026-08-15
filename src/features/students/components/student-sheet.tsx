@@ -91,18 +91,24 @@ export function StudentSheet(props: StudentSheetProps) {
                 <b>C</b><span>{CODE_META.C.label}</span><small>{CODE_META.C.detail}</small>
               </button>
             </div>
-            {showProgress ? (
-              <div className="progress-picker">
-                <p>¿Qué porcentaje del producto está avanzado?</p>
-                <div>
-                  {[25, 50, 70, 90].map((value) => (
-                    <button key={value} onClick={() => onRecord("R", value)} disabled={busy}>
-                      {value}%
-                    </button>
-                  ))}
+            <div className={`progress-reveal ${showProgress ? "open" : ""}`}>
+              <div className="progress-reveal-inner">
+                <div className="progress-picker">
+                  <p>¿Qué porcentaje del producto está avanzado?</p>
+                  <div>
+                    {[25, 50, 70, 90].map((value) => (
+                      <button
+                        key={value}
+                        onClick={() => onRecord("R", value)}
+                        disabled={busy || !showProgress}
+                      >
+                        {value}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            ) : null}
+            </div>
             <button className="absence-link" onClick={() => onPresence(student, false)}>
               <UserRoundX size={16} /> Marcar ausente
             </button>

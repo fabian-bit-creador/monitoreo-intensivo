@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" role="img" aria-label="Monitoreo Intensivo — concepto C, el puesto observado">
+  <title>Monitoreo Intensivo · Concepto C · El puesto observado</title>
+  <!-- Cuatro puestos, uno bajo observacion en turquesa: la palabra "intensivo".
+       Sobre fondo navy, el punto interior debe pasar a #0F2948 en vez de blanco. -->
+  <rect x="2.6" y="2.6" width="8.4" height="8.4" rx="2.4" fill="currentColor" opacity=".22"/>
+  <rect x="13" y="2.6" width="8.4" height="8.4" rx="2.4" fill="currentColor" opacity=".22"/>
+  <rect x="13" y="13" width="8.4" height="8.4" rx="2.4" fill="currentColor" opacity=".22"/>
+  <rect x="2.6" y="13" width="8.4" height="8.4" rx="2.4" fill="#1E8E89"/>
+  <circle cx="6.8" cy="17.2" r="1.9" fill="#FFFFFF"/>
+</svg>

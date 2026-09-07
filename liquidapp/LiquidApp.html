@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiquidApp — Simulador educativo de liquidaciones de sueldo</title>
+<meta name="description" content="Simulador educativo chileno de liquidación de sueldo y finiquito. Explica cada haber y descuento con casos ficticios. Proyecto Feria Técnico Profesional 2026, Colegio Cardenal José María Caro.">
+<meta name="author" content="Equipo LiquidApp — IV°A Administración mención RR.HH.">
+<meta name="theme-color" content="#003875">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="LiquidApp — Simulador educativo de liquidaciones de sueldo">
+<meta property="og:description" content="Entiende tu liquidación de sueldo línea por línea. Simulador educativo con casos ficticios.">
+<meta property="og:locale" content="es_CL">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23003875'/%3E%3Crect x='9' y='8' width='14' height='3' rx='1.5' fill='white'/%3E%3Crect x='9' y='14' width='10' height='3' rx='1.5' fill='white' opacity='.6'/%3E%3Crect x='19' y='19' width='14' height='15' rx='3' fill='%2300A859'/%3E%3Crect x='22' y='22' width='8' height='4' rx='1' fill='white'/%3E%3C/svg%3E">
+
+<style>
+/* ==========================================================================
+   LiquidApp — hoja de estilos propia.
+   Todo el CSS vive en este archivo: la página funciona sin internet, sin CDN
+   y sin fuentes externas. Si necesitas cambiar un color, cámbialo una sola vez
+   aquí abajo, en :root, y se actualiza en toda la página.
+   ========================================================================== */
+
+:root{
+  /* Identidad visual del equipo */
+  --azul:#003875;
+  --azul-claro:#0a4c94;
+  --azul-suave:#eef3f9;
+  --verde:#00a859;
+  --verde-osc:#007a43;
+  --verde-suave:#e8f7ef;
+
+  /* Neutros */
+  --fondo:#f6f8fb;
+  --tarjeta:#ffffff;
+  --tinta:#1a2537;
+  --tinta-2:#4a5568;     /* texto secundario: contraste AA sobre blanco */
+  --tinta-3:#5f6b7d;     /* ayudas y notas: contraste AA sobre blanco */
+  --borde:#dde3ec;
+  --borde-fuerte:#c3cddb;
+
+  /* Semánticos */
+  --rojo:#c02626;
+  --rojo-suave:#fdf0f0;
+  --ambar:#8a5a00;
+  --ambar-suave:#fff8e6;
+  --ambar-borde:#f0d79a;
+  --info:#1f5d80;
+  --info-suave:#eaf4fa;
+
+  --radio:14px;
+  --sombra:0 1px 2px rgba(16,32,56,.06), 0 8px 24px rgba(16,32,56,.07);
+  --sombra-alta:0 2px 4px rgba(16,32,56,.08), 0 18px 40px rgba(16,32,56,.12);
+  --fuente:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  font-family:var(--fuente);
+  font-size:16px;
+  line-height:1.55;
+  color:var(--tinta);
+  background:var(--fondo);
+  -webkit-text-size-adjust:100%;
+}
+h1,h2,h3,h4{margin:0;line-height:1.2;letter-spacing:-.015em;font-weight:700;}
+p{margin:0 0 .75rem;}
+p:last-child{margin-bottom:0;}
+a{color:var(--azul-claro);}
+img,svg{max-width:100%;}
+.num{font-variant-numeric:tabular-nums;}
+
+/* --- Foco visible y accesible en todo elemento interactivo --- */
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:3px solid var(--verde);
+  outline-offset:2px;
+  border-radius:6px;
+}
+
+/* --- Enlace de salto para teclado y lectores de pantalla --- */
+.saltar{
+  position:absolute;left:-9999px;top:0;z-index:100;
+  background:var(--verde);color:#fff;padding:.75rem 1.25rem;
+  font-weight:600;border-radius:0 0 10px 0;
+}
+.saltar:focus{left:0;}
+
+.contenedor{max-width:1120px;margin:0 auto;padding:0 1.25rem;}
+.seccion{padding:3.5rem 0;scroll-margin-top:5rem;}
+.seccion--blanca{background:var(--tarjeta);border-top:1px solid var(--borde);border-bottom:1px solid var(--borde);}
+.encabezado-seccion{max-width:56ch;margin-bottom:2rem;}
+.encabezado-seccion h2{font-size:1.75rem;color:var(--azul);margin-bottom:.6rem;}
+.encabezado-seccion p{color:var(--tinta-2);}
+.eyebrow{
+  display:inline-block;font-size:.75rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--verde-osc);margin-bottom:.5rem;
+}
+
+/* ============================ Barra superior ============================ */
+.barra{
+  position:sticky;top:0;z-index:40;background:rgba(255,255,255,.94);
+  backdrop-filter:saturate(150%) blur(8px);
+  border-bottom:1px solid var(--borde);
+}
+.barra__interior{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.7rem 0;}
+.marca{display:flex;align-items:center;gap:.65rem;text-decoration:none;color:inherit;}
+.marca__nombre{font-size:1.15rem;font-weight:800;color:var(--azul);line-height:1;}
+.marca__bajada{font-size:.7rem;color:var(--tinta-3);line-height:1.3;margin-top:2px;}
+.nav{display:flex;align-items:center;gap:.25rem;}
+.nav a{
+  display:inline-block;padding:.5rem .9rem;border-radius:999px;text-decoration:none;
+  font-size:.9rem;font-weight:600;color:var(--tinta-2);
+}
+.nav a:hover{background:var(--azul-suave);color:var(--azul);}
+.nav a.activo{background:var(--verde);color:#fff;}
+.nav a.activo:hover{background:var(--verde-osc);color:#fff;}
+.nav-movil{display:none;}
+
+@media (max-width:820px){
+  .nav{
+    display:none;position:absolute;left:0;right:0;top:100%;
+    flex-direction:column;align-items:stretch;gap:0;
+    background:var(--tarjeta);border-bottom:1px solid var(--borde);
+    padding:.5rem 1.25rem 1rem;box-shadow:var(--sombra);
+  }
+  .nav.abierto{display:flex;}
+  .nav a{border-radius:10px;padding:.8rem 1rem;}
+  .nav-movil{
+    display:inline-flex;align-items:center;gap:.5rem;background:var(--azul-suave);
+    border:1px solid var(--borde);color:var(--azul);font-weight:600;font-size:.9rem;
+    padding:.55rem .9rem;border-radius:10px;cursor:pointer;
+  }
+  .marca__bajada{display:none;}
+}
+
+/* ================================ Aviso ================================ */
+.aviso-simulador{
+  background:var(--ambar-suave);
+  border-bottom:1px solid var(--ambar-borde);
+  color:var(--ambar);
+  font-size:.85rem;
+  font-weight:600;
+}
+.aviso-simulador .contenedor{display:flex;gap:.6rem;align-items:flex-start;padding-top:.6rem;padding-bottom:.6rem;}
+.aviso-simulador svg{flex-shrink:0;margin-top:1px;}
+.aviso-simulador span{font-weight:400;}
+
+/* ================================= Hero ================================= */
+.hero{background:linear-gradient(135deg,var(--azul) 0%,var(--azul-claro) 100%);color:#fff;}
+.hero__grid{display:grid;grid-template-columns:1fr;gap:2.5rem;align-items:center;padding:3.25rem 0 3.75rem;}
+@media (min-width:900px){.hero__grid{grid-template-columns:1.05fr .95fr;}}
+.hero h1{font-size:2.1rem;margin-bottom:.9rem;}
+@media (min-width:640px){.hero h1{font-size:2.5rem;}}
+.hero__bajada{color:#d4e2f2;font-size:1.05rem;max-width:44ch;margin-bottom:1.75rem;}
+.pildora{
+  display:inline-flex;align-items:center;gap:.5rem;font-size:.78rem;font-weight:600;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);
+  border-radius:999px;padding:.4rem .85rem;margin-bottom:1.1rem;
+}
+.hero__acciones{display:flex;flex-wrap:wrap;gap:.75rem;}
+
+/* Boletita de ejemplo del hero */
+.boleta-demo{
+  background:#fff;color:var(--tinta);border-radius:18px;padding:1.35rem;
+  box-shadow:var(--sombra-alta);font-size:.92rem;
+  background-image:repeating-linear-gradient(to bottom,transparent,transparent 33px,rgba(0,56,117,.05) 33px,rgba(0,56,117,.05) 34px);
+}
+.boleta-demo__fila{display:flex;justify-content:space-between;gap:1rem;padding:.2rem 0;}
+.boleta-demo__total{
+  display:flex;justify-content:space-between;gap:1rem;margin-top:.6rem;padding-top:.6rem;
+  border-top:1px dashed var(--borde-fuerte);font-weight:700;color:var(--verde-osc);
+}
+.rojo{color:var(--rojo);}
+
+/* ================================ Botones ================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.5rem;
+  font-family:inherit;font-size:.95rem;font-weight:600;
+  padding:.75rem 1.3rem;border-radius:12px;border:1px solid transparent;
+  cursor:pointer;text-decoration:none;transition:background-color .15s ease,color .15s ease;
+}
+.btn--verde{background:var(--verde);color:#fff;}
+.btn--verde:hover{background:var(--verde-osc);}
+.btn--fantasma{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.3);color:#fff;}
+.btn--fantasma:hover{background:rgba(255,255,255,.22);}
+.btn--claro{background:var(--tarjeta);border-color:var(--borde-fuerte);color:var(--azul);}
+.btn--claro:hover{background:var(--azul-suave);}
+.btn--bloque{width:100%;}
+.btn--pequeno{font-size:.85rem;padding:.5rem .9rem;border-radius:10px;}
+
+/* =============================== Tarjetas =============================== */
+.tarjeta{background:var(--tarjeta);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);}
+.acordeon{display:grid;gap:.75rem;}
+.acordeon details{background:var(--tarjeta);border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);overflow:hidden;}
+.acordeon summary{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:1.05rem 1.15rem;cursor:pointer;list-style:none;font-weight:600;
+}
+.acordeon summary::-webkit-details-marker{display:none;}
+.acordeon summary:hover{background:var(--azul-suave);}
+.acordeon__titulo{display:flex;align-items:center;gap:.9rem;}
+.acordeon__icono{
+  width:2.4rem;height:2.4rem;flex-shrink:0;border-radius:11px;
+  background:var(--azul-suave);color:var(--azul);
+  display:flex;align-items:center;justify-content:center;
+}
+.acordeon__flecha{flex-shrink:0;color:var(--tinta-3);transition:transform .2s ease;}
+.acordeon details[open] .acordeon__flecha{transform:rotate(180deg);}
+.acordeon__cuerpo{padding:0 1.15rem 1.2rem 4.45rem;color:var(--tinta-2);font-size:.94rem;}
+.acordeon__cuerpo p+p{margin-top:.6rem;}
+@media (max-width:600px){.acordeon__cuerpo{padding-left:1.15rem;}}
+
+/* ============================== Formulario ============================== */
+.grupo{
+  border:1px solid var(--borde);border-radius:var(--radio);background:#fbfcfe;
+  padding:1.1rem 1.15rem 1.25rem;margin:0 0 1.25rem;
+}
+.grupo>legend{
+  font-weight:700;color:var(--azul);padding:0 .45rem;font-size:1rem;
+  display:flex;align-items:center;gap:.5rem;
+}
+.rejilla{display:grid;grid-template-columns:1fr;gap:1rem;margin-top:.5rem;}
+@media (min-width:640px){.rejilla{grid-template-columns:1fr 1fr;}}
+@media (min-width:640px){.rejilla--tres{grid-template-columns:1fr 1fr 1fr;}}
+.ancho-total{grid-column:1/-1;}
+
+.campo{display:block;font-size:.88rem;}
+.campo>span:first-child,.campo__etiqueta{display:block;color:var(--tinta-2);font-weight:500;margin-bottom:.3rem;}
+.campo input,.campo select,.campo textarea{
+  font-family:inherit;font-size:.95rem;color:var(--tinta);
+  width:100%;padding:.6rem .7rem;border:1px solid var(--borde-fuerte);
+  border-radius:10px;background:#fff;
+}
+.campo select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235f6b7d' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .7rem center;padding-right:2rem;}
+.campo input[aria-invalid="true"]{border-color:var(--rojo);background:var(--rojo-suave);}
+.ayuda{display:block;font-size:.78rem;color:var(--tinta-3);margin-top:.3rem;line-height:1.4;}
+.ayuda--error{color:var(--rojo);font-weight:600;}
+.prefijo{display:flex;align-items:stretch;border:1px solid var(--borde-fuerte);border-radius:10px;background:#fff;overflow:hidden;}
+.prefijo:focus-within{outline:3px solid var(--verde);outline-offset:2px;}
+.prefijo span{padding:.6rem .65rem;color:var(--tinta-3);background:#f2f5f9;border-right:1px solid var(--borde);font-size:.9rem;}
+.prefijo input{border:0;border-radius:0;flex:1;min-width:0;}
+.prefijo input:focus-visible{outline:none;}
+
+.opciones{display:flex;gap:1.25rem;flex-wrap:wrap;margin-top:.4rem;font-size:.9rem;}
+.opciones label{display:inline-flex;align-items:center;gap:.45rem;cursor:pointer;}
+.subpanel{border:1px solid var(--borde);border-radius:12px;background:#fff;padding:1rem;}
+.total-linea{
+  display:flex;justify-content:space-between;align-items:center;gap:1rem;
+  background:var(--azul-suave);border-radius:12px;padding:.7rem 1rem;margin-top:1.1rem;
+  font-weight:600;color:var(--azul);font-size:.92rem;
+}
+.total-linea strong{font-size:1.05rem;}
+.oculto{display:none !important;}
+
+/* ================================ Avisos ================================ */
+.nota{display:flex;gap:.65rem;border-radius:12px;padding:.8rem 1rem;font-size:.87rem;line-height:1.5;}
+.nota svg{flex-shrink:0;margin-top:2px;}
+.nota--info{background:var(--info-suave);border:1px solid #c3dced;color:var(--info);}
+.nota--ambar{background:var(--ambar-suave);border:1px solid var(--ambar-borde);color:var(--ambar);}
+.nota--error{background:var(--rojo-suave);border:1px solid #f0c0c0;color:var(--rojo);font-weight:500;}
+.nota--verde{background:var(--verde-suave);border:1px solid #b7e6cd;color:var(--verde-osc);}
+
+/* ============================== Resultado ============================== */
+.panel-resultado{position:sticky;top:5rem;}
+.resultado{border-radius:var(--radio);overflow:hidden;box-shadow:var(--sombra-alta);border:1px solid var(--borde);background:#fff;}
+.resultado__cabecera{background:var(--azul);color:#fff;padding:1.1rem 1.25rem;}
+.resultado__cabecera p:first-child{font-size:.73rem;color:#a9c4e0;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.15rem;}
+.resultado__cabecera p:last-child{font-size:1.1rem;font-weight:700;margin:0;}
+.resultado__cuerpo{padding:1.15rem 1.25rem 1.35rem;font-size:.9rem;}
+.resultado__fila{display:flex;justify-content:space-between;gap:1rem;padding:.3rem 0;}
+.resultado__fila span:first-child{color:var(--tinta-2);}
+.resultado__fila span:last-child{font-weight:600;}
+.resultado__separador{border:0;border-top:1px dashed var(--borde-fuerte);margin:.6rem 0;}
+.liquido{background:var(--verde-suave);border:1px solid #a8e0c4;border-radius:12px;padding:.95rem 1.05rem;margin:.85rem 0 .35rem;}
+.liquido p:first-child{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--verde-osc);margin-bottom:.15rem;}
+.liquido p:last-child{font-size:2rem;font-weight:800;color:var(--verde-osc);margin:0;line-height:1.1;}
+.descargo{font-size:.76rem;color:var(--tinta-3);line-height:1.5;margin-top:.9rem;}
+
+/* Detalle del cálculo paso a paso */
+.pasos{margin-top:.9rem;border-top:1px solid var(--borde);padding-top:.8rem;}
+.pasos summary{cursor:pointer;font-size:.85rem;font-weight:600;color:var(--azul);list-style:none;display:flex;align-items:center;gap:.4rem;}
+.pasos summary::-webkit-details-marker{display:none;}
+.pasos ol{margin:.7rem 0 0;padding-left:1.1rem;font-size:.8rem;color:var(--tinta-2);line-height:1.6;}
+.pasos li{margin-bottom:.5rem;}
+.pasos code{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:.94em;background:var(--azul-suave);padding:.05rem .3rem;border-radius:4px;color:var(--azul);}
+
+/* Barra fija de resultado en celular */
+.barra-movil{
+  position:fixed;left:0;right:0;bottom:0;z-index:35;display:none;
+  background:var(--azul);color:#fff;padding:.7rem 1.25rem;
+  box-shadow:0 -4px 16px rgba(16,32,56,.18);
+  align-items:center;justify-content:space-between;gap:1rem;
+}
+.barra-movil p:first-child{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#a9c4e0;margin:0;font-weight:600;}
+.barra-movil p:last-child{font-size:1.25rem;font-weight:800;margin:0;line-height:1.1;}
+@media (max-width:1023px){
+  .barra-movil{display:flex;}
+  body{padding-bottom:4.5rem;}
+  .panel-resultado{position:static;}
+}
+
+/* =========================== Casos de práctica =========================== */
+.casos{display:grid;gap:1rem;grid-template-columns:1fr;}
+@media (min-width:760px){.casos{grid-template-columns:repeat(3,1fr);}}
+.caso{display:flex;flex-direction:column;gap:.6rem;padding:1.15rem;text-align:left;}
+.caso h3{font-size:1rem;color:var(--azul);}
+.caso p{font-size:.86rem;color:var(--tinta-2);flex:1;}
+
+/* ============================ Tabla de tramos ============================ */
+.tabla-envoltura{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:.8rem;}
+.tabla-datos{border-collapse:collapse;width:100%;font-size:.83rem;min-width:30rem;}
+.tabla-datos th,.tabla-datos td{border:1px solid var(--borde);padding:.4rem .6rem;text-align:right;}
+.tabla-datos th{background:var(--azul-suave);color:var(--azul);font-weight:600;}
+.tabla-datos th:first-child,.tabla-datos td:first-child{text-align:left;}
+
+/* ============================== Parámetros ============================== */
+.parametros{background:var(--azul-suave);border:1px solid #c9d9ea;border-radius:var(--radio);padding:1.15rem;}
+.parametros h3{font-size:1rem;color:var(--azul);margin-bottom:.25rem;}
+
+/* ================================ Layout ================================ */
+.dos-columnas{display:grid;grid-template-columns:1fr;gap:2rem;align-items:start;}
+@media (min-width:1024px){.dos-columnas{grid-template-columns:minmax(0,1fr) 370px;}}
+
+/* ================================ Footer ================================ */
+.pie{background:var(--azul);color:#c3d5e8;font-size:.85rem;}
+.pie .contenedor{padding-top:1.75rem;padding-bottom:1.75rem;}
+.pie a{color:#a8e0c4;}
+.pie__fila{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.75rem;}
+.pie__fuentes{margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.15);font-size:.8rem;line-height:1.7;}
+
+/* ============================== Impresión ============================== */
+#comprobante{display:none;}
+@media print{
+  .no-imprimir{display:none !important;}
+  body{background:#fff;padding-bottom:0;font-size:12px;}
+  #comprobante{display:block !important;}
+  @page{margin:12mm;}
+}
+.comprobante{max-width:46rem;margin:0 auto;color:#000;}
+.tabla-liq{border-collapse:collapse;width:100%;}
+.tabla-liq td,.tabla-liq th{border:1px solid #8a97a8;padding:3px 6px;font-size:11px;vertical-align:top;}
+.tabla-liq th{background:#e7ecf2;text-align:left;}
+.tabla-liq .fila-total td{font-weight:700;background:#f1f4f8;}
+.tabla-liq .monto{text-align:right;font-variant-numeric:tabular-nums;}
+.marca-impresa{display:flex;align-items:center;gap:.5rem;justify-content:flex-end;}
+
+/* ========================== Movimiento reducido ========================== */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;}
+}
+</style>
+</head>
+<body>
+
+<a class="saltar" href="#calculadora">Saltar a la calculadora</a>
+
+<!-- ==========================================================================
+     Biblioteca de íconos. Están dibujados aquí adentro (no se descargan de
+     ningún servidor) y se reutilizan con <use href="#icono-...">.
+     ========================================================================== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-escudo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-calculadora" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h4"/></symbol>
+  <symbol id="i-libro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5A2.5 2.5 0 015.5 3H11v17H5.5A2.5 2.5 0 003 22z"/><path d="M21 5.5A2.5 2.5 0 0018.5 3H13v17h5.5a2.5 2.5 0 012.5 2z"/></symbol>
+  <symbol id="i-monedas" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="9" cy="6" rx="6" ry="3"/><path d="M3 6v5c0 1.7 2.7 3 6 3s6-1.3 6-3"/><path d="M3 11v5c0 1.7 2.7 3 6 3 1 0 2-.1 2.8-.3"/><circle cx="17" cy="16" r="4"/></symbol>
+  <symbol id="i-alcancia" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a6 6 0 016-6h4a6 6 0 016 6v1h2v3h-2.5l-1 3H15v2h-3v-2H9v2H6v-2.6A6 6 0 013 13z"/><circle cx="15.5" cy="11.5" r=".7" fill="currentColor"/></symbol>
+  <symbol id="i-premio" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14L7 22l5-2.5L17 22l-1.5-8"/></symbol>
+  <symbol id="i-calendario" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M10 15l4 4M14 15l-4 4"/></symbol>
+  <symbol id="i-balanza" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 20h12M3 8l4-2 4 2M13 6l4-2 4 2"/><path d="M3 8l-1.5 4a3.5 3.5 0 007 0z"/><path d="M17 6l-1.5 4a3.5 3.5 0 007 0z"/></symbol>
+  <symbol id="i-firma" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2v-8"/><path d="M17.5 3.5a2.1 2.1 0 013 3L14 13l-4 1 1-4z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/></symbol>
+  <symbol id="i-alerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L2.4 17a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-flecha" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-imprimir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-4a2 2 0 012-2h16a2 2 0 012 2v4a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></symbol>
+  <symbol id="i-candado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></symbol>
+  <symbol id="i-reloj" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-tope" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M8 10l4 8 4-8"/><path d="M12 18v3"/></symbol>
+  <symbol id="i-borrar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15"/><path d="M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+</svg>
+
+<!-- ==========================================================================
+     Aviso permanente: este es un simulador educativo.
+     Va arriba de todo porque el proyecto trabaja con datos sensibles.
+     ========================================================================== -->
+<div class="aviso-simulador no-imprimir">
+  <div class="contenedor">
+    <svg width="17" height="17" aria-hidden="true"><use href="#i-candado"/></svg>
+    <p style="margin:0">Simulador educativo.
+      <span>Úsalo con casos ficticios o con tus propios datos. Todo se calcula dentro de tu navegador: no se envía, guarda ni comparte información en ningún servidor. No ingreses datos de otras personas sin su autorización.</span>
+    </p>
+  </div>
+</div>
+
+<!-- ================================ Barra ================================ -->
+<header class="barra no-imprimir">
+  <div class="contenedor barra__interior">
+    <a class="marca" href="#inicio">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+        <rect width="40" height="40" rx="9" fill="#003875"/>
+        <rect x="9" y="8" width="14" height="3" rx="1.5" fill="#fff"/>
+        <rect x="9" y="14" width="10" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+        <path d="M7 30a15 15 0 0022-7" stroke="#00A859" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <rect x="19" y="19" width="14" height="15" rx="3" fill="#00A859"/>
+        <rect x="22" y="22" width="8" height="4" rx="1" fill="#fff"/>
+        <circle cx="23.5" cy="30" r="1.3" fill="#fff"/><circle cx="28.5" cy="30" r="1.3" fill="#fff"/>
+      </svg>
+      <span>
+        <span class="marca__nombre">LiquidApp</span>
+        <span class="marca__bajada">Simulador de remuneraciones · Feria TP 2026</span>
+      </span>
+    </a>
+
+    <button class="nav-movil" id="btn-menu" aria-expanded="false" aria-controls="nav-principal">
+      <svg width="18" height="18" aria-hidden="true"><use href="#i-menu"/></svg> Menú
+    </button>
+
+    <nav class="nav" id="nav-principal" aria-label="Navegación principal">
+      <a href="#info-contable">Información contable</a>
+      <a href="#calculadora" class="activo">Calculadora</a>
+      <a href="#finiquito">Finiquito</a>
+      <a href="#casos">Casos de práctica</a>
+    </nav>
+  </div>
+</header>
+
+<main id="inicio">
+
+<!-- ================================= Hero ================================= -->
+<section class="hero no-imprimir">
+  <div class="contenedor hero__grid">
+    <div>
+      <span class="pildora">
+        <svg width="15" height="15" style="color:#7CE8B4" aria-hidden="true"><use href="#i-escudo"/></svg>
+        Basado en la legislación laboral chilena vigente
+      </span>
+      <h1>Entiende tu liquidación de sueldo, línea por línea.</h1>
+      <p class="hero__bajada">LiquidApp explica cada haber y cada descuento, calcula tu líquido a pagar y te muestra <strong style="color:#fff">de dónde sale cada número</strong>.</p>
+      <div class="hero__acciones">
+        <a class="btn btn--verde" href="#calculadora">
+          <svg width="17" height="17" aria-hidden="true"><use href="#i-calculadora"/></svg> Calcular mi liquidación
+        </a>
+        <a class="btn btn--fantasma" href="#info-contable">
+          <svg width="17" height="17" aria-hidden="true"><use href="#i-libro"/></svg> Ver explicaciones
+        </a>
+      </div>
+    </div>
+
+    <div class="boleta-demo" aria-hidden="true">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <p style="font-weight:700;color:var(--azul);margin:0">Liquidación de sueldo</p>
+        <svg width="20" height="20" style="color:var(--verde)" aria-hidden="true"><use href="#i-monedas"/></svg>
+      </div>
+      <div class="boleta-demo__fila"><span>Sueldo base</span><span class="num">$ 900.000</span></div>
+      <div class="boleta-demo__fila"><span>Gratificación legal</span><span class="num">$ 219.115</span></div>
+      <div class="boleta-demo__fila"><span>AFP Hábitat (11,27 %)</span><span class="num rojo">− $ 126.124</span></div>
+      <div class="boleta-demo__fila"><span>Salud Fonasa (7 %)</span><span class="num rojo">− $ 78.338</span></div>
+      <div class="boleta-demo__fila"><span>Seguro de cesantía (0,6 %)</span><span class="num rojo">− $ 6.715</span></div>
+      <div class="boleta-demo__total"><span>Líquido a pagar</span><span class="num">$ 907.938</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Sección A: información contable ==================== -->
+<section id="info-contable" class="seccion no-imprimir">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Sección 1</span>
+      <h2>Información contable</h2>
+      <p>Antes de calcular conviene entender de dónde sale cada número. Despliega cada tarjeta para ver el detalle.</p>
+    </div>
+
+    <div class="acordeon">
+
+      <details open>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-monedas"/></svg></span>
+            <span>¿Qué son los haberes imponibles y no imponibles?</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p><strong>Haberes imponibles</strong> son los pagos sobre los que se calculan las cotizaciones previsionales (AFP, salud, cesantía) y el impuesto único. Ejemplos: sueldo base, gratificación legal, horas extras, asignación de título y bonos de gestión.</p>
+          <p><strong>Haberes no imponibles</strong> compensan un gasto y no pagan cotizaciones ni impuesto. Ejemplos típicos: asignación de colación, de movilización y viáticos. La asignación familiar legal también es no imponible.</p>
+          <p class="ayuda">Ojo con un error frecuente: subir la colación para "pagar menos imponible" no es legal si no responde a un gasto real. La Dirección del Trabajo puede recalificar ese monto como remuneración.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-alcancia"/></svg></span>
+            <span>Descuentos legales previsionales</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p><strong>AFP:</strong> 10 % obligatorio a tu cuenta de capitalización individual más la comisión de la administradora. En total va aproximadamente entre 10,49 % y 11,45 % del imponible, según la AFP que elijas.</p>
+          <p><strong>Salud (Fonasa o Isapre):</strong> 7 % legal obligatorio sobre el imponible. En Isapre cotizas el valor de tu plan pactado (normalmente en UF); si ese valor es menor al 7 %, igual se descuenta el 7 % legal como mínimo.</p>
+          <p><strong>Seguro de cesantía:</strong> en contratos indefinidos el trabajador aporta 0,6 % del imponible y el empleador 2,4 %. En contratos a plazo fijo o por obra el trabajador no aporta nada y el empleador aporta 3 %.</p>
+          <p><strong>Impuesto único de segunda categoría:</strong> se aplica por tramos progresivos sobre la renta imponible menos las cotizaciones previsionales obligatorias. Los tramos bajos están exentos.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-tope"/></svg></span>
+            <span>Topes imponibles: el detalle que más se olvida</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p>Las cotizaciones no se calculan sobre el sueldo completo cuando este es alto: existe un <strong>tope imponible</strong>. La Superintendencia de Pensiones lo fija cada año en UF.</p>
+          <p>Para 2026 el tope de AFP, salud y Ley de Accidentes del Trabajo es de <strong>90,0 UF</strong> mensuales, y el del seguro de cesantía es de <strong>135,2 UF</strong>. En 2025 fueron 87,8 UF y 131,9 UF.</p>
+          <p>Esto significa que si alguien gana más que el tope, su AFP y su salud se calculan solo hasta ese tope, no sobre el total. Una calculadora que ignora el tope <strong>sobreestima los descuentos</strong> de las rentas altas.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-premio"/></svg></span>
+            <span>Gratificación legal y su tope</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p>El artículo 47 del Código del Trabajo obliga a repartir el 30 % de las utilidades líquidas. El artículo 50 permite al empleador cumplir esa obligación pagando <strong>el 25 % de lo devengado por el trabajador</strong>, con un tope de <strong>4,75 ingresos mínimos mensuales al año</strong>. Ese tope se prorratea en 12 pagos mensuales.</p>
+          <p>Con un IMM de $553.553, el tope mensual es 4,75 × 553.553 ÷ 12 = <strong>$219.115</strong>. Casi todos los sueldos medios y altos quedan pegados a ese tope.</p>
+          <p>En la calculadora puedes usar el cálculo automático, escribir un monto fijo, o excluirla si tu contrato no la contempla.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-reloj"/></svg></span>
+            <span>Horas extras: cómo se calcula el valor de la hora</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p>La hora extra se paga con un recargo mínimo del 50 % sobre el valor de la hora ordinaria. La fórmula es:</p>
+          <p><code style="background:var(--azul-suave);padding:.15rem .4rem;border-radius:5px;color:var(--azul)">valor hora extra = (sueldo base ÷ 30) × (7 ÷ jornada semanal) × 1,5</code></p>
+          <p>La Ley 21.561 redujo la jornada de forma gradual: 45 horas hasta abril de 2024, <strong>44 horas</strong> desde el 26 de abril de 2024, <strong>42 horas</strong> desde el 26 de abril de 2026 y 40 horas desde abril de 2028.</p>
+          <p>Como la jornada bajó, <strong>el valor de la hora extra subió</strong>: con 45 horas el factor era 0,0077778 del sueldo base; con 42 horas es 0,0083333. La calculadora usa 42 horas por defecto y te deja cambiarla.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-calendario"/></svg></span>
+            <span>Días no trabajados, licencias y atrasos</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p>Para efectos de remuneraciones el mes siempre tiene <strong>30 días</strong>, aunque tenga 28 o 31. El valor del día es <code style="background:var(--azul-suave);padding:.15rem .4rem;border-radius:5px;color:var(--azul)">sueldo base ÷ 30</code>.</p>
+          <p>Una inasistencia no solo reduce el sueldo del día: como el imponible baja, también bajan proporcionalmente la gratificación y las cotizaciones calculadas sobre ese imponible menor.</p>
+          <p>Los <strong>días de licencia médica</strong> son distintos de una ausencia injustificada: ese período lo paga la entidad de salud como subsidio, no el empleador. En la liquidación el empleador descuenta esos días, y el subsidio llega por separado.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-balanza"/></svg></span>
+            <span>Ingreso mínimo mensual (IMM) y UTM</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p>El <strong>IMM</strong> es la remuneración mínima legal por jornada ordinaria completa. Desde el 1 de mayo de 2026 es de <strong>$553.553</strong> para trabajadores de 18 a 65 años; antes, desde enero de 2026, era de $539.000. Para menores de 18 y mayores de 65 el monto es distinto ($412.938), y para fines no remuneracionales es de $356.815.</p>
+          <p>La <strong>UTM</strong> (unidad tributaria mensual) es la unidad con que el SII expresa los tramos del impuesto único. Cambia todos los meses. La calculadora trae la tabla de valores oficiales y la actualiza sola según el mes que elijas.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-balanza"/></svg></span>
+            <span>Cómo se calcula el impuesto único de segunda categoría</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p>Primero se obtiene la <strong>base tributable</strong>: total imponible menos AFP, menos el 7 % legal de salud, menos seguro de cesantía. Luego se busca en qué tramo cae esa base expresada en UTM y se aplica:</p>
+          <p><code style="background:var(--azul-suave);padding:.15rem .4rem;border-radius:5px;color:var(--azul)">impuesto = (base en UTM × factor − rebaja en UTM) × valor de la UTM</code></p>
+          <p>Los tramos y factores están fijados por ley y no cambian mes a mes; lo que cambia es el valor de la UTM. Esta es la tabla vigente:</p>
+          <div class="tabla-envoltura">
+            <table class="tabla-datos">
+              <caption class="ayuda" style="text-align:left;margin-bottom:.4rem">Tabla mensual del impuesto único de segunda categoría, expresada en UTM.</caption>
+              <thead>
+                <tr><th scope="col">Tramo (UTM)</th><th scope="col">Factor</th><th scope="col">Rebaja (UTM)</th></tr>
+              </thead>
+              <tbody id="tabla-tramos"><!-- se llena desde el código, con la misma tabla que usa el cálculo --></tbody>
+            </table>
+          </div>
+          <p class="ayuda" style="margin-top:.6rem">Al usar la misma constante para la tabla que se muestra y para el cálculo, es imposible que una quede desactualizada respecto de la otra.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-sol"/></svg></span>
+            <span>Feriado legal, proporcional y progresivo</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p><strong>Feriado legal:</strong> 15 días hábiles al año con remuneración íntegra, después de un año de servicio (artículo 67).</p>
+          <p><strong>Feriado proporcional:</strong> si el contrato termina antes de completar el año, se pagan los días proporcionales al tiempo trabajado, a razón de 1,25 días hábiles por mes (artículo 73).</p>
+          <p><strong>Feriado progresivo:</strong> con 10 años de trabajo (para distintos empleadores, con tope de 10 años acreditables con empleadores anteriores) se suma un día extra por cada tres nuevos años (artículo 68).</p>
+          <p>Al pagarlos en dinero, los días hábiles se convierten a días corridos incluyendo los sábados, domingos y festivos comprendidos en el período. Este simulador usa la equivalencia de 5 días hábiles por cada 7 corridos.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-firma"/></svg></span>
+            <span>Finiquito: conceptos legales principales</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p><strong>Artículo 161</strong> (necesidades de la empresa o desahucio): corresponde indemnización por años de servicio, equivalente a un mes de la última remuneración por año trabajado y fracción superior a seis meses, con un máximo de 11 años. Además corresponde aviso previo de 30 días; si el empleador no lo da, debe pagar la indemnización sustitutiva de un mes.</p>
+          <p><strong>Artículos 159 y 160</strong> (causales de término y faltas imputables al trabajador): no generan por sí solas estas indemnizaciones, sin perjuicio de pactos más favorables o de que un tribunal califique la causal de otra forma.</p>
+          <p><strong>Base de cálculo (artículo 172):</strong> la última remuneración mensual incluye el sueldo, las regalías y toda cantidad que perciba el trabajador de forma permanente, con un tope de 90 UF. Se excluyen la asignación familiar legal, los pagos por sobretiempo y los beneficios esporádicos o pagados una vez al año, como el aguinaldo.</p>
+          <p><strong>Feriado:</strong> al término siempre deben pagarse los días de feriado legal pendiente y proporcional, sin importar la causal.</p>
+        </div>
+      </details>
+
+      <details>
+        <summary>
+          <span class="acordeon__titulo">
+            <span class="acordeon__icono"><svg width="19" height="19" aria-hidden="true"><use href="#i-candado"/></svg></span>
+            <span>Por qué este simulador no guarda datos de otras personas</span>
+          </span>
+          <svg class="acordeon__flecha" width="17" height="17" aria-hidden="true"><use href="#i-flecha"/></svg>
+        </summary>
+        <div class="acordeon__cuerpo">
+          <p>Una remuneración es un dato personal, y el RUT asociado a ella lo hace identificable. La Ley 19.628 y la Ley 21.719 sobre protección de datos personales exigen una base legal para tratarlos: no basta con tener acceso a ellos.</p>
+          <p>Por eso LiquidApp funciona como <strong>simulador</strong>: todo el cálculo ocurre en el navegador de quien lo usa, no viaja por la red, y los campos de identificación son opcionales. El simulador recuerda los montos de tu última simulación en tu propio dispositivo, pero <strong>nunca guarda nombres ni RUT</strong>, ni siquiera localmente.</p>
+          <p>Para probar la herramienta y para mostrarla en la Feria, usa los <a href="#casos">casos de práctica</a>: son personas ficticias con datos verosímiles.</p>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
+<!-- ====================== Sección B: la calculadora ====================== -->
+<section id="calculadora" class="seccion seccion--blanca no-imprimir">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Sección 2</span>
+      <h2>Calculadora de liquidación de sueldo</h2>
+      <p>Completa los datos del mes. El resultado se actualiza solo, y puedes abrir el detalle del cálculo para ver cada fórmula aplicada.</p>
+    </div>
+
+    <div class="dos-columnas">
+
+      <form id="formulario" novalidate>
+
+        <!-- ------------------ 0. Identificación y período ------------------ -->
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-firma"/></svg> 0. Identificación y período</legend>
+
+          <div class="nota nota--info" style="margin-top:.6rem">
+            <svg width="17" height="17" aria-hidden="true"><use href="#i-info"/></svg>
+            <p>Estos campos son <strong>opcionales</strong> y solo sirven para encabezar el comprobante que se imprime. No se guardan en ninguna parte. Para practicar, usa los <a href="#casos">casos ficticios</a>.</p>
+          </div>
+
+          <div class="rejilla">
+            <label class="campo">
+              <span>Establecimiento o empresa</span>
+              <input type="text" id="empresaNombre" autocomplete="off" placeholder="Ej.: Colegio Ficticio Los Aromos">
+            </label>
+            <label class="campo">
+              <span>RUT del establecimiento</span>
+              <input type="text" id="empresaRut" inputmode="text" autocomplete="off" placeholder="76.123.456-0" data-rut>
+              <span class="ayuda" id="ayuda-empresaRut"></span>
+            </label>
+            <label class="campo ancho-total">
+              <span>Dirección</span>
+              <input type="text" id="empresaDireccion" autocomplete="off" placeholder="Calle 123, Comuna">
+            </label>
+            <label class="campo">
+              <span>Nombre del trabajador o trabajadora</span>
+              <input type="text" id="trabajadorNombre" autocomplete="off" placeholder="Ej.: Camila Rojas Fuentes">
+            </label>
+            <label class="campo">
+              <span>RUT del trabajador o trabajadora</span>
+              <input type="text" id="trabajadorRut" inputmode="text" autocomplete="off" placeholder="12.345.678-5" data-rut>
+              <span class="ayuda" id="ayuda-trabajadorRut"></span>
+            </label>
+            <label class="campo ancho-total">
+              <span>Cargo o función</span>
+              <input type="text" id="trabajadorCargo" autocomplete="off" placeholder="Docente, asistente de la educación, etc.">
+            </label>
+
+            <label class="campo">
+              <span>Mes de la liquidación</span>
+              <select id="mes">
+                <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+                <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+                <option value="7">Julio</option><option value="8">Agosto</option><option value="9" selected>Septiembre</option>
+                <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+              </select>
+            </label>
+            <label class="campo">
+              <span>Año</span>
+              <select id="anio">
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </label>
+
+            <label class="campo">
+              <span>Días trabajados y pagados por el empleador</span>
+              <input type="number" id="diasTrabajados" min="0" max="30" step="1" value="30">
+              <span class="ayuda">El mes de remuneraciones siempre tiene 30 días.</span>
+            </label>
+            <label class="campo">
+              <span>Días de licencia médica</span>
+              <input type="number" id="diasLicencia" min="0" max="30" step="1" value="0">
+              <span class="ayuda">Los paga la entidad de salud como subsidio, no el empleador.</span>
+            </label>
+            <label class="campo">
+              <span>Días de ausencia sin goce de sueldo</span>
+              <input type="number" id="diasAusencia" min="0" max="30" step="1" value="0">
+              <span class="ayuda">Inasistencias injustificadas o permisos sin goce de remuneración.</span>
+            </label>
+            <div class="campo">
+              <span class="campo__etiqueta">Reparto del mes</span>
+              <p class="total-linea" style="margin-top:0"><span>Días asignados</span><strong><span id="out-diasSuma" class="num">30</span> de 30</strong></p>
+            </div>
+          </div>
+
+          <p id="alerta-dias" class="nota nota--error oculto" role="alert" style="margin-top:.9rem">
+            <svg width="17" height="17" aria-hidden="true"><use href="#i-alerta"/></svg>
+            <span id="alerta-dias-texto"></span>
+          </p>
+        </fieldset>
+
+        <!-- ---------------------- 1. Haberes imponibles ---------------------- -->
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-monedas"/></svg> 1. Haberes imponibles</legend>
+
+          <div class="rejilla">
+            <label class="campo">
+              <span>Sueldo base mensual</span>
+              <span class="prefijo"><span>$</span><input type="text" id="sueldoBase" inputmode="numeric" data-moneda value="900000"></span>
+              <span class="ayuda">Por mes completo. El simulador lo prorratea según los días trabajados.</span>
+            </label>
+
+            <label class="campo">
+              <span>Asignación de título</span>
+              <span class="prefijo"><span>$</span><input type="text" id="asignacionTitulo" inputmode="numeric" data-moneda value="0"></span>
+              <span class="ayuda">Bono por título profesional o técnico, si corresponde. También se prorratea.</span>
+            </label>
+
+            <label class="campo">
+              <span>Gratificación legal</span>
+              <select id="tipoGratificacion">
+                <option value="auto" selected>Cálculo automático (25 %, tope 4,75 IMM)</option>
+                <option value="manual">Monto fijo pactado</option>
+                <option value="ninguna">Sin gratificación</option>
+              </select>
+            </label>
+
+            <label class="campo oculto" id="envoltura-gratManual">
+              <span>Monto de la gratificación</span>
+              <span class="prefijo"><span>$</span><input type="text" id="gratificacionManual" inputmode="numeric" data-moneda value="0"></span>
+            </label>
+
+            <div class="subpanel ancho-total">
+              <p style="font-weight:600;font-size:.9rem;margin-bottom:.55rem">Horas extras</p>
+              <div class="rejilla rejilla--tres" style="margin-top:0">
+                <label class="campo">
+                  <span>Jornada semanal</span>
+                  <select id="jornadaSemanal">
+                    <option value="45">45 horas (hasta abril 2024)</option>
+                    <option value="44">44 horas (abril 2024 a abril 2026)</option>
+                    <option value="42" selected>42 horas (desde abril 2026)</option>
+                    <option value="40">40 horas (desde abril 2028)</option>
+                  </select>
+                </label>
+                <label class="campo">
+                  <span>Cantidad de horas extras</span>
+                  <input type="number" id="cantidadHorasExtras" min="0" step="0.5" value="0">
+                </label>
+                <label class="campo">
+                  <span>Recargo</span>
+                  <select id="recargoHoraExtra">
+                    <option value="1.5" selected>50 % (mínimo legal)</option>
+                    <option value="2">100 % (pactado)</option>
+                  </select>
+                </label>
+              </div>
+              <p class="total-linea"><span>Valor hora extra: <span id="out-valorHoraExtra" class="num">$ 0</span></span><strong id="out-horasExtras" class="num">$ 0</strong></p>
+            </div>
+
+            <div class="subpanel ancho-total">
+              <p style="font-weight:600;font-size:.9rem">¿Recibe bonos imponibles?</p>
+              <div class="opciones">
+                <label><input type="radio" name="recibeBonos" value="si"> Sí</label>
+                <label><input type="radio" name="recibeBonos" value="no" checked> No</label>
+              </div>
+              <div id="envoltura-bonos" class="oculto" style="margin-top:.9rem;border-top:1px solid var(--borde);padding-top:.9rem">
+                <div class="rejilla" style="margin-top:0">
+                  <label class="campo"><span>Bono de responsabilidad profesional (BRP)</span><span class="prefijo"><span>$</span><input type="text" id="bonoBrp" inputmode="numeric" data-moneda value="0"></span></label>
+                  <label class="campo"><span>Bono de jefatura</span><span class="prefijo"><span>$</span><input type="text" id="bonoJefatura" inputmode="numeric" data-moneda value="0"></span></label>
+                  <label class="campo"><span>Bono de reconocimiento</span><span class="prefijo"><span>$</span><input type="text" id="bonoReconocimiento" inputmode="numeric" data-moneda value="0"></span></label>
+                  <label class="campo"><span>Tramo competente: experiencia</span><span class="prefijo"><span>$</span><input type="text" id="bonoExperiencia" inputmode="numeric" data-moneda value="0"></span></label>
+                  <label class="campo"><span>Tramo competente: progresión</span><span class="prefijo"><span>$</span><input type="text" id="bonoProgresion" inputmode="numeric" data-moneda value="0"></span></label>
+                  <label class="campo"><span>Bono por alumnos prioritarios</span><span class="prefijo"><span>$</span><input type="text" id="bonoPrioritarios" inputmode="numeric" data-moneda value="0"></span></label>
+                  <label class="campo ancho-total"><span>Otros bonos imponibles</span><span class="prefijo"><span>$</span><input type="text" id="bonoOtros" inputmode="numeric" data-moneda value="0"></span></label>
+                </div>
+                <p class="total-linea"><span>Total bonos imponibles</span><strong id="out-totalBonos" class="num">$ 0</strong></p>
+              </div>
+            </div>
+
+            <div class="subpanel ancho-total">
+              <p style="font-weight:600;font-size:.9rem;margin-bottom:.55rem">Aguinaldos</p>
+              <div class="rejilla" style="margin-top:0">
+                <label class="campo"><span>Aguinaldo de Fiestas Patrias</span><span class="prefijo"><span>$</span><input type="text" id="aguinaldoPatrias" inputmode="numeric" data-moneda value="0"></span></label>
+                <label class="campo"><span>Aguinaldo de Navidad</span><span class="prefijo"><span>$</span><input type="text" id="aguinaldoNavidad" inputmode="numeric" data-moneda value="0"></span></label>
+              </div>
+              <label class="campo" style="margin-top:.8rem">
+                <span>Tratamiento del aguinaldo</span>
+                <select id="tratamientoAguinaldo">
+                  <option value="imponible" selected>Imponible y tributable (aguinaldo pactado o contractual)</option>
+                  <option value="noImponible">No imponible ni tributable (aguinaldo legal del sector público)</option>
+                </select>
+                <span class="ayuda">Los aguinaldos que fija la ley para el sector público están exentos. Un aguinaldo pactado con el empleador es remuneración y sí cotiza. Nunca entra en la base de la gratificación, porque no es una remuneración mensual permanente.</span>
+              </label>
+            </div>
+          </div>
+
+          <p class="total-linea"><span>TOTAL IMPONIBLE</span><strong id="out-totalImponible" class="num">$ 0</strong></p>
+        </fieldset>
+
+        <!-- -------------------- 2. Haberes no imponibles -------------------- -->
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-premio"/></svg> 2. Haberes no imponibles</legend>
+          <div class="rejilla">
+            <label class="campo"><span>Asignación de colación</span><span class="prefijo"><span>$</span><input type="text" id="colacion" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Asignación de movilización</span><span class="prefijo"><span>$</span><input type="text" id="movilizacion" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Viáticos</span><span class="prefijo"><span>$</span><input type="text" id="viaticos" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Asignación familiar y otras no imponibles</span><span class="prefijo"><span>$</span><input type="text" id="asignacionFamiliar" inputmode="numeric" data-moneda value="0"></span></label>
+          </div>
+          <p class="total-linea"><span>TOTAL NO IMPONIBLE</span><strong id="out-totalNoImponible" class="num">$ 0</strong></p>
+        </fieldset>
+
+        <!-- ------------------- 3. Descuentos previsionales ------------------- -->
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-alcancia"/></svg> 3. Descuentos legales previsionales</legend>
+          <div class="rejilla">
+            <label class="campo">
+              <span>AFP</span>
+              <select id="afp">
+                <option value="0.1144">Capital — 11,44 %</option>
+                <option value="0.1144">Cuprum — 11,44 %</option>
+                <option value="0.1127" selected>Hábitat — 11,27 %</option>
+                <option value="0.1116">PlanVital — 11,16 %</option>
+                <option value="0.1145">Provida — 11,45 %</option>
+                <option value="0.1058">Modelo — 10,58 %</option>
+                <option value="0.1049">Uno — 10,49 %</option>
+              </select>
+              <span class="ayuda">Incluye el 10 % obligatorio más la comisión de la administradora.</span>
+            </label>
+
+            <label class="campo">
+              <span>Sistema de salud</span>
+              <select id="saludTipo">
+                <option value="fonasa" selected>Fonasa (7 %)</option>
+                <option value="isapre">Isapre (plan pactado)</option>
+              </select>
+            </label>
+
+            <label class="campo oculto" id="envoltura-isapreMoneda">
+              <span>Moneda del plan</span>
+              <select id="isapreMoneda">
+                <option value="uf" selected>UF</option>
+                <option value="clp">Pesos</option>
+              </select>
+            </label>
+
+            <label class="campo oculto" id="envoltura-isapreValor">
+              <span>Valor del plan pactado</span>
+              <input type="number" id="isapreValor" min="0" step="0.001" value="0">
+              <span class="ayuda">Si resulta menor al 7 % legal, se descuenta el 7 %.</span>
+            </label>
+
+            <label class="campo">
+              <span>Tipo de contrato (seguro de cesantía)</span>
+              <select id="tipoContrato">
+                <option value="0.006" selected>Indefinido — el trabajador aporta 0,6 %</option>
+                <option value="0">Plazo fijo o por obra — el trabajador aporta 0 %</option>
+              </select>
+            </label>
+
+            <label class="campo">
+              <span>Aplicar topes imponibles</span>
+              <select id="aplicarTopes">
+                <option value="si" selected>Sí (como en la liquidación real)</option>
+                <option value="no">No (solo para comparar)</option>
+              </select>
+              <span class="ayuda">Limita la base de AFP, salud y cesantía a los topes legales en UF.</span>
+            </label>
+          </div>
+
+          <!-- Parámetros legales, visibles y editables -->
+          <div class="parametros" style="margin-top:1.1rem">
+            <h3><svg width="16" height="16" aria-hidden="true" style="vertical-align:-2px"><use href="#i-balanza"/></svg> Parámetros legales del período</h3>
+            <p class="ayuda" style="margin-bottom:.8rem">El simulador los completa solo según el mes y año elegidos. Puedes editarlos cuando cambie la normativa: <strong>este es el único lugar donde hay que actualizar valores</strong>.</p>
+            <div class="rejilla rejilla--tres" style="margin-top:0">
+              <label class="campo">
+                <span>Valor de la UTM</span>
+                <span class="prefijo"><span>$</span><input type="text" id="utm" inputmode="numeric" data-moneda value="71721"></span>
+                <span class="ayuda" id="ayuda-utm"></span>
+              </label>
+              <label class="campo">
+                <span>Valor de la UF</span>
+                <span class="prefijo"><span>$</span><input type="text" id="uf" inputmode="numeric" data-moneda value="40880"></span>
+                <span class="ayuda" id="ayuda-uf"></span>
+              </label>
+              <label class="campo">
+                <span>Ingreso mínimo mensual</span>
+                <span class="prefijo"><span>$</span><input type="text" id="imm" inputmode="numeric" data-moneda value="553553"></span>
+                <span class="ayuda" id="ayuda-imm"></span>
+              </label>
+              <label class="campo">
+                <span>Tope imponible AFP y salud (UF)</span>
+                <input type="number" id="topeAfpUf" min="0" step="0.1" value="90">
+              </label>
+              <label class="campo">
+                <span>Tope imponible cesantía (UF)</span>
+                <input type="number" id="topeCesantiaUf" min="0" step="0.1" value="135.2">
+              </label>
+              <div class="campo">
+                <span class="campo__etiqueta">Equivalencia en pesos</span>
+                <p class="ayuda" style="margin-top:.35rem">AFP y salud: <strong id="out-topeAfpPesos" class="num">—</strong><br>Cesantía: <strong id="out-topeCesantiaPesos" class="num">—</strong></p>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- ------------------ 4. Descuentos voluntarios ------------------ -->
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-tope"/></svg> 4. Descuentos voluntarios y otros</legend>
+          <div class="rejilla">
+            <label class="campo"><span>Bienestar</span><span class="prefijo"><span>$</span><input type="text" id="descBienestar" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Seguro complementario de salud</span><span class="prefijo"><span>$</span><input type="text" id="descSeguroSalud" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Préstamo CAAF o caja de compensación</span><span class="prefijo"><span>$</span><input type="text" id="descPrestamo" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Cuota sindical</span><span class="prefijo"><span>$</span><input type="text" id="descSindical" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Ahorro previsional voluntario (APV)</span><span class="prefijo"><span>$</span><input type="text" id="descApv" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo"><span>Otros descuentos</span><span class="prefijo"><span>$</span><input type="text" id="descOtros" inputmode="numeric" data-moneda value="0"></span></label>
+            <label class="campo ancho-total"><span>Anticipo de sueldo</span><span class="prefijo"><span>$</span><input type="text" id="anticipo" inputmode="numeric" data-moneda value="0"></span>
+              <span class="ayuda">Se resta al final, después del subtotal, porque ya fue pagado durante el mes.</span></label>
+          </div>
+          <p class="total-linea"><span>TOTAL OTROS DESCUENTOS (sin anticipo)</span><strong id="out-totalOtros" class="num">$ 0</strong></p>
+
+          <p id="alerta-tope-legal" class="nota nota--ambar oculto" role="status" style="margin-top:.9rem">
+            <svg width="17" height="17" aria-hidden="true"><use href="#i-alerta"/></svg>
+            <span id="alerta-tope-legal-texto"></span>
+          </p>
+        </fieldset>
+
+        <div style="display:flex;flex-wrap:wrap;gap:.6rem">
+          <button type="button" class="btn btn--claro btn--pequeno" id="btn-limpiar">
+            <svg width="15" height="15" aria-hidden="true"><use href="#i-borrar"/></svg> Limpiar todo
+          </button>
+          <button type="button" class="btn btn--claro btn--pequeno" id="btn-pruebas">
+            <svg width="15" height="15" aria-hidden="true"><use href="#i-escudo"/></svg> Verificar el motor de cálculo
+          </button>
+        </div>
+        <p id="salida-pruebas" class="nota nota--verde oculto" role="status" style="margin-top:.8rem"><span></span></p>
+      </form>
+
+      <!-- ------------------------- Panel de resultado ------------------------- -->
+      <aside class="panel-resultado">
+        <div class="resultado">
+          <div class="resultado__cabecera">
+            <p>Resumen de la liquidación</p>
+            <p>Desglose final</p>
+          </div>
+          <div class="resultado__cuerpo">
+            <div aria-live="polite">
+              <div class="resultado__fila"><span>Total imponible</span><span id="r-imponible" class="num">$ 0</span></div>
+              <div class="resultado__fila"><span>Total no imponible</span><span id="r-noImponible" class="num">$ 0</span></div>
+              <div class="resultado__fila"><span>Total haberes (bruto)</span><span id="r-haberes" class="num">$ 0</span></div>
+              <hr class="resultado__separador">
+              <div class="resultado__fila"><span>AFP</span><span id="r-afp" class="num rojo">$ 0</span></div>
+              <div class="resultado__fila"><span>Salud</span><span id="r-salud" class="num rojo">$ 0</span></div>
+              <div class="resultado__fila"><span>Seguro de cesantía</span><span id="r-cesantia" class="num rojo">$ 0</span></div>
+              <div class="resultado__fila"><span>Impuesto único</span><span id="r-impuesto" class="num rojo">$ 0</span></div>
+              <div class="resultado__fila"><span>Otros descuentos</span><span id="r-otros" class="num rojo">$ 0</span></div>
+              <hr class="resultado__separador">
+              <div class="resultado__fila"><span>Subtotal</span><span id="r-subtotal" class="num">$ 0</span></div>
+              <div class="resultado__fila"><span>Anticipo de sueldo</span><span id="r-anticipo" class="num rojo">$ 0</span></div>
+
+              <div class="liquido">
+                <p>Líquido a pagar</p>
+                <p id="r-liquido" class="num">$ 0</p>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn--verde btn--bloque" id="btn-imprimir" style="margin-top:.7rem">
+              <svg width="17" height="17" aria-hidden="true"><use href="#i-imprimir"/></svg> Imprimir o guardar en PDF
+            </button>
+
+            <details class="pasos">
+              <summary>
+                <svg width="15" height="15" aria-hidden="true"><use href="#i-flecha"/></svg>
+                ¿Cómo se calculó? Ver paso a paso
+              </summary>
+              <ol id="detalle-pasos"></ol>
+            </details>
+
+            <p class="descargo">
+              Cálculo referencial con fines educativos. No considera situaciones especiales como rentas de más de un empleador, APV con beneficio tributario, retenciones judiciales, ni convenios particulares. No constituye asesoría legal, contable ni tributaria: verifica siempre con tu departamento de remuneraciones.
+            </p>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</section>
+
+<!-- ==================== Sección C: casos de práctica ==================== -->
+<section id="casos" class="seccion no-imprimir">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Sección 3</span>
+      <h2>Casos de práctica</h2>
+      <p>Tres situaciones con personas ficticias para probar el simulador y para demostrarlo en la Feria sin exponer datos de nadie. Al elegir uno se completa la calculadora y la página se desplaza al resultado.</p>
+    </div>
+    <div class="casos" id="lista-casos"><!-- se generan desde el código --></div>
+  </div>
+</section>
+
+<!-- ======================= Sección D: el finiquito ======================= -->
+<section id="finiquito" class="seccion seccion--blanca no-imprimir">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <span class="eyebrow">Sección 4</span>
+      <h2>Calcula tu finiquito</h2>
+      <p>Estimación referencial de las indemnizaciones y el feriado que corresponden al término del contrato. Revisa siempre el contrato, los feriados ya tomados y cualquier pacto individual o colectivo más favorable.</p>
+    </div>
+
+    <div class="dos-columnas">
+      <form id="form-finiquito" novalidate>
+
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-calendario"/></svg> 1. Fechas y causal de término</legend>
+          <div class="nota nota--info" style="margin-top:.6rem">
+            <svg width="17" height="17" aria-hidden="true"><use href="#i-info"/></svg>
+            <p>Para un cálculo más preciso ten a mano las últimas liquidaciones de sueldo y el contrato.</p>
+          </div>
+          <div class="rejilla">
+            <label class="campo"><span>Fecha de inicio del contrato</span><input type="date" id="fnInicio"></label>
+            <label class="campo"><span>Fecha de término del contrato</span><input type="date" id="fnTermino"></label>
+            <label class="campo ancho-total">
+              <span>Causal de término</span>
+              <select id="fnCausal">
+                <option value="" selected>Selecciona una causal</option>
+                <option value="159">Artículo 159 — mutuo acuerdo, renuncia, vencimiento del plazo u otra</option>
+                <option value="160">Artículo 160 — incumplimiento grave imputable al trabajador</option>
+                <option value="161">Artículo 161 — necesidades de la empresa o desahucio</option>
+              </select>
+            </label>
+            <label class="campo ancho-total oculto" id="envoltura-aviso">
+              <span>¿El empleador avisó con 30 días de anticipación?</span>
+              <select id="fnAviso">
+                <option value="no" selected>No avisó, corresponde la indemnización sustitutiva de un mes</option>
+                <option value="si">Sí avisó con 30 días, no corresponde indemnización sustitutiva</option>
+              </select>
+            </label>
+          </div>
+          <p id="fn-alerta-fechas" class="nota nota--error oculto" role="alert" style="margin-top:.9rem">
+            <svg width="17" height="17" aria-hidden="true"><use href="#i-alerta"/></svg>
+            <span id="fn-alerta-fechas-texto"></span>
+          </p>
+        </fieldset>
+
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-monedas"/></svg> 2. Última remuneración mensual</legend>
+          <div class="nota nota--info" style="margin-top:.6rem">
+            <svg width="17" height="17" aria-hidden="true"><use href="#i-info"/></svg>
+            <p>El artículo 172 considera el sueldo y toda cantidad que se perciba de forma permanente, incluidas colación y movilización. Se excluyen la asignación familiar legal, las horas extras y los beneficios esporádicos como el aguinaldo.</p>
+          </div>
+
+          <label class="campo" style="margin-top:.9rem">
+            <span>Tipo de remuneración</span>
+            <select id="fnTipoSalario">
+              <option value="fijo" selected>Fija — se usa la última remuneración mensual</option>
+              <option value="variable">Variable — se promedian los últimos 3 meses</option>
+            </select>
+          </label>
+
+          <div id="envoltura-fija">
+            <div class="rejilla">
+              <label class="campo"><span>Sueldo base</span><span class="prefijo"><span>$</span><input type="text" id="fnSueldoBase" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Gratificación mensual</span><span class="prefijo"><span>$</span><input type="text" id="fnGratificacion" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Bonos permanentes imponibles</span><span class="prefijo"><span>$</span><input type="text" id="fnBonos" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Colación</span><span class="prefijo"><span>$</span><input type="text" id="fnColacion" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Movilización</span><span class="prefijo"><span>$</span><input type="text" id="fnMovilizacion" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Cheque restaurante</span><span class="prefijo"><span>$</span><input type="text" id="fnChequeRestaurante" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Desgaste de herramientas</span><span class="prefijo"><span>$</span><input type="text" id="fnDesgaste" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Otras asignaciones permanentes</span><span class="prefijo"><span>$</span><input type="text" id="fnOtras" inputmode="numeric" data-moneda value="0"></span></label>
+            </div>
+          </div>
+
+          <div id="envoltura-variable" class="oculto">
+            <p class="ayuda" style="margin-top:.8rem">Escribe la remuneración total de cada uno de los tres últimos meses trabajados completos.</p>
+            <div class="rejilla rejilla--tres" style="margin-top:.5rem">
+              <label class="campo"><span>Mes 1</span><span class="prefijo"><span>$</span><input type="text" id="fnMes1" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Mes 2</span><span class="prefijo"><span>$</span><input type="text" id="fnMes2" inputmode="numeric" data-moneda value="0"></span></label>
+              <label class="campo"><span>Mes 3</span><span class="prefijo"><span>$</span><input type="text" id="fnMes3" inputmode="numeric" data-moneda value="0"></span></label>
+            </div>
+          </div>
+
+          <p class="total-linea"><span>Base de cálculo (antes del tope de 90 UF)</span><strong id="fn-base" class="num">$ 0</strong></p>
+        </fieldset>
+
+        <fieldset class="grupo">
+          <legend><svg width="17" height="17" aria-hidden="true"><use href="#i-sol"/></svg> 3. Feriado</legend>
+          <div class="rejilla">
+            <label class="campo">
+              <span>Días hábiles de feriado pendientes de períodos anteriores</span>
+              <input type="number" id="fnFeriadoPendiente" min="0" step="0.5" value="0">
+              <span class="ayuda">Incluye aquí los días de feriado progresivo que no se hayan tomado.</span>
+            </label>
+            <div class="campo">
+              <span class="campo__etiqueta">Feriado proporcional calculado</span>
+              <p class="total-linea" style="margin-top:0"><span>Días hábiles</span><strong id="fn-diasProporcional" class="num">0</strong></p>
+              <span class="ayuda">1,25 días hábiles por cada mes desde la última anualidad cumplida.</span>
+            </div>
+          </div>
+        </fieldset>
+      </form>
+
+      <aside class="panel-resultado">
+        <div class="resultado">
+          <div class="resultado__cabecera">
+            <p>Estimación referencial</p>
+            <p>Finiquito</p>
+          </div>
+          <div class="resultado__cuerpo">
+            <div aria-live="polite">
+              <div class="resultado__fila"><span>Tiempo de servicio</span><span id="fn-servicio">—</span></div>
+              <div class="resultado__fila"><span>Años indemnizables</span><span id="fn-anios">0</span></div>
+              <hr class="resultado__separador">
+              <div class="resultado__fila"><span>Indemnización por años de servicio</span><span id="fn-ias" class="num">$ 0</span></div>
+              <div class="resultado__fila"><span>Indemnización sustitutiva del aviso previo</span><span id="fn-aviso-monto" class="num">$ 0</span></div>
+              <div class="resultado__fila"><span>Feriado pendiente y proporcional</span><span id="fn-feriado" class="num">$ 0</span></div>
+
+              <div class="liquido">
+                <p>Total estimado</p>
+                <p id="fn-total" class="num">$ 0</p>
+              </div>
+            </div>
+
+            <details class="pasos">
+              <summary>
+                <svg width="15" height="15" aria-hidden="true"><use href="#i-flecha"/></svg>
+                ¿Cómo se calculó? Ver paso a paso
+              </summary>
+              <ol id="fn-pasos"></ol>
+            </details>
+
+            <p class="descargo">
+              Las indemnizaciones del artículo 163 no pagan cotizaciones ni impuesto. El feriado, en cambio, sí es remuneración y tributa. Esta estimación no incluye descuentos ni sumas adeudadas del último mes trabajado.
+            </p>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ======================================================================
+     Comprobante imprimible. Solo aparece al imprimir o guardar como PDF.
+     ====================================================================== -->
+<div id="comprobante" class="comprobante">
+  <table class="tabla-liq" style="margin-bottom:6px">
+    <tr>
+      <td style="width:62%"><strong>EMPRESA:</strong> <span id="p-empresaNombre"></span></td>
+      <td rowspan="3" style="width:38%">
+        <div class="marca-impresa">
+          <svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true">
+            <rect width="40" height="40" rx="9" fill="#003875"/>
+            <rect x="9" y="8" width="14" height="3" rx="1.5" fill="#fff"/>
+            <rect x="9" y="14" width="10" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+            <rect x="19" y="19" width="14" height="15" rx="3" fill="#00A859"/>
+            <rect x="22" y="22" width="8" height="4" rx="1" fill="#fff"/>
+          </svg>
+          <strong style="font-size:14px;color:#003875">LiquidApp</strong>
+        </div>
+      </td>
+    </tr>
+    <tr><td><strong>DIRECCIÓN:</strong> <span id="p-empresaDireccion"></span></td></tr>
+    <tr><td><strong>RUT:</strong> <span id="p-empresaRut"></span></td></tr>
+  </table>
+
+  <p style="text-align:right;font-size:11px;margin:0 0 6px">
+    <strong>PERÍODO:</strong> <span id="p-periodo"></span> &nbsp;·&nbsp; <strong>EMITIDO:</strong> <span id="p-fecha"></span>
+  </p>
+
+  <h2 style="text-align:center;font-size:15px;margin:10px 0">LIQUIDACIÓN DE SUELDO</h2>
+  <p style="text-align:center;font-size:10px;margin:0 0 8px;color:#444">Documento generado por un simulador educativo. No reemplaza la liquidación oficial emitida por el empleador.</p>
+
+  <table class="tabla-liq" style="margin-bottom:8px">
+    <tr>
+      <td style="width:62%"><strong>NOMBRE:</strong> <span id="p-trabajadorNombre"></span></td>
+      <td><strong>CARGO:</strong> <span id="p-trabajadorCargo"></span></td>
+    </tr>
+    <tr>
+      <td><strong>RUT:</strong> <span id="p-trabajadorRut"></span></td>
+      <td><strong>DÍAS TRABAJADOS:</strong> <span id="p-diasTrabajados"></span></td>
+    </tr>
+    <tr>
+      <td><strong>AFP:</strong> <span id="p-afp"></span></td>
+      <td><strong>DÍAS DE LICENCIA:</strong> <span id="p-diasLicencia"></span></td>
+    </tr>
+    <tr>
+      <td><strong>SALUD:</strong> <span id="p-salud"></span></td>
+      <td><strong>DÍAS DE AUSENCIA:</strong> <span id="p-diasAusencia"></span></td>
+    </tr>
+  </table>
+
+  <table class="tabla-liq">
+    <tr><th colspan="2">HABERES</th><th colspan="2">DESCUENTOS</th></tr>
+    <tr><td colspan="2" style="background:#f7f9fc"><strong>IMPONIBLES</strong></td><td colspan="2" style="background:#f7f9fc"><strong>LEGALES</strong></td></tr>
+    <tr><td>Sueldo del mes</td><td class="monto" id="p-h-sueldo"></td><td>Cotización AFP</td><td class="monto" id="p-d-afp"></td></tr>
+    <tr><td>Gratificación mensual</td><td class="monto" id="p-h-grat"></td><td>Cotización de salud</td><td class="monto" id="p-d-salud"></td></tr>
+    <tr><td>Asignación de título</td><td class="monto" id="p-h-titulo"></td><td>Seguro de cesantía</td><td class="monto" id="p-d-cesantia"></td></tr>
+    <tr><td>Horas extras</td><td class="monto" id="p-h-horasExtras"></td><td>Impuesto único</td><td class="monto" id="p-d-impuesto"></td></tr>
+    <tr><td>Bonos imponibles</td><td class="monto" id="p-h-bonos"></td><td></td><td></td></tr>
+    <tr><td>Aguinaldos</td><td class="monto" id="p-h-aguinaldos"></td><td></td><td></td></tr>
+    <tr class="fila-total"><td>TOTAL IMPONIBLE</td><td class="monto" id="p-h-totalImp"></td><td>TOTAL DESCUENTOS LEGALES</td><td class="monto" id="p-d-totalLegal"></td></tr>
+
+    <tr><td colspan="2" style="background:#f7f9fc"><strong>NO IMPONIBLES</strong></td><td colspan="2" style="background:#f7f9fc"><strong>OTROS DESCUENTOS</strong></td></tr>
+    <tr><td>Asignación de colación</td><td class="monto" id="p-h-colacion"></td><td>Bienestar</td><td class="monto" id="p-d-bienestar"></td></tr>
+    <tr><td>Asignación de movilización</td><td class="monto" id="p-h-movilizacion"></td><td>Préstamo CAAF</td><td class="monto" id="p-d-prestamo"></td></tr>
+    <tr><td>Viáticos</td><td class="monto" id="p-h-viaticos"></td><td>Cuota sindical</td><td class="monto" id="p-d-sindical"></td></tr>
+    <tr><td>Asignación familiar y otras</td><td class="monto" id="p-h-familiar"></td><td>Seguro complementario</td><td class="monto" id="p-d-seguroSalud"></td></tr>
+    <tr><td></td><td></td><td>APV</td><td class="monto" id="p-d-apv"></td></tr>
+    <tr><td></td><td></td><td>Otros descuentos</td><td class="monto" id="p-d-otros"></td></tr>
+    <tr class="fila-total"><td>TOTAL NO IMPONIBLE</td><td class="monto" id="p-h-totalNoImp"></td><td>TOTAL OTROS DESCUENTOS</td><td class="monto" id="p-d-totalOtros"></td></tr>
+
+    <tr class="fila-total"><td>TOTAL HABERES</td><td class="monto" id="p-totalHaberes"></td><td>TOTAL DESCUENTOS</td><td class="monto" id="p-totalDescuentos"></td></tr>
+    <tr><td colspan="2"></td><td>Subtotal</td><td class="monto" id="p-subtotal"></td></tr>
+    <tr><td colspan="2"></td><td>Anticipo de sueldo</td><td class="monto" id="p-anticipo"></td></tr>
+    <tr class="fila-total"><td colspan="2"></td><td style="font-size:12px">LÍQUIDO A PAGAR</td><td class="monto" id="p-liquido" style="font-size:12px"></td></tr>
+  </table>
+
+  <div style="margin-top:52px;text-align:center">
+    <div style="border-top:1px solid #444;width:230px;margin:0 auto"></div>
+    <p style="margin:4px 0 0;font-size:11px">FIRMA DEL TRABAJADOR O TRABAJADORA</p>
+  </div>
+</div>
+
+<!-- Barra fija con el resultado, solo en pantallas pequeñas -->
+<div class="barra-movil no-imprimir" aria-hidden="true">
+  <div>
+    <p>Líquido a pagar</p>
+    <p id="r-liquido-movil" class="num">$ 0</p>
+  </div>
+  <a class="btn btn--verde btn--pequeno" href="#calculadora">Ver detalle</a>
+</div>
+
+<footer class="pie no-imprimir">
+  <div class="contenedor">
+    <div class="pie__fila">
+      <p style="margin:0">© 2026 <strong style="color:#fff">LiquidApp</strong> — simulador educativo de remuneraciones.</p>
+      <p style="margin:0">Feria Técnico Profesional 2026 · IV°A Administración mención Recursos Humanos</p>
+    </div>
+    <div class="pie__fuentes">
+      <p style="margin:0 0 .35rem"><strong style="color:#fff">Fuentes de los parámetros usados:</strong></p>
+      <p style="margin:0">
+        Código del Trabajo y <a href="https://www.dt.gob.cl">Dirección del Trabajo</a> (artículos 41 a 50, 67 a 73, 159 a 163 y 172) ·
+        <a href="https://www.sii.cl">Servicio de Impuestos Internos</a> (tabla del impuesto único y valor de la UTM) ·
+        <a href="https://www.spensiones.cl">Superintendencia de Pensiones</a> (topes imponibles) ·
+        <a href="https://www.previred.com">Previred</a> (indicadores previsionales y comisiones de AFP) ·
+        <a href="https://www.bcentral.cl">Banco Central</a> (valor de la UF) ·
+        Ley 21.561 sobre reducción de la jornada laboral.
+      </p>
+      <p style="margin:.5rem 0 0">No constituye asesoría legal, contable ni tributaria.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ==========================================================================
+   LiquidApp — motor de cálculo
+   --------------------------------------------------------------------------
+   El código está separado en tres capas, y conviene mantenerlo así:
+
+     1. PARAMETROS  → los valores que cambian con la ley. Se actualizan aquí
+                      y en ningún otro lugar del archivo.
+     2. Funciones de cálculo → reciben datos y devuelven resultados. No tocan
+                      la página. Por eso se pueden probar solas (botón
+                      "Verificar el motor de cálculo").
+     3. Capa de pantalla → lee los campos, llama al cálculo y pinta.
+
+   Si mañana cambia el tope imponible, se edita PARAMETROS y listo.
+   ========================================================================== */
+
+/* ============================== 1. PARÁMETROS ============================== */
+
+const PARAMETROS = {
+  actualizado: 'septiembre de 2026',
+
+  /* Valor de la UTM publicado por el SII, mes a mes. */
+  utm: {
+    '2025-1':66236, '2025-2':66467, '2025-3':66467, '2025-4':66467,
+    '2025-5':66467, '2025-6':67083, '2025-7':67294, '2025-8':67873,
+    '2025-9':68647, '2025-10':68647,'2025-11':69265,'2025-12':69265,
+    '2026-1':69751, '2026-2':69611, '2026-3':69889, '2026-4':69889,
+    '2026-5':70588, '2026-6':71506, '2026-7':71649, '2026-8':71649,
+    '2026-9':71721
+  },
+
+  /* Ingreso mínimo mensual para trabajadores de 18 a 65 años.
+     $539.000 desde enero de 2026 y $553.553 desde el 1 de mayo de 2026. */
+  imm: {
+    '2025-1':500000,  '2025-2':500000,  '2025-3':500000,  '2025-4':500000,
+    '2025-5':529000,  '2025-6':529000,  '2025-7':529000,  '2025-8':529000,
+    '2025-9':529000,  '2025-10':529000, '2025-11':529000, '2025-12':529000,
+    '2026-1':539000,  '2026-2':539000,  '2026-3':539000,  '2026-4':539000,
+    '2026-5':553553,  '2026-6':553553,  '2026-7':553553,  '2026-8':553553,
+    '2026-9':553553,  '2026-10':553553, '2026-11':553553, '2026-12':553553
+  },
+
+  /* Valor aproximado de la UF al inicio de cada mes (Banco Central).
+     La UF cambia todos los días: este valor es una referencia editable. */
+  uf: {
+    '2025-9':39177, '2025-10':39306, '2025-11':39494, '2025-12':39615,
+    '2026-1':39706, '2026-2':39875, '2026-3':40050, '2026-4':40290,
+    '2026-5':40480, '2026-6':40610, '2026-7':40705, '2026-8':40810,
+    '2026-9':40875
+  },
+
+  /* Topes imponibles anuales fijados por la Superintendencia de Pensiones. */
+  topes: {
+    2025:{ afpSalud:87.8, cesantia:131.9 },
+    2026:{ afpSalud:90.0, cesantia:135.2 }
+  },
+
+  /* Tabla mensual del impuesto único de segunda categoría, en UTM.
+     Los tramos y factores los fija la ley; solo cambia el valor de la UTM. */
+  tramosImpuesto: [
+    { hasta:13.5,     factor:0,     rebaja:0     },
+    { hasta:30,       factor:0.04,  rebaja:0.54  },
+    { hasta:50,       factor:0.08,  rebaja:1.74  },
+    { hasta:70,       factor:0.135, rebaja:4.49  },
+    { hasta:90,       factor:0.23,  rebaja:11.14 },
+    { hasta:120,      factor:0.304, rebaja:17.80 },
+    { hasta:310,      factor:0.35,  rebaja:23.32 },
+    { hasta:Infinity, factor:0.40,  rebaja:38.82 }
+  ],
+
+  cotizacionSaludLegal: 0.07,   // 7 % obligatorio
+  diasDelMes: 30,               // el mes de remuneraciones siempre tiene 30 días
+  gratificacionPorcentaje: 0.25,
+  gratificacionTopeImm: 4.75,   // 4,75 IMM al año
+  feriadoDiasHabilesAnuales: 15,
+  feriadoTopeIndemnizacionUf: 90,
+  finiquitoMaximoAnios: 11,
+  limiteDescuentosVoluntarios: 0.15   // artículo 58 del Código del Trabajo
+};
+
+const NOMBRES_MES = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+
+/* ========================= 2. FUNCIONES DE CÁLCULO ========================= */
+/* Ninguna de estas funciones toca la página: reciben números y devuelven
+   números. Eso permite probarlas automáticamente.                           */
+
+/** Impuesto único de segunda categoría sobre una base en pesos. */
+function calcularImpuestoUnico(baseTributable, valorUtm) {
+  if (!(valorUtm > 0) || !(baseTributable > 0)) return 0;
+  const baseEnUtm = baseTributable / valorUtm;
+  const tramo = PARAMETROS.tramosImpuesto.find(t => baseEnUtm <= t.hasta);
+  return Math.max(0, (baseEnUtm * tramo.factor - tramo.rebaja) * valorUtm);
+}
+
+/** Valor de una hora extra a partir del sueldo base y la jornada semanal. */
+function calcularValorHoraExtra(sueldoBase, jornadaSemanal, recargo) {
+  if (!(jornadaSemanal > 0)) return 0;
+  return (sueldoBase / PARAMETROS.diasDelMes) * (7 / jornadaSemanal) * recargo;
+}
+
+/** Liquidación completa. Recibe un objeto plano y devuelve otro objeto plano. */
+function calcularLiquidacion(d) {
+  const dias = PARAMETROS.diasDelMes;
+  const factorDias = Math.min(Math.max(d.diasTrabajados, 0), dias) / dias;
+
+  // ---- Haberes imponibles ----
+  const sueldoDelMes     = d.sueldoBase * factorDias;
+  const asignacionTitulo = d.asignacionTitulo * factorDias;
+  const valorHoraExtra   = calcularValorHoraExtra(d.sueldoBase, d.jornadaSemanal, d.recargoHoraExtra);
+  const horasExtras      = valorHoraExtra * d.cantidadHorasExtras;
+  const bonos            = d.bonos;
+
+  // El aguinaldo es un beneficio esporádico: nunca entra en la base de la
+  // gratificación, que se calcula sobre remuneraciones mensuales.
+  const baseGratificacion = sueldoDelMes + asignacionTitulo + horasExtras + bonos;
+
+  let gratificacion = 0;
+  let topeGratificacion = 0;
+  if (d.tipoGratificacion === 'auto') {
+    // El tope anual de 4,75 IMM se mensualiza y se prorratea igual que el sueldo.
+    topeGratificacion = (PARAMETROS.gratificacionTopeImm * d.imm / 12) * factorDias;
+    gratificacion = Math.min(baseGratificacion * PARAMETROS.gratificacionPorcentaje, topeGratificacion);
+  } else if (d.tipoGratificacion === 'manual') {
+    gratificacion = d.gratificacionManual;
+  }
+  const gratificacionTopeAplicado = d.tipoGratificacion === 'auto'
+    && baseGratificacion * PARAMETROS.gratificacionPorcentaje > topeGratificacion;
+
+  const aguinaldoImponible   = d.tratamientoAguinaldo === 'imponible' ? d.aguinaldos : 0;
+  const aguinaldoNoImponible = d.tratamientoAguinaldo === 'imponible' ? 0 : d.aguinaldos;
+
+  const totalImponible = baseGratificacion + gratificacion + aguinaldoImponible;
+
+  // ---- Haberes no imponibles ----
+  const totalNoImponible = d.colacion + d.movilizacion + d.viaticos
+                         + d.asignacionFamiliar + aguinaldoNoImponible;
+
+  // ---- Topes imponibles ----
+  const topeAfpPesos      = d.topeAfpUf * d.uf;
+  const topeCesantiaPesos = d.topeCesantiaUf * d.uf;
+  const baseAfp      = d.aplicarTopes ? Math.min(totalImponible, topeAfpPesos)      : totalImponible;
+  const baseCesantia = d.aplicarTopes ? Math.min(totalImponible, topeCesantiaPesos) : totalImponible;
+  const topeAlcanzado = d.aplicarTopes && totalImponible > topeAfpPesos;
+
+  // ---- Descuentos previsionales ----
+  const descAfp = baseAfp * d.tasaAfp;
+
+  const cotizacionLegalSalud = baseAfp * PARAMETROS.cotizacionSaludLegal;
+  let descSalud, valorPlanIsapre = 0;
+  if (d.saludTipo === 'isapre') {
+    valorPlanIsapre = d.isapreMoneda === 'uf' ? d.isapreValor * d.uf : d.isapreValor;
+    // La cotización pactada nunca puede ser inferior al 7 % legal.
+    descSalud = Math.max(valorPlanIsapre, cotizacionLegalSalud);
+  } else {
+    descSalud = cotizacionLegalSalud;
+  }
+  // Solo el 7 % legal rebaja la base tributable; el excedente de Isapre no.
+  const saludParaTributar = Math.min(descSalud, cotizacionLegalSalud);
+
+  const descCesantia = baseCesantia * d.tasaCesantia;
+
+  const baseTributable = Math.max(0, totalImponible - descAfp - saludParaTributar - descCesantia);
+  const impuestoUnico  = calcularImpuestoUnico(baseTributable, d.utm);
+
+  const totalDescuentosLegales = descAfp + descSalud + descCesantia + impuestoUnico;
+
+  // ---- Descuentos voluntarios y otros ----
+  const totalOtrosDescuentos = d.otrosDescuentos;
+  const totalDescuentos      = totalDescuentosLegales + totalOtrosDescuentos;
+
+  // ---- Resultado ----
+  const totalHaberes = totalImponible + totalNoImponible;
+  const subtotal     = totalHaberes - totalDescuentos;
+  const liquido      = subtotal - d.anticipo;
+
+  return {
+    factorDias, sueldoDelMes, asignacionTitulo, valorHoraExtra, horasExtras, bonos,
+    baseGratificacion, gratificacion, topeGratificacion, gratificacionTopeAplicado,
+    aguinaldoImponible, aguinaldoNoImponible,
+    totalImponible, totalNoImponible, totalHaberes,
+    topeAfpPesos, topeCesantiaPesos, baseAfp, baseCesantia, topeAlcanzado,
+    descAfp, descSalud, valorPlanIsapre, cotizacionLegalSalud, saludParaTributar,
+    descCesantia, baseTributable, impuestoUnico,
+    totalDescuentosLegales, totalOtrosDescuentos, totalDescuentos,
+    subtotal, anticipo: d.anticipo, liquido
+  };
+}
+
+/** Meses completos de servicio entre dos fechas, más los días sueltos. */
+function calcularTiempoServicio(inicio, termino) {
+  if (!inicio || !termino || termino < inicio) return { meses:0, diasSueltos:0, valido:false };
+  let meses = (termino.getFullYear() - inicio.getFullYear()) * 12
+            + (termino.getMonth() - inicio.getMonth());
+  if (termino.getDate() < inicio.getDate()) meses -= 1;
+  meses = Math.max(0, meses);
+  const marca = new Date(inicio.getFullYear(), inicio.getMonth() + meses, inicio.getDate());
+  const diasSueltos = Math.max(0, Math.round((termino - marca) / 86400000));
+  return { meses, diasSueltos, valido:true };
+}
+
+/** Finiquito referencial. */
+function calcularFiniquito(d) {
+  const { meses, diasSueltos, valido } = calcularTiempoServicio(d.inicio, d.termino);
+
+  const aniosCompletos = Math.floor(meses / 12);
+  const fraccionMeses  = meses % 12;
+  const aniosIndemnizables = Math.min(
+    PARAMETROS.finiquitoMaximoAnios,
+    aniosCompletos + (fraccionMeses > 6 ? 1 : 0)
+  );
+
+  // El tope de 90 UF del artículo 172 aplica a las indemnizaciones,
+  // no al feriado, que se paga sobre la remuneración íntegra.
+  const topePesos = PARAMETROS.feriadoTopeIndemnizacionUf * d.uf;
+  const baseIndemnizacion = Math.min(d.remuneracion, topePesos);
+  const topeAplicado = d.remuneracion > topePesos;
+
+  const corresponde161 = d.causal === '161';
+  const indemnizacionAnios = (corresponde161 && meses >= 12)
+    ? baseIndemnizacion * aniosIndemnizables : 0;
+  const avisoPrevio = (corresponde161 && !d.huboAviso) ? baseIndemnizacion : 0;
+
+  // Feriado: 1,25 días hábiles por mes desde la última anualidad cumplida.
+  const mesesDesdeAniversario = fraccionMeses + (diasSueltos / PARAMETROS.diasDelMes);
+  const diasProporcional = valido
+    ? mesesDesdeAniversario * (PARAMETROS.feriadoDiasHabilesAnuales / 12) : 0;
+  const diasHabilesTotales = d.feriadoPendiente + diasProporcional;
+  // Al pagarlos en dinero se incluyen los días inhábiles del período:
+  // 5 días hábiles equivalen a 7 días corridos.
+  const diasCorridos = diasHabilesTotales * 7 / 5;
+  const feriado = diasCorridos * (d.remuneracion / PARAMETROS.diasDelMes);
+
+  const total = indemnizacionAnios + avisoPrevio + feriado;
+
+  return {
+    valido, meses, diasSueltos, aniosCompletos, fraccionMeses, aniosIndemnizables,
+    baseIndemnizacion, topeAplicado, topePesos, corresponde161,
+    indemnizacionAnios, avisoPrevio,
+    diasProporcional, diasHabilesTotales, diasCorridos, feriado, total
+  };
+}
+
+
+/* ========================= 3. UTILIDADES DE PANTALLA ========================= */
+
+const $ = (id) => document.getElementById(id);
+
+/** Formatea un número como pesos chilenos. */
+function pesos(n) {
+  const v = Math.round(Number(n) || 0);
+  return (v < 0 ? '−$ ' : '$ ') + Math.abs(v).toLocaleString('es-CL');
+}
+
+/** Lee un campo de dinero (acepta puntos, espacios y texto suelto). */
+function montoDe(id) {
+  const el = $(id);
+  if (!el) return 0;
+  const limpio = String(el.value).replace(/[^\d]/g, '');
+  return limpio ? Number(limpio) : 0;
+}
+
+/** Lee un campo numérico normal, nunca negativo. */
+function numeroDe(id, porDefecto) {
+  const el = $(id);
+  if (!el) return porDefecto || 0;
+  const v = parseFloat(el.value);
+  return Number.isFinite(v) ? Math.max(0, v) : (porDefecto || 0);
+}
+
+/** Muestra u oculta un elemento. */
+function mostrar(id, visible) {
+  const el = $(id);
+  if (el) el.classList.toggle('oculto', !visible);
+}
+
+/* ---------------------------- Campos de dinero ---------------------------- */
+/* Se escriben como texto para poder mostrar separador de miles. Se formatean
+   al salir del campo, para no mover el cursor mientras se escribe.          */
+function formatearCampoMoneda(el) {
+  const limpio = String(el.value).replace(/[^\d]/g, '');
+  el.value = limpio ? Number(limpio).toLocaleString('es-CL') : '';
+}
+document.querySelectorAll('input[data-moneda]').forEach(el => {
+  el.addEventListener('blur', () => { formatearCampoMoneda(el); recalcularTodo(); });
+  el.addEventListener('focus', () => { el.value = String(el.value).replace(/[^\d]/g, ''); });
+});
+
+/* ------------------------------ Validar RUT ------------------------------ */
+/* Algoritmo del módulo 11, el mismo que usa el Registro Civil. */
+function calcularDigitoVerificador(cuerpo) {
+  let suma = 0, multiplo = 2;
+  for (let i = cuerpo.length - 1; i >= 0; i--) {
+    suma += Number(cuerpo[i]) * multiplo;
+    multiplo = multiplo === 7 ? 2 : multiplo + 1;
+  }
+  const resto = 11 - (suma % 11);
+  if (resto === 11) return '0';
+  if (resto === 10) return 'K';
+  return String(resto);
+}
+
+function rutEsValido(texto) {
+  const limpio = String(texto).replace(/[^0-9kK]/g, '').toUpperCase();
+  if (limpio.length < 2) return false;
+  const cuerpo = limpio.slice(0, -1);
+  const dv = limpio.slice(-1);
+  if (!/^\d+$/.test(cuerpo)) return false;
+  return calcularDigitoVerificador(cuerpo) === dv;
+}
+
+function formatearRut(texto) {
+  const limpio = String(texto).replace(/[^0-9kK]/g, '').toUpperCase();
+  if (limpio.length < 2) return limpio;
+  const cuerpo = limpio.slice(0, -1);
+  const dv = limpio.slice(-1);
+  return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + dv;
+}
+
+document.querySelectorAll('input[data-rut]').forEach(el => {
+  const ayuda = $('ayuda-' + el.id);
+  el.addEventListener('blur', () => {
+    if (!el.value.trim()) {
+      el.removeAttribute('aria-invalid');
+      if (ayuda) { ayuda.textContent = ''; ayuda.classList.remove('ayuda--error'); }
+      return;
+    }
+    const valido = rutEsValido(el.value);
+    el.value = formatearRut(el.value);
+    el.setAttribute('aria-invalid', valido ? 'false' : 'true');
+    if (ayuda) {
+      ayuda.textContent = valido ? 'RUT válido.' : 'El dígito verificador no corresponde. Revisa el RUT.';
+      ayuda.classList.toggle('ayuda--error', !valido);
+    }
+    guardar();
+  });
+});
+
+
+/* ====================== 4. LEER EL FORMULARIO Y PINTAR ====================== */
+
+function claveDelPeriodo() {
+  return $('anio').value + '-' + $('mes').value;
+}
+
+/** Rellena UTM, UF, IMM y topes según el mes y año elegidos. */
+function actualizarParametros() {
+  const clave = claveDelPeriodo();
+  const anio = Number($('anio').value);
+
+  const utm = PARAMETROS.utm[clave];
+  $('ayuda-utm').textContent = utm
+    ? 'Valor oficial del SII para ' + NOMBRES_MES[Number($('mes').value)] + ' de ' + anio + '.'
+    : 'Este mes todavía no está en la tabla: consulta sii.cl y escribe el valor.';
+  if (utm) $('utm').value = utm.toLocaleString('es-CL');
+
+  const uf = PARAMETROS.uf[clave];
+  $('ayuda-uf').textContent = uf
+    ? 'Referencia al inicio del mes. La UF cambia a diario: ajústala si necesitas precisión.'
+    : 'Sin dato para este mes: consulta el Banco Central y escribe el valor.';
+  if (uf) $('uf').value = uf.toLocaleString('es-CL');
+
+  const imm = PARAMETROS.imm[clave];
+  $('ayuda-imm').textContent = imm
+    ? 'IMM vigente en el período, para trabajadores de 18 a 65 años.'
+    : 'Sin dato para este mes: revisa la ley de reajuste vigente.';
+  if (imm) $('imm').value = imm.toLocaleString('es-CL');
+
+  const topes = PARAMETROS.topes[anio];
+  if (topes) {
+    $('topeAfpUf').value = topes.afpSalud;
+    $('topeCesantiaUf').value = topes.cesantia;
+  }
+}
+
+/** Muestra u oculta los campos que dependen de otra elección. */
+function actualizarVisibilidad() {
+  mostrar('envoltura-gratManual', $('tipoGratificacion').value === 'manual');
+
+  const esIsapre = $('saludTipo').value === 'isapre';
+  mostrar('envoltura-isapreMoneda', esIsapre);
+  mostrar('envoltura-isapreValor', esIsapre);
+
+  const recibeBonos = document.querySelector('input[name="recibeBonos"]:checked').value === 'si';
+  mostrar('envoltura-bonos', recibeBonos);
+
+  const esVariable = $('fnTipoSalario').value === 'variable';
+  mostrar('envoltura-variable', esVariable);
+  mostrar('envoltura-fija', !esVariable);
+  mostrar('envoltura-aviso', $('fnCausal').value === '161');
+}
+
+/** Arma el objeto de datos que necesita calcularLiquidacion(). */
+function leerDatos() {
+  const recibeBonos = document.querySelector('input[name="recibeBonos"]:checked').value === 'si';
+  const bonos = recibeBonos
+    ? ['bonoBrp','bonoJefatura','bonoReconocimiento','bonoExperiencia',
+       'bonoProgresion','bonoPrioritarios','bonoOtros'].reduce((t,id) => t + montoDe(id), 0)
+    : 0;
+
+  return {
+    diasTrabajados:   numeroDe('diasTrabajados', 30),
+    diasLicencia:     numeroDe('diasLicencia', 0),
+    diasAusencia:     numeroDe('diasAusencia', 0),
+
+    sueldoBase:       montoDe('sueldoBase'),
+    asignacionTitulo: montoDe('asignacionTitulo'),
+    tipoGratificacion:$('tipoGratificacion').value,
+    gratificacionManual: montoDe('gratificacionManual'),
+    jornadaSemanal:   numeroDe('jornadaSemanal', 42),
+    cantidadHorasExtras: numeroDe('cantidadHorasExtras', 0),
+    recargoHoraExtra: parseFloat($('recargoHoraExtra').value) || 1.5,
+    bonos,
+    aguinaldos:       montoDe('aguinaldoPatrias') + montoDe('aguinaldoNavidad'),
+    tratamientoAguinaldo: $('tratamientoAguinaldo').value,
+
+    colacion:         montoDe('colacion'),
+    movilizacion:     montoDe('movilizacion'),
+    viaticos:         montoDe('viaticos'),
+    asignacionFamiliar: montoDe('asignacionFamiliar'),
+
+    tasaAfp:          parseFloat($('afp').value) || 0,
+    saludTipo:        $('saludTipo').value,
+    isapreMoneda:     $('isapreMoneda').value,
+    isapreValor:      numeroDe('isapreValor', 0),
+    tasaCesantia:     parseFloat($('tipoContrato').value) || 0,
+    aplicarTopes:     $('aplicarTopes').value === 'si',
+
+    utm:              montoDe('utm'),
+    uf:               montoDe('uf'),
+    imm:              montoDe('imm'),
+    topeAfpUf:        numeroDe('topeAfpUf', 90),
+    topeCesantiaUf:   numeroDe('topeCesantiaUf', 135.2),
+
+    otrosDescuentos:  ['descBienestar','descSeguroSalud','descPrestamo',
+                       'descSindical','descApv','descOtros'].reduce((t,id) => t + montoDe(id), 0),
+    anticipo:         montoDe('anticipo')
+  };
+}
+
+/** Revisa el reparto de los 30 días del mes. */
+function revisarDias(d) {
+  const suma = d.diasTrabajados + d.diasLicencia + d.diasAusencia;
+  $('out-diasSuma').textContent = Number(suma.toFixed(2));
+  let mensaje = '';
+  if (suma > PARAMETROS.diasDelMes) {
+    mensaje = 'Los días trabajados, de licencia y de ausencia suman ' + Number(suma.toFixed(2)) +
+              ', y el mes de remuneraciones tiene 30. Ajusta los valores.';
+  } else if (suma < PARAMETROS.diasDelMes) {
+    mensaje = 'Faltan ' + Number((PARAMETROS.diasDelMes - suma).toFixed(2)) +
+              ' días por asignar. Si el mes fue completo, la suma debe dar 30.';
+  }
+  $('alerta-dias').classList.toggle('oculto', mensaje === '');
+  $('alerta-dias-texto').textContent = mensaje;
+}
+
+/** Escribe el paso a paso del cálculo. */
+function escribirPasos(d, r) {
+  const pasos = [];
+  pasos.push('<strong>Días:</strong> ' + d.diasTrabajados + ' de 30 trabajados, o sea un factor de <code>' +
+    r.factorDias.toFixed(4) + '</code>. Sueldo del mes = ' + pesos(d.sueldoBase) + ' × ' +
+    r.factorDias.toFixed(4) + ' = <strong>' + pesos(r.sueldoDelMes) + '</strong>.');
+
+  if (d.cantidadHorasExtras > 0) {
+    pasos.push('<strong>Horas extras:</strong> (' + pesos(d.sueldoBase) + ' ÷ 30) × (7 ÷ ' +
+      d.jornadaSemanal + ') × ' + d.recargoHoraExtra + ' = ' + pesos(r.valorHoraExtra) +
+      ' por hora × ' + d.cantidadHorasExtras + ' = <strong>' + pesos(r.horasExtras) + '</strong>.');
+  }
+
+  if (d.tipoGratificacion === 'auto') {
+    pasos.push('<strong>Gratificación:</strong> 25 % de ' + pesos(r.baseGratificacion) + ' = ' +
+      pesos(r.baseGratificacion * 0.25) + '. Tope de 4,75 IMM ÷ 12 = ' + pesos(r.topeGratificacion) +
+      '. Se aplica ' + (r.gratificacionTopeAplicado ? 'el <strong>tope</strong>' : 'el <strong>25 %</strong>') +
+      ': <strong>' + pesos(r.gratificacion) + '</strong>.');
+  }
+
+  pasos.push('<strong>Total imponible:</strong> <strong>' + pesos(r.totalImponible) + '</strong>.');
+
+  if (r.topeAlcanzado) {
+    pasos.push('<strong>Tope imponible:</strong> el imponible supera el tope de ' + d.topeAfpUf +
+      ' UF (' + pesos(r.topeAfpPesos) + '), así que AFP y salud se calculan solo sobre ese tope.');
+  }
+
+  pasos.push('<strong>AFP:</strong> ' + pesos(r.baseAfp) + ' × ' + (d.tasaAfp * 100).toFixed(2) +
+    ' % = <strong>' + pesos(r.descAfp) + '</strong>.');
+
+  if (d.saludTipo === 'isapre') {
+    pasos.push('<strong>Salud:</strong> plan pactado ' + pesos(r.valorPlanIsapre) + ' frente al 7 % legal ' +
+      pesos(r.cotizacionLegalSalud) + '. Se descuenta el mayor: <strong>' + pesos(r.descSalud) + '</strong>.');
+  } else {
+    pasos.push('<strong>Salud:</strong> ' + pesos(r.baseAfp) + ' × 7 % = <strong>' + pesos(r.descSalud) + '</strong>.');
+  }
+
+  pasos.push('<strong>Cesantía:</strong> ' + pesos(r.baseCesantia) + ' × ' + (d.tasaCesantia * 100).toFixed(1) +
+    ' % = <strong>' + pesos(r.descCesantia) + '</strong>.');
+
+  const enUtm = d.utm > 0 ? (r.baseTributable / d.utm) : 0;
+  pasos.push('<strong>Base tributable:</strong> ' + pesos(r.totalImponible) + ' − AFP − 7 % salud − cesantía = ' +
+    pesos(r.baseTributable) + ', o sea <code>' + enUtm.toFixed(2) + ' UTM</code>. ' +
+    (r.impuestoUnico > 0
+      ? 'Impuesto único: <strong>' + pesos(r.impuestoUnico) + '</strong>.'
+      : 'Cae en el <strong>tramo exento</strong>, no paga impuesto.'));
+
+  pasos.push('<strong>Líquido:</strong> ' + pesos(r.totalHaberes) + ' − ' + pesos(r.totalDescuentos) +
+    ' − ' + pesos(r.anticipo) + ' = <strong>' + pesos(r.liquido) + '</strong>.');
+
+  $('detalle-pasos').innerHTML = pasos.map(p => '<li>' + p + '</li>').join('');
+}
+
+/** Vuelca el resultado al comprobante imprimible. */
+function escribirComprobante(d, r) {
+  const texto = (id, valor) => { const el = $(id); if (el) el.textContent = valor; };
+  const guion = (id) => ($(id) && $(id).value.trim()) || '—';
+
+  texto('p-empresaNombre', guion('empresaNombre'));
+  texto('p-empresaDireccion', guion('empresaDireccion'));
+  texto('p-empresaRut', guion('empresaRut'));
+  texto('p-periodo', NOMBRES_MES[Number($('mes').value)] + ' de ' + $('anio').value);
+  texto('p-fecha', new Date().toLocaleDateString('es-CL'));
+  texto('p-trabajadorNombre', guion('trabajadorNombre'));
+  texto('p-trabajadorCargo', guion('trabajadorCargo'));
+  texto('p-trabajadorRut', guion('trabajadorRut'));
+  texto('p-diasTrabajados', d.diasTrabajados);
+  texto('p-diasLicencia', d.diasLicencia);
+  texto('p-diasAusencia', d.diasAusencia);
+  texto('p-afp', $('afp').options[$('afp').selectedIndex].text);
+  texto('p-salud', d.saludTipo === 'fonasa' ? 'Fonasa' : 'Isapre');
+
+  texto('p-h-sueldo', pesos(r.sueldoDelMes));
+  texto('p-h-grat', pesos(r.gratificacion));
+  texto('p-h-titulo', pesos(r.asignacionTitulo));
+  texto('p-h-horasExtras', pesos(r.horasExtras));
+  texto('p-h-bonos', pesos(r.bonos));
+  texto('p-h-aguinaldos', pesos(r.aguinaldoImponible));
+  texto('p-h-totalImp', pesos(r.totalImponible));
+
+  texto('p-h-colacion', pesos(d.colacion));
+  texto('p-h-movilizacion', pesos(d.movilizacion));
+  texto('p-h-viaticos', pesos(d.viaticos));
+  texto('p-h-familiar', pesos(d.asignacionFamiliar + r.aguinaldoNoImponible));
+  texto('p-h-totalNoImp', pesos(r.totalNoImponible));
+
+  texto('p-d-afp', pesos(r.descAfp));
+  texto('p-d-salud', pesos(r.descSalud));
+  texto('p-d-cesantia', pesos(r.descCesantia));
+  texto('p-d-impuesto', pesos(r.impuestoUnico));
+  texto('p-d-totalLegal', pesos(r.totalDescuentosLegales));
+
+  texto('p-d-bienestar', pesos(montoDe('descBienestar')));
+  texto('p-d-prestamo', pesos(montoDe('descPrestamo')));
+  texto('p-d-sindical', pesos(montoDe('descSindical')));
+  texto('p-d-seguroSalud', pesos(montoDe('descSeguroSalud')));
+  texto('p-d-apv', pesos(montoDe('descApv')));
+  texto('p-d-otros', pesos(montoDe('descOtros')));
+  texto('p-d-totalOtros', pesos(r.totalOtrosDescuentos));
+
+  texto('p-totalHaberes', pesos(r.totalHaberes));
+  texto('p-totalDescuentos', pesos(r.totalDescuentos));
+  texto('p-subtotal', pesos(r.subtotal));
+  texto('p-anticipo', pesos(r.anticipo));
+  texto('p-liquido', pesos(r.liquido));
+}
+
+/** Recalcula la liquidación y actualiza toda la pantalla. */
+function recalcularLiquidacion() {
+  actualizarVisibilidad();
+  const d = leerDatos();
+  revisarDias(d);
+  const r = calcularLiquidacion(d);
+
+  $('out-valorHoraExtra').textContent = pesos(r.valorHoraExtra);
+  $('out-horasExtras').textContent    = pesos(r.horasExtras);
+  $('out-totalBonos').textContent     = pesos(r.bonos);
+  $('out-totalImponible').textContent = pesos(r.totalImponible);
+  $('out-totalNoImponible').textContent = pesos(r.totalNoImponible);
+  $('out-totalOtros').textContent     = pesos(r.totalOtrosDescuentos);
+  $('out-topeAfpPesos').textContent      = pesos(r.topeAfpPesos);
+  $('out-topeCesantiaPesos').textContent = pesos(r.topeCesantiaPesos);
+
+  $('r-imponible').textContent   = pesos(r.totalImponible);
+  $('r-noImponible').textContent = pesos(r.totalNoImponible);
+  $('r-haberes').textContent     = pesos(r.totalHaberes);
+  $('r-afp').textContent         = pesos(-r.descAfp);
+  $('r-salud').textContent       = pesos(-r.descSalud);
+  $('r-cesantia').textContent    = pesos(-r.descCesantia);
+  $('r-impuesto').textContent    = pesos(-r.impuestoUnico);
+  $('r-otros').textContent       = pesos(-r.totalOtrosDescuentos);
+  $('r-subtotal').textContent    = pesos(r.subtotal);
+  $('r-anticipo').textContent    = pesos(-r.anticipo);
+  $('r-liquido').textContent     = pesos(r.liquido);
+  $('r-liquido-movil').textContent = pesos(r.liquido);
+
+  // Aviso del artículo 58: límite a los descuentos no obligatorios.
+  const limite = r.totalHaberes * PARAMETROS.limiteDescuentosVoluntarios;
+  let avisoLegal = '';
+  if (r.liquido < 0) {
+    avisoLegal = 'El líquido resultó negativo: los descuentos superan los haberes. Revisa los montos ingresados.';
+  } else if (r.totalOtrosDescuentos > limite && r.totalHaberes > 0) {
+    avisoLegal = 'Los descuentos voluntarios superan el 15 % de la remuneración. El artículo 58 del Código del Trabajo limita los descuentos que el empleador puede hacer sin autorización legal expresa.';
+  }
+  $('alerta-tope-legal').classList.toggle('oculto', avisoLegal === '');
+  $('alerta-tope-legal-texto').textContent = avisoLegal;
+
+  escribirPasos(d, r);
+  escribirComprobante(d, r);
+}
+
+
+/* ============================ 5. EL FINIQUITO ============================ */
+
+function leerDatosFiniquito() {
+  const fecha = (id) => $(id).value ? new Date($(id).value + 'T00:00:00') : null;
+  const esVariable = $('fnTipoSalario').value === 'variable';
+
+  const remuneracion = esVariable
+    ? (montoDe('fnMes1') + montoDe('fnMes2') + montoDe('fnMes3')) / 3
+    : ['fnSueldoBase','fnGratificacion','fnBonos','fnColacion','fnMovilizacion',
+       'fnChequeRestaurante','fnDesgaste','fnOtras'].reduce((t,id) => t + montoDe(id), 0);
+
+  return {
+    inicio: fecha('fnInicio'),
+    termino: fecha('fnTermino'),
+    causal: $('fnCausal').value,
+    huboAviso: $('fnAviso').value === 'si',
+    remuneracion,
+    feriadoPendiente: numeroDe('fnFeriadoPendiente', 0),
+    uf: montoDe('uf')
+  };
+}
+
+function recalcularFiniquito() {
+  actualizarVisibilidad();
+  const d = leerDatosFiniquito();
+  const r = calcularFiniquito(d);
+
+  // Aviso si las fechas están al revés o incompletas.
+  let alerta = '';
+  if (d.inicio && d.termino && d.termino < d.inicio) {
+    alerta = 'La fecha de término es anterior a la de inicio.';
+  }
+  $('fn-alerta-fechas').classList.toggle('oculto', alerta === '');
+  $('fn-alerta-fechas-texto').textContent = alerta;
+
+  $('fn-base').textContent = pesos(d.remuneracion);
+  $('fn-diasProporcional').textContent = r.diasProporcional.toFixed(2);
+  $('fn-servicio').textContent = r.valido && r.meses >= 0
+    ? (r.aniosCompletos + ' año(s) y ' + r.fraccionMeses + ' mes(es)') : '—';
+  $('fn-anios').textContent = r.corresponde161 ? r.aniosIndemnizables : 'No aplica por la causal';
+  $('fn-ias').textContent = pesos(r.indemnizacionAnios);
+  $('fn-aviso-monto').textContent = pesos(r.avisoPrevio);
+  $('fn-feriado').textContent = pesos(r.feriado);
+  $('fn-total').textContent = pesos(r.total);
+
+  const pasos = [];
+  if (!d.inicio || !d.termino) {
+    pasos.push('Ingresa las fechas de inicio y término para ver el detalle.');
+  } else {
+    pasos.push('<strong>Tiempo de servicio:</strong> ' + r.meses + ' meses completos y ' +
+      r.diasSueltos + ' días.');
+    pasos.push('<strong>Base del artículo 172:</strong> ' + pesos(d.remuneracion) +
+      (r.topeAplicado
+        ? '. Supera el tope de 90 UF (' + pesos(r.topePesos) + '), así que las indemnizaciones se calculan sobre el tope.'
+        : '. Está bajo el tope de 90 UF (' + pesos(r.topePesos) + ').'));
+    if (r.corresponde161) {
+      pasos.push('<strong>Años indemnizables:</strong> ' + r.aniosCompletos + ' año(s) completo(s)' +
+        (r.fraccionMeses > 6 ? ' más una fracción de ' + r.fraccionMeses + ' meses, que es superior a 6 y suma un año' :
+         ' y una fracción de ' + r.fraccionMeses + ' meses, que no supera los 6 y no suma') +
+        ' → <strong>' + r.aniosIndemnizables + '</strong> (máximo legal: 11).');
+      pasos.push('<strong>Indemnización por años de servicio:</strong> ' + pesos(r.baseIndemnizacion) +
+        ' × ' + r.aniosIndemnizables + ' = <strong>' + pesos(r.indemnizacionAnios) + '</strong>' +
+        (r.meses < 12 ? ' (no corresponde: se requiere al menos un año de servicio)' : '') + '.');
+      pasos.push('<strong>Aviso previo:</strong> ' + (d.huboAviso
+        ? 'el empleador avisó con 30 días, no corresponde indemnización sustitutiva.'
+        : 'no hubo aviso, corresponde un mes: <strong>' + pesos(r.avisoPrevio) + '</strong>.'));
+    } else {
+      pasos.push('<strong>Indemnizaciones:</strong> la causal elegida no genera indemnización por años de servicio ni aviso previo. El feriado sí se paga siempre.');
+    }
+    pasos.push('<strong>Feriado:</strong> ' + d.feriadoPendiente + ' días pendientes + ' +
+      r.diasProporcional.toFixed(2) + ' proporcionales = ' + r.diasHabilesTotales.toFixed(2) +
+      ' días hábiles, que equivalen a ' + r.diasCorridos.toFixed(2) + ' días corridos × (' +
+      pesos(d.remuneracion) + ' ÷ 30) = <strong>' + pesos(r.feriado) + '</strong>.');
+  }
+  $('fn-pasos').innerHTML = pasos.map(p => '<li>' + p + '</li>').join('');
+}
+
+function recalcularTodo() {
+  recalcularLiquidacion();
+  recalcularFiniquito();
+  guardar();
+}
+
+
+/* ========================= 6. CASOS DE PRÁCTICA ========================= */
+/* Personas ficticias. Sirven para probar la herramienta y para demostrarla
+   sin usar la remuneración real de nadie.                                  */
+
+const CASOS = [
+  {
+    titulo: 'Docente con jornada completa',
+    resumen: 'Camila Rojas, profesora de 44 horas, Fonasa, AFP Modelo, contrato indefinido, mes completo y bono BRP.',
+    datos: {
+      trabajadorNombre:'Camila Rojas Fuentes', trabajadorRut:'12.345.678-5',
+      trabajadorCargo:'Docente de aula', empresaNombre:'Colegio Ficticio Los Aromos',
+      empresaRut:'76.123.456-0', empresaDireccion:'Av. Siempreviva 742, Santiago',
+      diasTrabajados:30, diasLicencia:0, diasAusencia:0,
+      sueldoBase:1150000, asignacionTitulo:95000,
+      tipoGratificacion:'auto', jornadaSemanal:'42', cantidadHorasExtras:0,
+      recibeBonos:'si', bonoBrp:130000, bonoJefatura:0,
+      colacion:60000, movilizacion:45000,
+      afp:'0.1058', saludTipo:'fonasa', tipoContrato:'0.006',
+      descBienestar:12000, descSindical:8000
+    }
+  },
+  {
+    titulo: 'Asistente con licencia médica',
+    resumen: 'Marco Tapia, asistente de la educación, 8 días de licencia médica en el mes y un anticipo de sueldo.',
+    datos: {
+      trabajadorNombre:'Marco Tapia Vera', trabajadorRut:'9.876.543-3',
+      trabajadorCargo:'Asistente de la educación', empresaNombre:'Colegio Ficticio Los Aromos',
+      empresaRut:'76.123.456-0', empresaDireccion:'Av. Siempreviva 742, Santiago',
+      diasTrabajados:22, diasLicencia:8, diasAusencia:0,
+      sueldoBase:680000, asignacionTitulo:0,
+      tipoGratificacion:'auto', jornadaSemanal:'42', cantidadHorasExtras:0,
+      recibeBonos:'no',
+      colacion:55000, movilizacion:40000,
+      afp:'0.1127', saludTipo:'fonasa', tipoContrato:'0.006',
+      anticipo:100000
+    }
+  },
+  {
+    titulo: 'Jefatura sobre el tope imponible',
+    resumen: 'Ana Lagos, jefa de administración, Isapre con plan en UF, horas extras y renta sobre el tope de 90 UF.',
+    datos: {
+      trabajadorNombre:'Ana Lagos Miranda', trabajadorRut:'15.432.109-8',
+      trabajadorCargo:'Jefa de Administración y Finanzas', empresaNombre:'Colegio Ficticio Los Aromos',
+      empresaRut:'76.123.456-0', empresaDireccion:'Av. Siempreviva 742, Santiago',
+      diasTrabajados:30, diasLicencia:0, diasAusencia:0,
+      sueldoBase:3900000, asignacionTitulo:0,
+      tipoGratificacion:'auto', jornadaSemanal:'42', cantidadHorasExtras:6,
+      recargoHoraExtra:'1.5', recibeBonos:'si', bonoJefatura:350000, bonoBrp:0,
+      colacion:90000, movilizacion:70000,
+      afp:'0.1127', saludTipo:'isapre', isapreMoneda:'uf', isapreValor:6.5,
+      tipoContrato:'0.006', descApv:150000
+    }
+  }
+];
+
+/* Campos que jamás se guardan en el navegador: identifican a una persona. */
+const CAMPOS_PERSONALES = ['empresaNombre','empresaRut','empresaDireccion',
+                           'trabajadorNombre','trabajadorRut','trabajadorCargo'];
+
+function limpiarFormulario() {
+  document.querySelectorAll('#formulario input, #formulario select').forEach(el => {
+    if (el.type === 'radio') { el.checked = el.value === 'no'; return; }
+    if (el.tagName === 'SELECT') { el.selectedIndex = [...el.options].findIndex(o => o.defaultSelected); if (el.selectedIndex < 0) el.selectedIndex = 0; return; }
+    if (el.hasAttribute('data-moneda')) { el.value = '0'; return; }
+    if (el.type === 'number') { el.value = el.defaultValue; return; }
+    el.value = '';
+  });
+  document.querySelectorAll('input[data-rut]').forEach(el => {
+    el.removeAttribute('aria-invalid');
+    const ayuda = $('ayuda-' + el.id);
+    if (ayuda) { ayuda.textContent = ''; ayuda.classList.remove('ayuda--error'); }
+  });
+  $('sueldoBase').value = '0';
+  $('diasTrabajados').value = 30;
+  actualizarParametros();
+  recalcularTodo();
+}
+
+function aplicarCaso(caso) {
+  limpiarFormulario();
+  Object.entries(caso.datos).forEach(([id, valor]) => {
+    if (id === 'recibeBonos') {
+      const radio = document.querySelector('input[name="recibeBonos"][value="' + valor + '"]');
+      if (radio) radio.checked = true;
+      return;
+    }
+    const el = $(id);
+    if (!el) return;
+    el.value = el.hasAttribute('data-moneda') ? Number(valor).toLocaleString('es-CL') : valor;
+  });
+  actualizarVisibilidad();
+  recalcularTodo();
+  $('calculadora').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function pintarCasos() {
+  const contenedor = $('lista-casos');
+  contenedor.innerHTML = '';
+  CASOS.forEach((caso, i) => {
+    const tarjeta = document.createElement('div');
+    tarjeta.className = 'tarjeta caso';
+    tarjeta.innerHTML =
+      '<h3>' + caso.titulo + '</h3><p>' + caso.resumen + '</p>' +
+      '<button type="button" class="btn btn--claro btn--pequeno">Cargar este caso</button>';
+    tarjeta.querySelector('button').addEventListener('click', () => aplicarCaso(CASOS[i]));
+    contenedor.appendChild(tarjeta);
+  });
+}
+
+function pintarTablaTramos() {
+  const cuerpo = $('tabla-tramos');
+  if (!cuerpo) return;
+  let desde = 0;
+  cuerpo.innerHTML = PARAMETROS.tramosImpuesto.map(t => {
+    const rango = t.hasta === Infinity
+      ? 'Más de ' + desde.toLocaleString('es-CL')
+      : desde.toLocaleString('es-CL') + ' a ' + t.hasta.toLocaleString('es-CL');
+    desde = t.hasta;
+    return '<tr><td>' + rango + '</td><td>' + (t.factor * 100).toLocaleString('es-CL') +
+           ' %</td><td>' + t.rebaja.toLocaleString('es-CL') + '</td></tr>';
+  }).join('');
+}
+
+
+/* =================== 7. MEMORIA LOCAL (SIN DATOS PERSONALES) =================== */
+
+const CLAVE_MEMORIA = 'liquidapp.simulacion.v1';
+
+function guardar() {
+  try {
+    const datos = {};
+    document.querySelectorAll('#formulario input, #formulario select, #form-finiquito input, #form-finiquito select')
+      .forEach(el => {
+        if (!el.id || CAMPOS_PERSONALES.includes(el.id)) return;
+        if (el.type === 'radio') { if (el.checked) datos[el.name] = el.value; return; }
+        datos[el.id] = el.value;
+      });
+    localStorage.setItem(CLAVE_MEMORIA, JSON.stringify(datos));
+  } catch (e) { /* modo privado o almacenamiento bloqueado: seguimos sin guardar */ }
+}
+
+function restaurar() {
+  try {
+    const crudo = localStorage.getItem(CLAVE_MEMORIA);
+    if (!crudo) return false;
+    const datos = JSON.parse(crudo);
+    Object.entries(datos).forEach(([clave, valor]) => {
+      if (CAMPOS_PERSONALES.includes(clave)) return;
+      const el = $(clave);
+      if (el) { el.value = valor; return; }
+      const radio = document.querySelector('input[name="' + clave + '"][value="' + valor + '"]');
+      if (radio) radio.checked = true;
+    });
+    return true;
+  } catch (e) { return false; }
+}
+
+
+/* ======================= 8. PRUEBAS DEL MOTOR ======================= */
+/* Comprueban que el cálculo hace lo que decimos que hace. Si alguien cambia
+   una fórmula por error, estas pruebas lo delatan.                          */
+
+const PRUEBAS = [
+  ['Una renta de 10 UTM está exenta de impuesto',
+    () => calcularImpuestoUnico(10 * 70000, 70000) === 0],
+
+  ['Justo en 13,5 UTM el impuesto sigue siendo cero',
+    () => Math.round(calcularImpuestoUnico(13.5 * 70000, 70000)) === 0],
+
+  ['Con 20 UTM el impuesto es (20 × 0,04 − 0,54) UTM',
+    () => Math.abs(calcularImpuestoUnico(20 * 70000, 70000) - 0.26 * 70000) < 1],
+
+  ['La tabla no tiene saltos en el borde de 120 UTM',
+    () => Math.abs(calcularImpuestoUnico(120 * 70000, 70000) - 18.68 * 70000) < 1],
+
+  ['La tabla no tiene saltos en el borde de 310 UTM',
+    () => Math.abs(calcularImpuestoUnico(310 * 70000, 70000) - 85.18 * 70000) < 1],
+
+  ['Con jornada de 42 horas, la hora extra vale sueldo × 0,0083333',
+    () => Math.abs(calcularValorHoraExtra(900000, 42, 1.5) - 7500) < 0.01],
+
+  ['Con jornada de 45 horas la hora extra era más barata',
+    () => Math.abs(calcularValorHoraExtra(900000, 45, 1.5) - 7000) < 0.01],
+
+  ['Trabajar 15 días paga medio sueldo base',
+    () => calcularLiquidacion(datosDePrueba({ diasTrabajados:15 })).sueldoDelMes === 450000],
+
+  ['La gratificación automática se detiene en el tope de 4,75 IMM',
+    () => {
+      const r = calcularLiquidacion(datosDePrueba({ sueldoBase:5000000 }));
+      return Math.abs(r.gratificacion - (4.75 * 553553 / 12)) < 1;
+    }],
+
+  ['El aguinaldo no infla la base de la gratificación',
+    () => {
+      const sin = calcularLiquidacion(datosDePrueba({}));
+      const con = calcularLiquidacion(datosDePrueba({ aguinaldos:200000 }));
+      return Math.abs(sin.gratificacion - con.gratificacion) < 0.01;
+    }],
+
+  ['Sobre el tope imponible, la AFP se calcula solo hasta 90 UF',
+    () => {
+      const r = calcularLiquidacion(datosDePrueba({ sueldoBase:9000000 }));
+      return Math.abs(r.descAfp - (90 * 40875 * 0.1127)) < 1;
+    }],
+
+  ['Sin aplicar topes, la AFP se calcula sobre todo el imponible',
+    () => {
+      const r = calcularLiquidacion(datosDePrueba({ sueldoBase:9000000, aplicarTopes:false }));
+      return r.descAfp > 90 * 40875 * 0.1127;
+    }],
+
+  ['Un plan de Isapre menor al 7 % igual descuenta el 7 % legal',
+    () => {
+      const r = calcularLiquidacion(datosDePrueba({ saludTipo:'isapre', isapreMoneda:'clp', isapreValor:1000 }));
+      return Math.abs(r.descSalud - r.cotizacionLegalSalud) < 0.01;
+    }],
+
+  ['El excedente de Isapre no rebaja la base tributable',
+    () => {
+      const fonasa = calcularLiquidacion(datosDePrueba({}));
+      const isapre = calcularLiquidacion(datosDePrueba({ saludTipo:'isapre', isapreMoneda:'uf', isapreValor:8 }));
+      return Math.abs(fonasa.baseTributable - isapre.baseTributable) < 0.01;
+    }],
+
+  ['Un contrato a plazo fijo no descuenta seguro de cesantía',
+    () => calcularLiquidacion(datosDePrueba({ tasaCesantia:0 })).descCesantia === 0],
+
+  ['Siete años y siete meses dan ocho años indemnizables',
+    () => calcularFiniquito(datosFiniquitoDePrueba({
+      inicio:new Date('2019-01-10T00:00:00'), termino:new Date('2026-09-07T00:00:00')
+    })).aniosIndemnizables === 8],
+
+  ['La indemnización por años de servicio tiene tope de 11 años',
+    () => calcularFiniquito(datosFiniquitoDePrueba({
+      inicio:new Date('2000-01-10T00:00:00'), termino:new Date('2026-09-07T00:00:00')
+    })).aniosIndemnizables === 11],
+
+  ['La causal del artículo 159 no genera indemnización',
+    () => {
+      const r = calcularFiniquito(datosFiniquitoDePrueba({ causal:'159' }));
+      return r.indemnizacionAnios === 0 && r.avisoPrevio === 0;
+    }],
+
+  ['Si el empleador avisó con 30 días no se paga el mes sustitutivo',
+    () => calcularFiniquito(datosFiniquitoDePrueba({ huboAviso:true })).avisoPrevio === 0],
+
+  ['Menos de un año de servicio no genera indemnización por años',
+    () => calcularFiniquito(datosFiniquitoDePrueba({
+      inicio:new Date('2026-02-01T00:00:00'), termino:new Date('2026-09-01T00:00:00')
+    })).indemnizacionAnios === 0],
+
+  ['Seis meses de servicio dan 7,5 días hábiles de feriado proporcional',
+    () => {
+      const r = calcularFiniquito(datosFiniquitoDePrueba({
+        inicio:new Date('2026-03-01T00:00:00'), termino:new Date('2026-09-01T00:00:00')
+      }));
+      return Math.abs(r.diasProporcional - 7.5) < 0.01;
+    }],
+
+  ['El feriado se paga aunque la causal no genere indemnización',
+    () => calcularFiniquito(datosFiniquitoDePrueba({ causal:'160' })).feriado > 0]
+];
+
+/** Datos base para las pruebas, con la posibilidad de cambiar algunos campos. */
+function datosDePrueba(cambios) {
+  return Object.assign({
+    diasTrabajados:30, diasLicencia:0, diasAusencia:0,
+    sueldoBase:900000, asignacionTitulo:0,
+    tipoGratificacion:'auto', gratificacionManual:0,
+    jornadaSemanal:42, cantidadHorasExtras:0, recargoHoraExtra:1.5,
+    bonos:0, aguinaldos:0, tratamientoAguinaldo:'imponible',
+    colacion:0, movilizacion:0, viaticos:0, asignacionFamiliar:0,
+    tasaAfp:0.1127, saludTipo:'fonasa', isapreMoneda:'uf', isapreValor:0,
+    tasaCesantia:0.006, aplicarTopes:true,
+    utm:71721, uf:40875, imm:553553, topeAfpUf:90, topeCesantiaUf:135.2,
+    otrosDescuentos:0, anticipo:0
+  }, cambios);
+}
+
+function datosFiniquitoDePrueba(cambios) {
+  return Object.assign({
+    inicio:new Date('2019-01-10T00:00:00'),
+    termino:new Date('2026-09-07T00:00:00'),
+    causal:'161', huboAviso:false,
+    remuneracion:1000000, feriadoPendiente:0, uf:40875
+  }, cambios);
+}
+
+function correrPruebas() {
+  const fallidas = [];
+  PRUEBAS.forEach(([nombre, prueba]) => {
+    let ok = false;
+    try { ok = prueba() === true; } catch (e) { ok = false; }
+    if (!ok) fallidas.push(nombre);
+  });
+
+  const caja = $('salida-pruebas');
+  const texto = caja.querySelector('span');
+  caja.classList.remove('oculto', 'nota--verde', 'nota--error');
+  if (fallidas.length === 0) {
+    caja.classList.add('nota--verde');
+    texto.textContent = 'Las ' + PRUEBAS.length + ' pruebas del motor de cálculo pasaron correctamente.';
+  } else {
+    caja.classList.add('nota--error');
+    texto.textContent = fallidas.length + ' de ' + PRUEBAS.length + ' pruebas fallaron: ' + fallidas.join(' · ');
+  }
+  return fallidas;
+}
+
+
+/* ============================ 9. CONEXIONES ============================ */
+
+$('formulario').addEventListener('input', recalcularTodo);
+$('formulario').addEventListener('change', recalcularTodo);
+$('form-finiquito').addEventListener('input', recalcularTodo);
+$('form-finiquito').addEventListener('change', recalcularTodo);
+
+$('mes').addEventListener('change', () => { actualizarParametros(); recalcularTodo(); });
+$('anio').addEventListener('change', () => { actualizarParametros(); recalcularTodo(); });
+
+$('btn-imprimir').addEventListener('click', () => window.print());
+$('btn-limpiar').addEventListener('click', () => {
+  limpiarFormulario();
+  try { localStorage.removeItem(CLAVE_MEMORIA); } catch (e) {}
+  $('salida-pruebas').classList.add('oculto');
+});
+$('btn-pruebas').addEventListener('click', correrPruebas);
+
+/* Menú en celular */
+const botonMenu = $('btn-menu');
+const navegacion = $('nav-principal');
+botonMenu.addEventListener('click', () => {
+  const abierto = navegacion.classList.toggle('abierto');
+  botonMenu.setAttribute('aria-expanded', String(abierto));
+});
+navegacion.addEventListener('click', (e) => {
+  if (e.target.tagName === 'A') {
+    navegacion.classList.remove('abierto');
+    botonMenu.setAttribute('aria-expanded', 'false');
+  }
+});
+
+/* Arranque */
+pintarTablaTramos();
+pintarCasos();
+if (!restaurar()) actualizarParametros();
+document.querySelectorAll('input[data-moneda]').forEach(formatearCampoMoneda);
+actualizarVisibilidad();
+recalcularLiquidacion();
+recalcularFiniquito();
+
+/* Con ?pruebas=1 en la dirección, las pruebas se corren solas al abrir. */
+if (new URLSearchParams(location.search).has('pruebas')) correrPruebas();
+</script>
+</body>
+</html>

@@ -1,0 +1,670 @@
+<title>Auditoría LiquidApp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+/* ── Tokens: paleta completa en :root, redefinida por tema ─────────────── */
+:root{
+  --papel:#f2f6f2;
+  --hoja:#ffffff;
+  --banda:#eaf1ea;
+  --tinta:#17242b;
+  --tinta-2:#4b5c62;
+  --tinta-3:#6d7d81;
+  --linea:#cfe0d2;
+  --linea-fuerte:#a8c3ad;
+  --sello:#a8321e;
+  --sello-tenue:#f7e9e5;
+  --libro:#1c6b4b;
+  --libro-tenue:#e4f1ea;
+  --ambar:#8a5a12;
+  --ambar-tenue:#f8efdd;
+  --sombra:0 1px 2px rgba(23,36,43,.05), 0 10px 28px rgba(23,36,43,.07);
+  --display:"Bitter",Georgia,"Times New Roman",serif;
+  --texto:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --dato:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --papel:#0f1714;
+    --hoja:#16211d;
+    --banda:#1a2621;
+    --tinta:#e4ebe5;
+    --tinta-2:#a8b8b0;
+    --tinta-3:#83958d;
+    --linea:#25352e;
+    --linea-fuerte:#3a5148;
+    --sello:#e5765f;
+    --sello-tenue:#2c1c18;
+    --libro:#58bd91;
+    --libro-tenue:#14241d;
+    --ambar:#d9a441;
+    --ambar-tenue:#26200f;
+    --sombra:0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --papel:#0f1714;
+  --hoja:#16211d;
+  --banda:#1a2621;
+  --tinta:#e4ebe5;
+  --tinta-2:#a8b8b0;
+  --tinta-3:#83958d;
+  --linea:#25352e;
+  --linea-fuerte:#3a5148;
+  --sello:#e5765f;
+  --sello-tenue:#2c1c18;
+  --libro:#58bd91;
+  --libro-tenue:#14241d;
+  --ambar:#d9a441;
+  --ambar-tenue:#26200f;
+  --sombra:0 1px 2px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--papel);
+  color:var(--tinta);
+  font-family:var(--texto);
+  font-size:16.5px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{font-family:var(--display);margin:0;line-height:1.15;text-wrap:balance;letter-spacing:-.01em;}
+p{margin:0 0 1em;}
+p:last-child{margin-bottom:0;}
+a{color:var(--libro);text-decoration-thickness:1px;text-underline-offset:2px;}
+:where(a,button,summary):focus-visible{outline:2.5px solid var(--sello);outline-offset:3px;border-radius:3px;}
+.num{font-family:var(--dato);font-variant-numeric:tabular-nums;font-size:.94em;}
+
+.envoltura{max-width:1220px;margin:0 auto;padding:0 clamp(1.1rem,4vw,2.5rem);}
+.medida{max-width:68ch;}
+
+/* ── Encabezado ────────────────────────────────────────────────────────── */
+.portada{border-bottom:2px solid var(--tinta);padding:clamp(2.2rem,6vw,4rem) 0 2.2rem;}
+.portada__grid{display:grid;gap:2rem;align-items:start;}
+@media (min-width:900px){.portada__grid{grid-template-columns:minmax(0,1fr) auto;}}
+.membrete{
+  font-family:var(--dato);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--tinta-3);margin-bottom:1.1rem;
+}
+.portada h1{font-size:clamp(2.1rem,6vw,3.4rem);font-weight:800;margin-bottom:.7rem;}
+.portada__bajada{font-size:clamp(1.02rem,2.2vw,1.16rem);color:var(--tinta-2);max-width:56ch;}
+.ficha{
+  display:grid;grid-template-columns:auto 1fr;gap:.3rem 1.1rem;margin-top:1.6rem;
+  font-size:.85rem;border-top:1px solid var(--linea);padding-top:1.1rem;max-width:56ch;
+}
+.ficha dt{font-family:var(--dato);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-3);padding-top:.22rem;}
+.ficha dd{margin:0;color:var(--tinta-2);}
+
+/* Timbre de revisión: el gesto de un documento contable revisado */
+.timbre{
+  border:2.5px solid var(--sello);color:var(--sello);border-radius:5px;
+  padding:.85rem 1.15rem;transform:rotate(-3deg);text-align:center;
+  background:var(--sello-tenue);justify-self:start;
+}
+.timbre strong{display:block;font-family:var(--display);font-size:1.5rem;font-weight:800;letter-spacing:.05em;line-height:1;}
+.timbre span{display:block;font-family:var(--dato);font-size:.63rem;letter-spacing:.14em;text-transform:uppercase;margin-top:.3rem;}
+
+/* ── Cifras de cabecera ────────────────────────────────────────────────── */
+.cifras{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:1px solid var(--linea);border-bottom:1px solid var(--linea);
+}
+.cifra{padding:1.15rem 1.2rem;border-right:1px solid var(--linea);}
+.cifra:last-child{border-right:0;}
+.cifra b{display:block;font-family:var(--display);font-size:2rem;font-weight:800;line-height:1;}
+.cifra span{display:block;font-size:.79rem;color:var(--tinta-2);margin-top:.35rem;}
+.cifra--sello b{color:var(--sello);}
+.cifra--libro b{color:var(--libro);}
+
+/* ── Estructura general ────────────────────────────────────────────────── */
+.cuerpo{display:grid;gap:2.5rem;padding:2.8rem 0 4rem;align-items:start;}
+@media (min-width:1100px){.cuerpo{grid-template-columns:230px minmax(0,1fr);gap:3.5rem;}}
+
+.indice{display:none;}
+@media (min-width:1100px){
+  .indice{display:block;position:sticky;top:1.8rem;font-size:.83rem;}
+}
+.indice p{font-family:var(--dato);font-size:.68rem;letter-spacing:.13em;text-transform:uppercase;color:var(--tinta-3);margin-bottom:.7rem;}
+.indice ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;}
+.indice a{
+  display:flex;gap:.6rem;padding:.42rem 0 .42rem .6rem;color:var(--tinta-2);
+  text-decoration:none;border-left:2px solid var(--linea);
+}
+.indice a:hover{color:var(--tinta);border-left-color:var(--sello);background:var(--banda);}
+.indice a .num{color:var(--tinta-3);}
+
+.seccion{margin-bottom:3.4rem;scroll-margin-top:1.5rem;}
+.seccion:last-child{margin-bottom:0;}
+.seccion__titulo{
+  display:flex;align-items:baseline;gap:.85rem;margin-bottom:1.1rem;
+  border-bottom:2px solid var(--tinta);padding-bottom:.55rem;
+}
+.seccion__titulo h2{font-size:clamp(1.35rem,3vw,1.72rem);font-weight:700;}
+.seccion__titulo .marca{
+  font-family:var(--dato);font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--tinta-3);white-space:nowrap;
+}
+.intro{color:var(--tinta-2);margin-bottom:1.6rem;}
+
+/* ── Tablas de ledger ──────────────────────────────────────────────────── */
+.tabla-caja{overflow-x:auto;border:1px solid var(--linea-fuerte);border-radius:3px;background:var(--hoja);}
+table{border-collapse:collapse;width:100%;font-size:.87rem;min-width:34rem;}
+caption{
+  text-align:left;font-family:var(--dato);font-size:.7rem;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--tinta-3);padding:.75rem .9rem;border-bottom:1px solid var(--linea);
+}
+th,td{padding:.5rem .9rem;text-align:left;vertical-align:top;}
+thead th{
+  font-family:var(--dato);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--tinta-2);font-weight:500;border-bottom:1.5px solid var(--linea-fuerte);
+}
+tbody tr:nth-child(even){background:var(--banda);}
+tbody td:first-child{font-weight:500;}
+td.derecha,th.derecha{text-align:right;}
+.marca-ok{color:var(--libro);font-weight:600;white-space:nowrap;}
+.marca-mal{color:var(--sello);font-weight:600;white-space:nowrap;}
+
+/* ── Hallazgos ─────────────────────────────────────────────────────────── */
+.hallazgos{display:flex;flex-direction:column;gap:1.1rem;}
+.hallazgo{
+  background:var(--hoja);border:1px solid var(--linea);border-left:4px solid var(--linea-fuerte);
+  border-radius:3px;padding:1.15rem 1.3rem;box-shadow:var(--sombra);
+}
+.hallazgo--critico{border-left-color:var(--sello);}
+.hallazgo--alto{border-left-color:var(--ambar);}
+.hallazgo--medio{border-left-color:var(--libro);}
+.hallazgo__cabeza{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin-bottom:.5rem;}
+.hallazgo__id{font-family:var(--dato);font-size:.78rem;color:var(--tinta-3);font-weight:500;}
+.hallazgo__cabeza h3{font-size:1.03rem;font-weight:700;flex:1 1 16rem;}
+.chip{
+  font-family:var(--dato);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;
+  padding:.18rem .5rem;border-radius:2px;white-space:nowrap;font-weight:500;
+}
+.chip--critico{background:var(--sello-tenue);color:var(--sello);border:1px solid var(--sello);}
+.chip--alto{background:var(--ambar-tenue);color:var(--ambar);border:1px solid var(--ambar);}
+.chip--medio{background:var(--libro-tenue);color:var(--libro);border:1px solid var(--libro);}
+.hallazgo p{font-size:.92rem;color:var(--tinta-2);margin-bottom:.6rem;}
+.hallazgo p strong{color:var(--tinta);}
+.hallazgo__arreglo{
+  font-size:.88rem;color:var(--tinta);background:var(--libro-tenue);
+  border-left:2px solid var(--libro);padding:.55rem .8rem;margin-top:.75rem;
+}
+.hallazgo__arreglo b{font-family:var(--dato);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--libro);display:block;margin-bottom:.15rem;}
+pre{
+  font-family:var(--dato);font-size:.79rem;background:var(--banda);border:1px solid var(--linea);
+  border-radius:3px;padding:.65rem .8rem;overflow-x:auto;margin:0 0 .7rem;line-height:1.5;
+  color:var(--tinta);
+}
+code{font-family:var(--dato);font-size:.88em;background:var(--banda);padding:.08em .32em;border-radius:2px;}
+
+/* ── Listas de tareas ──────────────────────────────────────────────────── */
+.tareas{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;}
+.tareas li{
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:.9rem;
+  padding:.8rem 0;border-bottom:1px solid var(--linea);align-items:start;
+}
+.tareas li:first-child{border-top:1px solid var(--linea);}
+.tareas .casilla{width:1.05rem;height:1.05rem;border:1.5px solid var(--linea-fuerte);border-radius:2px;margin-top:.28rem;}
+.tareas b{display:block;font-weight:600;font-size:.95rem;}
+.tareas span{display:block;font-size:.87rem;color:var(--tinta-2);}
+
+/* ── Bloque de cierre ──────────────────────────────────────────────────── */
+.cierre{border-top:2px solid var(--tinta);margin-top:3rem;padding:1.6rem 0 3rem;font-size:.86rem;color:var(--tinta-2);}
+.cierre .medida{max-width:72ch;}
+
+.destacado{
+  border:1px solid var(--linea-fuerte);border-top:3px solid var(--sello);
+  background:var(--hoja);padding:1.2rem 1.35rem;border-radius:3px;margin-bottom:1.6rem;
+}
+.destacado h3{font-size:1.05rem;margin-bottom:.5rem;}
+.destacado p{font-size:.93rem;color:var(--tinta-2);}
+.cita{
+  font-family:var(--dato);font-size:.85rem;line-height:1.6;color:var(--tinta);
+  border-left:3px solid var(--sello);padding:.15rem 0 .15rem .9rem;margin:0 0 .9rem;
+}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+</style>
+
+<header class="portada">
+  <div class="envoltura portada__grid">
+    <div>
+      <p class="membrete">Feria Técnico Profesional 2026 · Colegio Cardenal José María Caro</p>
+      <h1>Auditoría de LiquidApp</h1>
+      <p class="portada__bajada">Revisión técnica del simulador de liquidaciones de sueldo y finiquitos del Grupo&nbsp;1 de IV°A. Están todos los hallazgos, ordenados por prioridad, con la corrección aplicada en la versión que acompaña este informe.</p>
+      <dl class="ficha">
+        <dt>Equipo</dt><dd>Andrés Berríos · Angelo Díaz · Bastián Luna · Bastián Pérez</dd>
+        <dt>Especialidad</dt><dd>Administración de Empresas, mención Recursos Humanos</dd>
+        <dt>Revisado</dt><dd>Archivo <span class="num">Enlace_LiquidApp.htm</span>, 1.080 líneas · 7 de septiembre de 2026</dd>
+        <dt>Feria</dt><dd>Jueves 8 de octubre de 2026</dd>
+      </dl>
+    </div>
+    <div class="timbre">
+      <strong>REVISADO</strong>
+      <span>23 hallazgos</span>
+    </div>
+  </div>
+</header>
+
+<div class="cifras envoltura" style="max-width:1220px">
+  <div class="cifra cifra--sello"><b>4</b><span>hallazgos críticos, dos de ellos de alcance del proyecto</span></div>
+  <div class="cifra"><b>13</b><span>parámetros legales verificados uno por uno</span></div>
+  <div class="cifra"><b>7</b><span>campos del finiquito que no se usan en ningún cálculo</span></div>
+  <div class="cifra cifra--libro"><b>22</b><span>pruebas automáticas en la versión corregida</span></div>
+</div>
+
+<div class="envoltura cuerpo">
+
+  <nav class="indice" aria-label="Índice del informe">
+    <p>Contenido</p>
+    <ol>
+      <li><a href="#veredicto"><span class="num">01</span> Veredicto</a></li>
+      <li><a href="#bien"><span class="num">02</span> Lo que está bien</a></li>
+      <li><a href="#parametros"><span class="num">03</span> Parámetros verificados</a></li>
+      <li><a href="#alcance"><span class="num">A</span> Alcance y datos</a></li>
+      <li><a href="#calculo"><span class="num">B</span> Errores de cálculo</a></li>
+      <li><a href="#robustez"><span class="num">C</span> Robustez y acceso</a></li>
+      <li><a href="#codigo"><span class="num">D</span> Código</a></li>
+      <li><a href="#pendiente"><span class="num">04</span> Qué queda por hacer</a></li>
+      <li><a href="#feria"><span class="num">05</span> Demostrarlo el 8 de octubre</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ─────────────────────────── Veredicto ─────────────────────────── -->
+    <section class="seccion" id="veredicto">
+      <div class="seccion__titulo"><h2>Veredicto</h2><span class="marca">01</span></div>
+      <div class="medida">
+        <p><strong>La base es buena y el proyecto vale la pena.</strong> LiquidApp entiende el dominio: distingue haberes imponibles de no imponibles, aplica el tope de la gratificación del artículo 50, prorratea por días trabajados, sabe que el excedente de Isapre no rebaja la base tributable y produce un comprobante con la estructura real de una liquidación. Eso no es poco: son decisiones de contenido que solo toma alguien que estudió el módulo.</p>
+        <p>Los problemas están en otra parte, y son de tres tipos.</p>
+        <p><strong>Primero, de alcance.</strong> La página se presenta como «Plataforma de Cálculo y Transparencia de Remuneraciones» y pide nombre, RUT, dirección y cargo. Eso la convierte en un sistema de nómina, que es exactamente lo que la retroalimentación docente de agosto pidió no hacer. Es el hallazgo que puede frenar la presentación del 8 de octubre, y también el más fácil de resolver.</p>
+        <p><strong>Segundo, de cálculo.</strong> Hay doce errores. Los más importantes: no se aplican los topes imponibles, la tabla del impuesto único quedó con dos tramos antiguos, y el finiquito tiene la UF congelada en <span class="num">$39.000</span> dentro del código.</p>
+        <p><strong>Tercero, de robustez.</strong> La página depende de tres servicios externos y de una imagen que no viaja con el archivo. Si el día de la Feria la conexión falla, se ve rota.</p>
+      </div>
+    </section>
+
+    <!-- ────────────────────────── Lo que está bien ────────────────────── -->
+    <section class="seccion" id="bien">
+      <div class="seccion__titulo"><h2>Lo que está bien hecho</h2><span class="marca">02</span></div>
+      <p class="intro medida">Antes de la lista de problemas, conviene dejar registro de lo que no hay que tocar, porque está correcto y verificado contra la fuente oficial.</p>
+      <div class="medida">
+        <ul style="padding-left:1.15rem;color:var(--tinta-2);font-size:.94rem;line-height:1.75">
+          <li><strong>La tabla de la UTM mes a mes está bien.</strong> Los 21 valores de 2025 y 2026 coinciden con los del SII, incluido septiembre de 2026 en <span class="num">$71.721</span>. Actualizarla sola según el mes elegido fue una buena decisión de diseño.</li>
+          <li><strong>El ingreso mínimo está bien, incluido el reajuste de mayo.</strong> <span class="num">$539.000</span> desde enero y <span class="num">$553.553</span> desde el 1 de mayo de 2026. Que hayan capturado ese cambio, que se aprobó con efecto retroactivo, muestra que revisaron la ley y no copiaron una cifra vieja.</li>
+          <li><strong>El tope de la gratificación está bien planteado:</strong> 4,75 IMM al año prorrateados en doce, comparado contra el 25 % de lo devengado.</li>
+          <li><strong>El excedente de Isapre no rebaja la base tributable.</strong> Ese detalle se les escapa a muchas calculadoras comerciales y ellos lo tenían resuelto.</li>
+          <li><strong>El comprobante imprimible respeta el formato real</strong> de una liquidación: haberes y descuentos en dos columnas, imponibles arriba, no imponibles abajo, totales y línea de firma.</li>
+          <li><strong>El acordeón de información contable es contenido propio y correcto</strong>, escrito en lenguaje entendible. Es la mitad del valor pedagógico del proyecto.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ───────────────────── Parámetros verificados ───────────────────── -->
+    <section class="seccion" id="parametros">
+      <div class="seccion__titulo"><h2>Parámetros verificados</h2><span class="marca">03</span></div>
+      <p class="intro medida">Cada valor legal que usa la calculadora, contrastado con la fuente oficial vigente en septiembre de 2026.</p>
+      <div class="tabla-caja">
+        <table>
+          <caption>Contraste con SII, Superintendencia de Pensiones, Dirección del Trabajo y Banco Central</caption>
+          <thead>
+            <tr><th scope="col">Parámetro</th><th scope="col">En LiquidApp</th><th scope="col">Valor vigente</th><th scope="col">Resultado</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>UTM septiembre 2026</td><td class="num">$71.721</td><td class="num">$71.721</td><td class="marca-ok">Correcto</td></tr>
+            <tr><td>IMM enero a abril 2026</td><td class="num">$539.000</td><td class="num">$539.000</td><td class="marca-ok">Correcto</td></tr>
+            <tr><td>IMM desde mayo 2026</td><td class="num">$553.553</td><td class="num">$553.553</td><td class="marca-ok">Correcto</td></tr>
+            <tr><td>Tope de gratificación</td><td>4,75 IMM ÷ 12</td><td>4,75 IMM ÷ 12</td><td class="marca-ok">Correcto</td></tr>
+            <tr><td>Comisiones de AFP</td><td>10,49 % a 11,45 %</td><td>10,49 % a 11,45 %</td><td class="marca-ok">Correcto</td></tr>
+            <tr><td>Cesantía, contrato indefinido</td><td class="num">0,6 %</td><td class="num">0,6 %</td><td class="marca-ok">Correcto</td></tr>
+            <tr><td>Impuesto único, tramos 1 a 6</td><td>Exento a 30,4 %</td><td>Exento a 30,4 %</td><td class="marca-ok">Correcto</td></tr>
+            <tr><td>Impuesto único, tramo 7</td><td>Hasta 150 UTM · 35,5 % · rebaja 23,92</td><td>120 a 310 UTM · 35 % · rebaja 23,32</td><td class="marca-mal">Desactualizado</td></tr>
+            <tr><td>Impuesto único, tramo 8</td><td>Sobre 150 UTM · 40 % · rebaja 30,67</td><td>Sobre 310 UTM · 40 % · rebaja 38,82</td><td class="marca-mal">Desactualizado</td></tr>
+            <tr><td>Tope imponible AFP y salud</td><td>No se aplica</td><td class="num">90,0 UF</td><td class="marca-mal">Falta</td></tr>
+            <tr><td>Tope imponible cesantía</td><td>No se aplica</td><td class="num">135,2 UF</td><td class="marca-mal">Falta</td></tr>
+            <tr><td>Valor de la UF</td><td class="num">$39.000</td><td class="num">$40.875</td><td class="marca-mal">Desactualizado</td></tr>
+            <tr><td>Jornada semanal ordinaria</td><td>No se usa</td><td>42 horas desde el 26/04/2026</td><td class="marca-mal">Falta</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ─────────────────────── Bloque A: alcance ──────────────────────── -->
+    <section class="seccion" id="alcance">
+      <div class="seccion__titulo"><h2>Alcance y datos personales</h2><span class="marca">Bloque A</span></div>
+
+      <div class="destacado">
+        <h3>Esto ya se les había advertido</h3>
+        <p>En la revisión de avance del 31 de agosto quedó escrito:</p>
+        <p class="cita">«LiquidApp — En desarrollo, con alerta. Debe reformularse como simulador educativo con casos ficticios. No pueden ingresar remuneraciones reales ni operar como sistema de nómina.»</p>
+        <p>La versión que revisamos todavía va en la dirección contraria. Este bloque es el que hay que resolver primero, y no requiere programar casi nada: es un cambio de encuadre.</p>
+      </div>
+
+      <div class="hallazgos">
+        <article class="hallazgo hallazgo--critico">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">A1</span>
+            <h3>La página se presenta como sistema de nómina, no como simulador</h3>
+            <span class="chip chip--critico">Crítico</span>
+          </div>
+          <p>El subtítulo dice «Plataforma de Cálculo y Transparencia de Remuneraciones» y el bloque 0 pide nombre completo, RUT, dirección, cargo y RUT del establecimiento. Una remuneración es un dato personal, y el RUT la vuelve identificable: la Ley 19.628 y la Ley 21.719 exigen una base legal para tratarlos, y tener acceso a ellos no es una base legal.</p>
+          <p>Además, el objetivo declarado en el informe —que los funcionarios vean su liquidación «antes de que le lleguen a sus correos»— describe un sistema paralelo al de Recursos Humanos. Eso no es un proyecto escolar, es un tratamiento de datos de terceros.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>La versión nueva se llama «simulador educativo» en el título, en la barra y en un aviso permanente arriba de la página. Los campos de identidad quedan explícitamente opcionales y solo encabezan el comprobante impreso.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--critico">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">A2</span>
+            <h3>No hay ninguna declaración de qué pasa con los datos</h3>
+            <span class="chip chip--critico">Crítico</span>
+          </div>
+          <p>Quien abre la página no tiene forma de saber si lo que escribe se envía a alguna parte. En realidad no se envía nada —todo el cálculo ocurre en el navegador— pero eso hay que decirlo, porque es justamente la respuesta que tranquiliza a un funcionario y la que un jurado de Feria va a preguntar.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Aviso fijo en la cabecera, una tarjeta completa sobre protección de datos en la sección informativa, y tres casos de práctica con personas ficticias para demostrar sin exponer a nadie. La memoria del navegador guarda los montos de la última simulación, pero nunca nombres ni RUT.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ─────────────────────── Bloque B: cálculo ──────────────────────── -->
+    <section class="seccion" id="calculo">
+      <div class="seccion__titulo"><h2>Errores de cálculo</h2><span class="marca">Bloque B</span></div>
+      <p class="intro medida">Una calculadora que se equivoca es peor que no tener calculadora, porque la gente le cree. Estos son los doce errores encontrados, del más grave al menos grave.</p>
+
+      <div class="hallazgos">
+        <article class="hallazgo hallazgo--critico">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B1</span>
+            <h3>No se aplican los topes imponibles</h3>
+            <span class="chip chip--critico">Crítico</span>
+          </div>
+          <p>La AFP y la salud se calculan sobre el total imponible completo, sin límite. En la realidad las cotizaciones se calculan solo hasta <strong>90,0 UF</strong> (AFP, salud y Ley de Accidentes del Trabajo) y hasta <strong>135,2 UF</strong> para el seguro de cesantía. Son valores que fija la Superintendencia de Pensiones cada año.</p>
+          <p>El efecto sobre una jefatura con <span class="num">$4.664.115</span> imponible:</p>
+          <div class="tabla-caja" style="margin-bottom:.7rem">
+            <table style="min-width:26rem">
+              <thead><tr><th scope="col">Descuento</th><th scope="col" class="derecha">Como está hoy</th><th scope="col" class="derecha">Con topes</th></tr></thead>
+              <tbody>
+                <tr><td>AFP</td><td class="derecha num">$525.646</td><td class="derecha num">$414.595</td></tr>
+                <tr><td>Salud 7 %</td><td class="derecha num">$326.488</td><td class="derecha num">$257.513</td></tr>
+                <tr><td>Impuesto único</td><td class="derecha num">$188.812</td><td class="derecha num">$213.116</td></tr>
+                <tr><td><strong>Total legal</strong></td><td class="derecha num"><strong>$1.068.931</strong></td><td class="derecha num"><strong>$913.208</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Le descuenta <strong><span class="num">$155.723</span> de más al mes</strong>, casi <span class="num">$1.869.000</span> al año. Fíjense en un detalle fino: al bajar las cotizaciones sube la base tributable, así que el impuesto único <em>sube</em>. Bajar un descuento no siempre sube el líquido en la misma proporción.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Los dos topes son campos visibles y editables, se cargan solos según el año, y hay un selector para desactivarlos y comparar. El paso a paso avisa cuando el tope se aplicó.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B2</span>
+            <h3>La tabla del impuesto único tiene dos tramos antiguos</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>Los seis primeros tramos están perfectos. Los dos últimos corresponden a una escala anterior a la reforma de la Ley 21.210:</p>
+<pre>{ hasta: 150,      factor: 0.355, rebajaUTM: 23.92 }   ← debería ser 310 · 0,35 · 23,32
+{ hasta: Infinity, factor: 0.40,  rebajaUTM: 30.67 }   ← debería ser  ∞  · 0,40 · 38,82</pre>
+          <p>En su defensa: la tabla es <strong>internamente consistente</strong>, no tiene saltos entre tramos. El error no es de programación sino de fuente desactualizada, y solo afecta a rentas sobre <span class="num">$8.606.520</span> mensuales. En un colegio probablemente nunca ocurra. Pero una herramienta que se presenta como correcta tiene que serlo también en los casos que no ve todos los días.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Tabla actualizada a los ocho tramos vigentes. Además, la tabla que se muestra en la sección informativa se genera desde la misma constante que hace el cálculo, así que es imposible que una quede desfasada de la otra.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B3</span>
+            <h3>Un plan de Isapre barato descuenta menos que el 7 % legal</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>Si se elige Isapre, se descuenta el valor del plan tal cual. Pero la cotización de salud <strong>nunca puede ser inferior al 7 % legal</strong>: si el plan vale menos, igual se cotiza el 7 %. Hoy, un plan de <span class="num">$1.000</span> produce un descuento de salud de <span class="num">$1.000</span>.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>La cotización es el mayor entre el plan pactado y el 7 % legal, y hay una prueba automática que lo verifica.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B4</span>
+            <h3>La UF está congelada dentro del código del finiquito</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>El tope de 90 UF del artículo 172 se calcula así:</p>
+<pre>const topeBase = 90 * 39000;</pre>
+          <p>Son dos problemas juntos. La UF de septiembre de 2026 está en <span class="num">$40.875</span>, no en <span class="num">$39.000</span>, así que el tope queda casi <span class="num">$169.000</span> abajo. Y el campo «Valor de la UF hoy» que sí existe en el formulario no se usa aquí: además, ese campo solo aparece si se elige Isapre con plan en UF, así que en la mayoría de los casos está escondido.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>La UF es un parámetro visible siempre, en el panel «Parámetros legales del período», con valor por mes y editable. El finiquito y los topes imponibles leen ese mismo campo.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B5</span>
+            <h3>El conteo de meses de servicio suma un mes de más</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>La regla que decide cuántos meses trabajó la persona es:</p>
+<pre>if (termino.getDate() &gt;= inicio.getDate()) mesesServicio += 1;</pre>
+          <p>Con un contrato del 15 al 20 de enero, eso da <strong>un mes de servicio por cinco días trabajados</strong>. El error importa de verdad en la frontera: la ley paga un año extra de indemnización cuando la fracción supera los seis meses, así que un mes inventado puede convertirse en un mes completo de sueldo de más.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Ahora se descuenta el mes cuando todavía no se cumple: <code>if (termino.getDate() &lt; inicio.getDate()) meses -= 1;</code>. Hay tres pruebas que cubren los bordes.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B6</span>
+            <h3>El aviso previo se paga siempre, aunque el empleador haya avisado</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>En el artículo 161 el empleador tiene dos caminos: avisar con 30 días de anticipación, o no avisar y pagar un mes de indemnización sustitutiva. La calculadora cobra siempre el mes, así que sobreestima el finiquito de toda persona que sí recibió aviso.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Se agregó la pregunta «¿el empleador avisó con 30 días?», que aparece solo cuando la causal es 161.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B7</span>
+            <h3>Siete campos del finiquito no se usan en ningún cálculo</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>El cálculo del finiquito solo lee sueldo base, gratificación y bono imponible. Estos siete campos están en pantalla, escuchan cambios y no hacen nada: <strong>zona extrema, tipo de salario, colación, movilización, cheque de restaurant, desgaste de herramientas y viáticos</strong>.</p>
+          <p>No es solo una molestia de interfaz: el artículo 172 dice que la base incluye «toda cantidad que estuviere percibiendo el trabajador», y solo excluye la asignación familiar, el sobretiempo y los beneficios esporádicos. La colación y la movilización pagadas todos los meses <strong>sí entran</strong>. Dejarlas fuera subestima la indemnización.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Todos esos conceptos suman a la base, con una nota que explica la regla del artículo 172. «Salario variable» ahora abre tres campos y promedia los últimos tres meses, como corresponde. «Zona extrema» se eliminó: no incidía en ninguna regla, y un control que no hace nada es peor que no tenerlo.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B8</span>
+            <h3>La nota promete un dato que no se puede ingresar</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>El resumen del finiquito dice «más los días pendientes informados», pero en el código el feriado pendiente es una constante:</p>
+<pre>const feriadoPendiente = 0;</pre>
+          <p>No hay ningún campo para informarlo. Alguien con tres años de feriado acumulado ve un finiquito que ignora esos días, y la nota le dice que sí los consideró.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Campo «días hábiles de feriado pendientes», con una indicación de incluir ahí el feriado progresivo del artículo 68, que el informe del equipo menciona y la página no cubría.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B9</span>
+            <h3>El feriado se paga en días hábiles sin convertirlos a corridos</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>El feriado legal se cuenta en días hábiles (15 al año, 1,25 al mes), pero se paga en dinero incluyendo los sábados, domingos y festivos comprendidos en ese período. La fórmula actual multiplica los días hábiles por el valor del día corrido, lo que <strong>subestima el pago en cerca de un 40 %</strong>.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Se convierten los días hábiles a corridos con la equivalencia de 5 por 7, y el paso a paso muestra las dos cifras para que se entienda de dónde sale.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B10</span>
+            <h3>Los días trabajados y los de licencia se fuerzan a sumar 30</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>Al escribir 20 días trabajados, la función <code>sincronizarDias</code> pone automáticamente 10 días de licencia médica. Pero puede que esa persona no haya estado enferma: puede haber entrado a mitad de mes o haber tenido un permiso sin goce de sueldo. El simulador afirma un hecho falso que después aparece impreso en el comprobante.</p>
+          <p>Como efecto secundario, la alerta «los días superan los 30» es <strong>código muerto</strong>: la suma se fuerza a 30, así que la condición nunca se cumple y el mensaje nunca aparece.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Tres campos independientes —trabajados, licencia y ausencia sin goce— con un contador «días asignados: 30 de 30» y una alerta real que sí se activa cuando la suma no cuadra.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B11</span>
+            <h3>«Horas extras» pide pesos, no horas</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>El campo se llama «Horas Extras» pero espera un monto ya calculado. Es la parte más difícil del cálculo y es la única que la herramienta le deja al usuario. Además no aparece por ninguna parte la jornada semanal, que desde el 26 de abril de 2026 bajó a <strong>42 horas</strong> por la Ley 21.561, lo que <em>subió</em> el valor de la hora extra.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Ahora se ingresa la cantidad de horas y se elige la jornada (45, 44, 42 o 40) y el recargo. La página calcula el valor de la hora con la fórmula <code>(sueldo ÷ 30) × (7 ÷ jornada) × 1,5</code> y lo muestra antes del total. Es, además, un buen contenido para explicar en el stand.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">B12</span>
+            <h3>Los aguinaldos inflan la base de la gratificación</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>El aguinaldo entra en <code>baseGratificacion</code>, así que un aguinaldo de Fiestas Patrias sube la gratificación de ese mes. La gratificación del artículo 50 se calcula sobre lo devengado por <strong>remuneraciones mensuales</strong>, y un aguinaldo es un beneficio esporádico que se paga una o dos veces al año.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>El aguinaldo quedó fuera de la base de la gratificación, con una prueba que lo comprueba, y se agregó un selector para declararlo imponible o no imponible según de dónde venga.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ────────────────────── Bloque C: robustez ──────────────────────── -->
+    <section class="seccion" id="robustez">
+      <div class="seccion__titulo"><h2>Robustez, accesibilidad y confianza</h2><span class="marca">Bloque C</span></div>
+
+      <div class="hallazgos">
+        <article class="hallazgo hallazgo--critico">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">C1</span>
+            <h3>Sin internet, la página se ve rota</h3>
+            <span class="chip chip--critico">Crítico</span>
+          </div>
+          <p>El archivo depende de tres servicios externos: Tailwind desde <code>cdn.tailwindcss.com</code>, los íconos desde <code>cdnjs</code> y las tipografías desde Google Fonts. Si alguno no carga —wifi saturada en el gimnasio, colegio con filtro de red, celular sin datos— la página pierde <em>todo</em> el diseño y queda como texto plano apilado.</p>
+          <p>Es el riesgo más concreto del 8 de octubre, porque no depende de ustedes.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>La versión nueva no carga nada de afuera: el CSS está escrito a mano dentro del archivo, los íconos son SVG dibujados en la misma página y la tipografía es la del sistema. Un solo archivo <span class="num">.html</span> de 130 KB que funciona con el computador desconectado.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">C2</span>
+            <h3>El logo apunta a un archivo que no viaja con la página</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>El favicon y el logo del comprobante apuntan a <code>ChatGPT Image 7 sept 2026, 09_17_42.png</code>. Si el archivo no está en la misma carpeta, ambos se rompen; y el nombre con espacios da problemas en varios servidores. Aparte, ese nombre queda impreso en el código fuente y en la liquidación que se entrega.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>El logo se rehízo como SVG dentro del archivo, así que se ve siempre, se imprime nítido y no depende de ningún archivo suelto. Si quieren usar su propio logo, conviene renombrarlo <code>logo.png</code>, sin espacios ni tildes.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--alto">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">C3</span>
+            <h3>En celular no hay menú</h3>
+            <span class="chip chip--alto">Alto</span>
+          </div>
+          <p>La navegación usa <code>hidden sm:flex</code>: en pantallas chicas simplemente desaparece, y no hay nada que la reemplace. Quien entre desde el teléfono tiene que desplazarse por toda la página para llegar al finiquito. Y el resultado, que es lo que la gente quiere ver, queda muy abajo del formulario.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Botón de menú desplegable en pantallas chicas, y una barra fija abajo que muestra el líquido a pagar mientras se completa el formulario.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">C4</span>
+            <h3>Los textos de ayuda no tienen contraste suficiente</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>Las notas usan <code>text-slate-400</code>, que sobre blanco da una relación de contraste cercana a 2,6:1. El mínimo de la norma WCAG AA es 4,5:1. Son justamente los textos que explican qué hay que escribir en cada campo.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Se subieron todos los grises de ayuda a un tono que supera 4,5:1, y el foco del teclado ahora se ve en todos los controles.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">C5</span>
+            <h3>Los resultados cambian en silencio para un lector de pantalla</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>El líquido a pagar se actualiza sin avisar a las tecnologías de asistencia, no hay <code>&lt;main&gt;</code> ni enlace para saltar al contenido, y los íconos decorativos se leen en voz alta como caracteres sueltos. Para un proyecto de Recursos Humanos, cuyo usuario puede ser cualquier funcionario del colegio, esto importa.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Regiones <code>aria-live</code> en los dos resúmenes, alertas con <code>role="alert"</code>, enlace de salto, marcas de estructura y todos los íconos ocultos a los lectores de pantalla.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">C6</span>
+            <h3>Detalles que restan confianza</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>Cuatro cosas chicas que juntas hacen que la herramienta se sienta menos terminada:</p>
+          <ul style="font-size:.92rem;color:var(--tinta-2);padding-left:1.15rem;line-height:1.7;margin:0 0 .6rem">
+            <li>El cartel «ingrese los montos sin puntos ni comas» es una disculpa por una limitación técnica. Se puede resolver formateando los números en vez de pedirle al usuario que se adapte.</li>
+            <li>Se piden dos RUT y ninguno se valida, aunque el dígito verificador se calcula con una fórmula de diez líneas.</li>
+            <li>Al recargar la página se pierde todo lo escrito.</li>
+            <li>El script de Netlify quedó <em>después</em> de <code>&lt;/html&gt;</code>, fuera del documento.</li>
+          </ul>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Los montos se formatean solos con separador de miles, los RUT se validan con módulo 11 y se formatean al salir del campo, la simulación se recuerda en el navegador (sin nombres ni RUT) y el documento cierra donde corresponde. También se agregaron descripción y metadatos para que el enlace se vea bien al compartirlo por WhatsApp o correo.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ─────────────────────── Bloque D: código ───────────────────────── -->
+    <section class="seccion" id="codigo">
+      <div class="seccion__titulo"><h2>Cómo está escrito el código</h2><span class="marca">Bloque D</span></div>
+      <p class="intro medida">Esto no afecta a quien usa la página, pero sí a ustedes cuando tengan que arreglar algo la semana de la Feria.</p>
+
+      <div class="hallazgos">
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">D1</span>
+            <h3>Una sola función de 100 líneas hace el cálculo y pinta la pantalla</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p><code>calcular()</code> lee los campos, hace las operaciones y escribe los resultados, todo mezclado. Eso hace imposible comprobar si el cálculo está bien sin abrir el navegador y probar a mano, y obliga a leer las 100 líneas completas para cambiar una fórmula.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Tres capas separadas: los parámetros legales, las funciones de cálculo (que reciben números y devuelven números, sin tocar la página) y la capa que pinta. La misma función <code>calcularLiquidacion</code> sirve para la pantalla y para las pruebas.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">D2</span>
+            <h3>Los valores legales están repartidos por todo el archivo</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>El 7 % de salud, los 30 días del mes, los <span class="num">$39.000</span> de la UF, el 4,75 del tope de gratificación y el 1,25 del feriado aparecen sueltos en distintas líneas. Cuando cambie la ley, hay que buscarlos uno por uno, y ahí es donde se olvida alguno.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>Todo vive en un objeto <code>PARAMETROS</code> al principio del script, con un comentario que dice explícitamente que ese es el único lugar donde hay que actualizar valores.</div>
+        </article>
+
+        <article class="hallazgo hallazgo--medio">
+          <div class="hallazgo__cabeza">
+            <span class="hallazgo__id">D3</span>
+            <h3>No hay ninguna forma de comprobar que el cálculo esté bien</h3>
+            <span class="chip chip--medio">Medio</span>
+          </div>
+          <p>Sin pruebas, cada cambio es una apuesta: se arregla el finiquito y no hay manera de saber si se rompió la liquidación. Faltando un mes para la Feria, eso es un riesgo real.</p>
+          <div class="hallazgo__arreglo"><b>Corregido</b>22 pruebas automáticas y un botón «Verificar el motor de cálculo» que las corre y dice cuántas pasaron. Cubren los bordes de los tramos del impuesto, los topes imponibles, el mínimo legal de Isapre, el tope de la gratificación, el prorrateo por días, el conteo de años del finiquito y el feriado proporcional. Muéstrenlo en el stand: es un argumento fuerte.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ────────────────────── Qué queda por hacer ─────────────────────── -->
+    <section class="seccion" id="pendiente">
+      <div class="seccion__titulo"><h2>Qué queda por hacer</h2><span class="marca">04</span></div>
+      <p class="intro medida">La versión corregida resuelve los 23 hallazgos, pero hay cosas que solo puede hacer el equipo. Estas seis quedan pendientes.</p>
+      <ol class="tareas">
+        <li><span class="casilla" aria-hidden="true"></span><span><b>Decidir si el aguinaldo del establecimiento es imponible.</b> Depende del contrato o de la ley que lo otorga. El selector está puesto, pero la respuesta hay que averiguarla en Recursos Humanos.</span></li>
+        <li><span class="casilla" aria-hidden="true"></span><span><b>Completar la UTM de octubre, noviembre y diciembre de 2026</b> cuando el SII las publique. Se agregan tres líneas al objeto <code>PARAMETROS</code>.</span></li>
+        <li><span class="casilla" aria-hidden="true"></span><span><b>Validar contra tres liquidaciones reales.</b> Pídanle a Recursos Humanos tres liquidaciones <em>sin nombre ni RUT</em>, con autorización, y comparen cifra por cifra. Si cuadran, tienen la mejor evidencia posible para el informe final.</span></li>
+        <li><span class="casilla" aria-hidden="true"></span><span><b>Escribir el guion de tres minutos</b> para el stand: qué problema resuelve, a quién, y una demostración con un caso ficticio de principio a fin.</span></li>
+        <li><span class="casilla" aria-hidden="true"></span><span><b>Probar en un celular real</b> el día anterior, con el wifi apagado, para confirmar que todo funciona sin conexión.</span></li>
+        <li><span class="casilla" aria-hidden="true"></span><span><b>Llevar el archivo en un pendrive</b> además de publicado en internet. Es un solo archivo: se abre con doble clic desde cualquier computador.</span></li>
+      </ol>
+    </section>
+
+    <!-- ───────────────────────── Feria ────────────────────────────────── -->
+    <section class="seccion" id="feria">
+      <div class="seccion__titulo"><h2>Cómo defenderlo el 8 de octubre</h2><span class="marca">05</span></div>
+      <div class="medida">
+        <p>Un jurado de Feria pregunta casi siempre lo mismo. Tres respuestas que ahora sí se pueden dar:</p>
+        <p><strong>«¿Y si me equivoco al calcular?»</strong> — Abran el detalle «¿Cómo se calculó? Ver paso a paso». Muestra cada fórmula con los números reemplazados. Eso convierte la calculadora en material de estudio, que es lo que un proyecto de la especialidad debe ser.</p>
+        <p><strong>«¿Cómo sé que los números están bien?»</strong> — Aprieten «Verificar el motor de cálculo» delante del jurado. Veintidós pruebas corriendo en vivo dicen más que cualquier explicación.</p>
+        <p><strong>«¿Qué pasa con los datos de la gente?»</strong> — Es la pregunta que más se repite en proyectos de Recursos Humanos, y la respuesta ya está en la página: es un simulador, nada sale del navegador, y la demostración se hace con casos ficticios. Muestren el aviso de la cabecera y carguen el caso de Camila Rojas.</p>
+        <p style="margin-top:1.4rem"><strong>Un consejo sobre el alcance.</strong> Con un mes por delante, la tentación es agregar funciones. Resistan: un simulador que calcula bien, explica cada línea y se puede auditar vale más que uno que además exporta a Excel y calcula licencias. La nota del Informe Nº1 fue 6,0 y el proyecto está en el grupo de los buenos; lo que falta para el 7,0 no es más funcionalidad, es precisión y evidencia.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="cierre">
+  <div class="envoltura medida">
+    <p><strong>Sobre esta revisión.</strong> Se auditó el archivo <span class="num">Enlace_LiquidApp.htm</span> completo, 1.080 líneas, incluidos el HTML, los estilos y el motor de cálculo. Los parámetros legales se contrastaron con el SII (tabla del impuesto único y valor de la UTM), la Superintendencia de Pensiones (topes imponibles 2026), la Dirección del Trabajo y el Código del Trabajo (artículos 41 a 50, 58, 67 a 73, 159 a 163 y 172), Previred (indicadores previsionales), el Banco Central (valor de la UF) y la Ley 21.561 sobre reducción de la jornada laboral.</p>
+    <p>La versión corregida acompaña este informe como un único archivo HTML autocontenido. Todo lo señalado como «Corregido» está implementado y verificado en esa versión.</p>
+    <p style="color:var(--tinta-3);font-size:.82rem;margin-top:1.2rem">Documento de retroalimentación docente · Feria Técnico Profesional 2026 · No constituye asesoría legal, contable ni tributaria.</p>
+  </div>
+</footer>

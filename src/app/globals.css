@@ -445,14 +445,23 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .progress-reveal.open .progress-picker { opacity: 1; }
 .progress-picker p { margin: 0 0 9px; color: #536176; font-size: 11px; }
 .progress-picker > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
-.progress-picker button { height: 40px; border: 1px solid #bfd0e7; background: #fff; color: #285d9f; border-radius: 9px; font-weight: 800; cursor: pointer; opacity: 0; transform: translateY(-4px); transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
-.progress-reveal.open .progress-picker button { opacity: 1; transform: none; }
-.progress-reveal.open .progress-picker button:nth-child(1) { transition-delay: 40ms; }
-.progress-reveal.open .progress-picker button:nth-child(2) { transition-delay: 80ms; }
-.progress-reveal.open .progress-picker button:nth-child(3) { transition-delay: 120ms; }
-.progress-reveal.open .progress-picker button:nth-child(4) { transition-delay: 160ms; }
-/* Especificidad mayor que la regla .open que fija transform: none. */
+/* La entrada usa translate y la presión transform: así el escalonado de la
+   entrada no retrasa el feedback de presión, que debe ser inmediato. */
+.progress-picker button { height: 40px; border: 1px solid #bfd0e7; background: #fff; color: #285d9f; border-radius: 9px; font-weight: 800; cursor: pointer; opacity: 0; transition: opacity var(--dur-fast) var(--ease-out), translate var(--dur-fast) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+/* El desplazamiento de entrada solo existe si se permite movimiento. Anularlo
+   después desde reduced-motion no sirve: el minificador fusiona transform y
+   translate en una sola declaración y pierde el translate. */
+@media (prefers-reduced-motion: no-preference) {
+  .progress-picker button { translate: 0 -4px; }
+}
+.progress-reveal.open .progress-picker button { opacity: 1; translate: none; }
+.progress-reveal.open .progress-picker button:nth-child(1) { transition-delay: 40ms, 40ms, 0ms; }
+.progress-reveal.open .progress-picker button:nth-child(2) { transition-delay: 80ms, 80ms, 0ms; }
+.progress-reveal.open .progress-picker button:nth-child(3) { transition-delay: 120ms, 120ms, 0ms; }
+.progress-reveal.open .progress-picker button:nth-child(4) { transition-delay: 160ms, 160ms, 0ms; }
 .progress-reveal.open .progress-picker button:active { transform: scale(0.97); }
+/* La regla .open fija opacity: 1 y le gana a button:disabled; se restituye. */
+.progress-reveal.open .progress-picker button:disabled { opacity: 0.55; }
 .absence-link { margin: 17px auto 0; border: 0; background: transparent; color: #7c8798; display: flex; align-items: center; gap: 7px; font-size: 11px; cursor: pointer; }
 .absent-panel { text-align: center; padding: 25px 10px 8px; color: #6e798b; }
 .absent-panel svg { color: #7c8796; }

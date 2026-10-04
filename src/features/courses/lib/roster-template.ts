@@ -8,7 +8,11 @@ const INSTRUCTIONS: string[][] = [
   [],
   ["1", `Escribe un estudiante por fila en la hoja "${ROSTER_SHEET_NAME}", desde la fila 2.`],
   ["2", `La columna "${ROSTER_NAME_HEADER}" es la única obligatoria.`],
-  ["3", `La columna "${ROSTER_NUMBER_HEADER}" es el número de lista. Si la dejas vacía se asigna por orden.`],
+  [
+    "3",
+    `La columna "${ROSTER_NUMBER_HEADER}" es referencial: por ahora la aplicación numera según el`
+    + " orden de las filas, así que deja la planilla ordenada por número de lista.",
+  ],
   ["4", "No cambies los nombres de las columnas ni el orden de las hojas."],
   ["5", "No agregues RUT, correos, diagnósticos, calificaciones ni datos de apoderados."],
   [],

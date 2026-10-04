@@ -3,6 +3,7 @@ import { Download, FileSpreadsheet, LoaderCircle, Upload } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import {
   ROSTER_NAME_HEADER,
+  ROSTER_NUMBER_HEADER,
   downloadRosterTemplate,
 } from "@/features/courses/lib/roster-template";
 
@@ -21,6 +22,12 @@ const NAME_HEADERS = [
   "Estudiante",
   "Alumno",
 ];
+
+// Encabezados conocidos: la plantilla en blanco solo trae esta fila, y el
+// respaldo heurístico no debe confundirla con nombres de estudiantes.
+const HEADER_LABELS = new Set(
+  [...NAME_HEADERS, ROSTER_NUMBER_HEADER].map((label) => label.toLocaleLowerCase("es")),
+);
 
 export function ImportCourseModal(props: ImportCourseModalProps) {
   const { suggestedCourseName, busy, onImport, onError, onClose } = props;
@@ -44,7 +51,12 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
         : XLSX.utils
             .sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" })
             .flatMap((row) => row.map((cell) => String(cell).trim()))
-            .filter((value) => value.split(/\s+/).length >= 2);
+            .filter((value) => value.split(/\s+/).length >= 2)
+            .filter((value) => !HEADER_LABELS.has(value.toLocaleLowerCase("es")));
+      if (!names.length) {
+        onError(`La planilla no tiene estudiantes. Completa la columna “${ROSTER_NAME_HEADER}” y vuelve a subirla.`);
+        return;
+      }
       const courseName = window.prompt("Nombre del curso", suggestedCourseName)?.trim();
       if (!courseName) return;
       const imported = await onImport(courseName, names);

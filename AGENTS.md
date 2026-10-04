@@ -32,7 +32,7 @@ Para la versión 0.1, la referencia visual y funcional es `docs/migration-invent
 6. No incluir secretos, credenciales, tokens, datos reales de estudiantes ni archivos exportados.
 7. No reintroducir D1, Vinext, Wrangler ni encabezados exclusivos de ChatGPT Work.
 8. Para cambios de arquitectura, crear un ADR en `docs/decisions/` antes de implementar.
-9. Ejecutar `npm run typecheck`, `npm run lint` y `npm run build` antes de entregar.
+9. Ejecutar `npm run typecheck`, `npm run lint`, `npm run test` y `npm run build` antes de entregar.
 
 ## Elementos visuales que deben preservarse
 

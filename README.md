@@ -67,9 +67,10 @@ La aplicación arranca con 40 estudiantes inequívocamente ficticios, cinco curs
 npm run dev        # servidor de desarrollo
 npm run typecheck  # revisión de TypeScript
 npm run lint       # revisión estática
+npm run test       # pruebas del dominio (requiere Node.js 22.12 o superior)
 npm run build      # compilación de producción
 npm run start      # ejecuta la compilación
-npm run check      # tipos + lint + build
+npm run check      # tipos + lint + pruebas + build
 ```
 
 ## Arquitectura

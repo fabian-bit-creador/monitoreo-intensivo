@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" role="img" aria-label="Monitoreo Intensivo — concepto B, el recorrido">
+  <title>Monitoreo Intensivo · Concepto B · El recorrido</title>
+  <!-- Trazo en serpentina que atraviesa tres filas: los tres recorridos de la sesion.
+       Cierra en un punto verde: el criterio comprobado (C).
+       A 16 px conviene subir stroke-width a 2.9 y el radio del punto a 3.2. -->
+  <path d="M4 4.6h11.4a3.4 3.4 0 0 1 0 6.8H8.6a3.4 3.4 0 0 0 0 6.8H20"
+        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="20" cy="18.2" r="3" fill="#18A06A"/>
+</svg>

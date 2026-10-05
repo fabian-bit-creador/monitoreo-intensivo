@@ -48,13 +48,17 @@ export function sessionMetrics(
   presence: SessionStudent[],
   observations: Observation[],
 ): SessionMetrics {
-  const roster = students.filter((student) => student.courseId === session.courseId);
+  // La nómina de la sesión es la fotografía guardada en sessionStudents al
+  // crearla, no los estudiantes actuales del curso: así, altas o bajas
+  // posteriores no alteran un informe ya realizado.
   const presenceMap = new Map(
     presence
       .filter((row) => row.sessionId === session.id)
       .map((row) => [row.studentId, row.present]),
   );
-  const present = roster.filter((student) => presenceMap.get(student.id) !== false);
+  // Se recorre students para conservar el orden de lista en informes y exportaciones.
+  const roster = students.filter((student) => presenceMap.has(student.id));
+  const present = roster.filter((student) => presenceMap.get(student.id) === true);
   const sessionObs = observations.filter((row) => row.sessionId === session.id);
   const latest = latestObservations(sessionObs);
   const counts = { I: 0, R: 0, C: 0 };

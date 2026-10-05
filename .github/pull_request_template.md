@@ -15,6 +15,7 @@ Describe el problema y la solución.
 
 - [ ] `npm run typecheck`
 - [ ] `npm run lint`
+- [ ] `npm run test`
 - [ ] `npm run build`
 - [ ] Escritorio revisado
 - [ ] Celular revisado

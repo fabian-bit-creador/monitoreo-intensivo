@@ -233,9 +233,9 @@ describe("sessionMetrics", () => {
     expect(metricsFor([]).roster.map((student) => student.id)).not.toContain("otro");
   });
 
-  describe("nómina de una sesión pasada", () => {
+  describe("nómina de la sesión", () => {
     // La nómina de una sesión es la fotografía guardada en sessionStudents al
-    // crearla. Estas pruebas fijan esa regla para la rama que corrige las métricas.
+    // crearla, no los estudiantes actuales del curso.
 
     it("no saca a un estudiante desactivado después de la sesión", () => {
       // Protege contra la corrección ingenua de filtrar por student.active:
@@ -249,21 +249,46 @@ describe("sessionMetrics", () => {
       expect(metrics.counts.C).toBe(1);
     });
 
-    // Defecto conocido: hoy la nómina se arma desde los estudiantes actuales del
-    // curso. Se corrige en la rama de métricas basadas en sessionStudents; cuando
-    // eso ocurra, estas pruebas empezarán a fallar y deben pasar a it().
-    it.fails("no cuenta a un estudiante agregado al curso después de la sesión", () => {
+    it("no cuenta a un estudiante agregado al curso después de la sesión", () => {
       const students = [...ROSTER, buildStudent("nuevo", 5)];
       const metrics = metricsFor([], { students });
 
       expect(metrics.roster.map((student) => student.id)).not.toContain("nuevo");
     });
 
-    it.fails("no cuenta a un estudiante que ya estaba inactivo al crear la sesión", () => {
+    it("no cuenta a un estudiante que ya estaba inactivo al crear la sesión", () => {
       const students = [...ROSTER, buildStudent("baja", 5, { active: false })];
       const metrics = metricsFor([], { students });
 
       expect(metrics.present.map((student) => student.id)).not.toContain("baja");
+    });
+
+    it("un estudiante fuera de la fotografía no entra en los indicadores aunque tenga registros", () => {
+      const students = [...ROSTER, buildStudent("nuevo", 5)];
+      const metrics = metricsFor(
+        observationRows([
+          { studentId: "a", code: "C" },
+          { studentId: "nuevo", code: "C" },
+        ]),
+        { students },
+      );
+
+      expect(metrics.counts.C).toBe(1);
+      expect(metrics.coverage).toBe(25);
+      expect(metrics.unobserved).toBe(3);
+    });
+
+    it("conserva el orden de lista aunque la fotografía venga en otro orden", () => {
+      const metrics = metricsFor([], { presence: presenceRows(1, ["d", "b", "a", "c"]) });
+
+      expect(metrics.roster.map((student) => student.id)).toEqual(["a", "b", "c", "d"]);
+    });
+
+    it("una sesión sin fotografía no tiene nómina", () => {
+      const metrics = metricsFor(observationRows([{ studentId: "a", code: "C" }]), { presence: [] });
+
+      expect({ roster: metrics.roster.length, observed: metrics.observed, coverage: metrics.coverage })
+        .toEqual({ roster: 0, observed: 0, coverage: 0 });
     });
   });
 });
@@ -276,6 +301,16 @@ describe("metricsForSession", () => {
       expect(metricsForSession(demo, session)).toEqual(
         sessionMetrics(session, demo.students, demo.sessionStudents, demo.observations),
       );
+    }
+  });
+
+  it("toda sesión demostrativa tiene su fotografía de nómina completa", () => {
+    for (const session of demo.sessions) {
+      const snapshot = demo.sessionStudents.filter((row) => row.sessionId === session.id);
+      const course = demo.students.filter((student) => student.courseId === session.courseId);
+
+      expect(snapshot.length).toBeGreaterThan(0);
+      expect(metricsForSession(demo, session).roster).toHaveLength(course.length);
     }
   });
 

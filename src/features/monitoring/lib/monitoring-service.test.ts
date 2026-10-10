@@ -21,6 +21,7 @@ import {
   TEACHER_ID,
   buildSession,
   buildState,
+  buildStudent,
 } from "./test-fixtures";
 
 const NOW = "2026-03-10T13:00:00.000Z";
@@ -471,11 +472,44 @@ describe("importStudents", () => {
   });
 });
 
+describe("cambios de nómina después de una sesión", () => {
+  it("una baja posterior no altera el informe de una sesión ya cerrada", () => {
+    const { state: initial, sessionId } = withActiveSession();
+    let state = initial;
+    state = addObservation(state, { sessionId, studentId: "d", round: 1, code: "C" }).state;
+    state = setSessionStatus(state, sessionId, "closed").state;
+    const before = metricsForSession(state, state.sessions[0]);
+
+    state = {
+      ...state,
+      students: state.students.map((student) => (student.id === "d" ? { ...student, active: false } : student)),
+    };
+    const after = metricsForSession(state, state.sessions[0]);
+
+    expect(after.roster.map((student) => student.id)).toEqual(before.roster.map((student) => student.id));
+    expect({ counts: after.counts, coverage: after.coverage, cRate: after.cRate })
+      .toEqual({ counts: before.counts, coverage: before.coverage, cRate: before.cRate });
+  });
+
+  it("un estudiante agregado después no aparece en sesiones anteriores, pero sí en las nuevas", () => {
+    const { state: initial, sessionId } = withActiveSession();
+    let state = initial;
+    state = setSessionStatus(state, sessionId, "closed").state;
+    state = { ...state, students: [...state.students, buildStudent("nuevo", 6)] };
+
+    const previous = metricsForSession(state, state.sessions[0]);
+    expect(previous.roster.map((student) => student.id)).not.toContain("nuevo");
+
+    state = createSession(state, sessionInput({ date: "2026-03-17" })).state;
+    const next = metricsForSession(state, state.sessions[0]);
+    expect(next.roster.map((student) => student.id)).toContain("nuevo");
+  });
+});
+
 describe("flujo completo de una clase", () => {
   it("tres recorridos, una ausencia, cierre y reapertura", () => {
-    const base = buildState();
-    base.students = base.students.filter((student) => student.id !== "inactivo");
-    let { state } = createSession(base, sessionInput());
+    // El curso tiene además un estudiante inactivo: no entra en la nómina de la sesión.
+    let { state } = createSession(buildState(), sessionInput());
     const sessionId = state.sessions[0].id;
     const rec = (studentId: string, round: number, code: "I" | "R" | "C", progress?: number) => {
       state = addObservation(state, { sessionId, studentId, round, code, progress }).state;
@@ -493,6 +527,7 @@ describe("flujo completo de una clase", () => {
 
     const metrics = metricsForSession(state, state.sessions[0]);
     expect({
+      roster: metrics.roster.map((student) => student.id),
       present: metrics.present.length,
       absent: metrics.absent,
       counts: metrics.counts,
@@ -500,6 +535,7 @@ describe("flujo completo de una clase", () => {
       cRate: metrics.cRate,
       progressed: metrics.progressed,
     }).toEqual({
+      roster: ["a", "b", "c", "d"],
       present: 3,
       absent: 1,
       counts: { I: 1, R: 0, C: 2 },

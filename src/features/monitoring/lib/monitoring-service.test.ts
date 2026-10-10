@@ -378,9 +378,10 @@ describe("moveStudent", () => {
 
 describe("importStudents", () => {
   const names = ["Ana Rivas Soto", "Bruno Tapia León", "Camila Ovalle Díaz"];
+  const byOrder = (list: string[]) => list.map((fullName, index) => ({ number: index + 1, fullName }));
 
   it("crea el curso, una sala habitual de 7 × 6 y los estudiantes sin puesto", () => {
-    const { state, courseId, roomTemplateId } = importStudents(buildState(), "III°B 2026", names);
+    const { state, courseId, roomTemplateId } = importStudents(buildState(), "III°B 2026", byOrder(names));
 
     expect(state.courses.some((course) => course.id === courseId && course.name === "III°B 2026")).toBe(true);
     expect(state.roomTemplates.find((item) => item.id === roomTemplateId)).toMatchObject({
@@ -399,64 +400,66 @@ describe("importStudents", () => {
   });
 
   it("no crea asignaciones de puesto: la sala se ordena dentro de la aplicación", () => {
-    const { state, roomTemplateId } = importStudents(buildState(), "III°B 2026", names);
+    const { state, roomTemplateId } = importStudents(buildState(), "III°B 2026", byOrder(names));
 
     expect(state.seatAssignments.some((item) => item.templateId === roomTemplateId)).toBe(false);
   });
 
   it("abrevia el nombre visible como nombre e inicial del primer apellido", () => {
-    const { state, courseId } = importStudents(buildState(), "III°B 2026", names);
+    const { state, courseId } = importStudents(buildState(), "III°B 2026", byOrder(names));
 
     expect(state.students.find((student) => student.courseId === courseId)?.displayName).toBe("Ana R.");
   });
 
-  it("recorta, descarta filas vacías y elimina duplicados", () => {
+  it("recorta los nombres y descarta los vacíos", () => {
     const { state, courseId } = importStudents(buildState(), "III°B 2026", [
-      "  Ana Rivas Soto ",
-      "",
-      "Ana Rivas Soto",
-      "   ",
-      "Bruno Tapia León",
+      { number: 1, fullName: "  Ana Rivas Soto " },
+      { number: 2, fullName: "   " },
+      { number: 3, fullName: "Bruno Tapia León" },
     ]);
 
     expect(state.students.filter((student) => student.courseId === courseId).map((student) => student.fullName))
       .toEqual(["Ana Rivas Soto", "Bruno Tapia León"]);
   });
 
-  it("numera según el orden de las filas (la importación del N° real queda para otra rama)", () => {
-    const { state, courseId } = importStudents(buildState(), "III°B 2026", names);
+  it("usa el N° de lista de cada estudiante y ordena la nómina por N°", () => {
+    const { state, courseId } = importStudents(buildState(), "III°B 2026", [
+      { number: 7, fullName: "Ana Rivas Soto" },
+      { number: 3, fullName: "Bruno Tapia León" },
+      { number: 12, fullName: "Camila Ovalle Díaz" },
+    ]);
 
-    expect(state.students.filter((student) => student.courseId === courseId).map((student) => student.number))
-      .toEqual([1, 2, 3]);
+    expect(state.students.filter((student) => student.courseId === courseId).map((student) => [student.number, student.fullName]))
+      .toEqual([[3, "Bruno Tapia León"], [7, "Ana Rivas Soto"], [12, "Camila Ovalle Díaz"]]);
   });
 
   it("importa como máximo 80 estudiantes", () => {
     const many = Array.from({ length: 85 }, (_, index) => `Estudiante ficticio ${index + 1}`);
-    const { state, courseId } = importStudents(buildState(), "III°B 2026", many);
+    const { state, courseId } = importStudents(buildState(), "III°B 2026", byOrder(many));
 
     expect(state.students.filter((student) => student.courseId === courseId)).toHaveLength(80);
   });
 
   it("genera un id de curso único si el nombre ya está en uso", () => {
-    const first = importStudents(buildState(), "Curso Prueba", names);
+    const first = importStudents(buildState(), "Curso Prueba", byOrder(names));
     expect(first.courseId).toBe(`${COURSE_ID}-2`);
 
-    const second = importStudents(first.state, "Curso Prueba", names);
+    const second = importStudents(first.state, "Curso Prueba", byOrder(names));
     expect(second.courseId).toBe(`${COURSE_ID}-3`);
   });
 
   it("usa «nuevo-curso» si el nombre no tiene caracteres válidos", () => {
-    expect(importStudents(buildState(), "¡¡ !!", names).courseId).toBe("nuevo-curso");
+    expect(importStudents(buildState(), "¡¡ !!", byOrder(names)).courseId).toBe("nuevo-curso");
   });
 
   it("marca la fuente de datos como importada", () => {
-    const { state } = importStudents(buildState(), "III°B 2026", names);
+    const { state } = importStudents(buildState(), "III°B 2026", byOrder(names));
 
     expect(state.source).toMatchObject({ title: "III°B 2026", mode: "imported", importedAt: NOW });
   });
 
   it("rechaza una lista sin nombres", () => {
-    expect(() => importStudents(buildState(), "III°B 2026", ["", "   "])).toThrow(
+    expect(() => importStudents(buildState(), "III°B 2026", byOrder(["", "   "]))).toThrow(
       "No se encontraron nombres para importar.",
     );
   });
@@ -465,7 +468,7 @@ describe("importStudents", () => {
     const base = buildState();
     const before = structuredClone(base);
 
-    importStudents(base, "III°B 2026", names);
+    importStudents(base, "III°B 2026", byOrder(names));
 
     expect(base).toEqual(before);
     expect(base.students.some((student) => student.courseId === OTHER_COURSE_ID)).toBe(true);

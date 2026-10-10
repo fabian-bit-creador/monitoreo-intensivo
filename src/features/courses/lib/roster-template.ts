@@ -10,11 +10,13 @@ const INSTRUCTIONS: string[][] = [
   ["2", `La columna "${ROSTER_NAME_HEADER}" es la única obligatoria.`],
   [
     "3",
-    `La columna "${ROSTER_NUMBER_HEADER}" es referencial: por ahora la aplicación numera según el`
-    + " orden de las filas, así que deja la planilla ordenada por número de lista.",
+    `La columna "${ROSTER_NUMBER_HEADER}" es el número de lista y la nómina se ordena según él.`
+    + " Si la dejas vacía en todas las filas, se numera según el orden de las filas.",
   ],
-  ["4", "No cambies los nombres de las columnas ni el orden de las hojas."],
-  ["5", "No agregues RUT, correos, diagnósticos, calificaciones ni datos de apoderados."],
+  ["4", "No dejes algunos N° vacíos ni repitas un número: la planilla se rechazará indicando la fila."],
+  ["5", "Las filas con N° pero sin nombre se ignoran, así que puedes dejar cupos libres."],
+  ["6", "No cambies los nombres de las columnas ni el orden de las hojas."],
+  ["7", "No agregues RUT, correos, diagnósticos, calificaciones ni datos de apoderados."],
   [],
   ["Puestos"],
   [

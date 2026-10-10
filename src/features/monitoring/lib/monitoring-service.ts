@@ -4,6 +4,7 @@ import type {
   MonitoringCode,
   MonitoringState,
   RoomSlot,
+  RosterEntry,
   SeatAssignment,
   Student,
 } from "@/types/monitoring";
@@ -261,12 +262,17 @@ function nextAvailableCourseId(state: MonitoringState, name: string) {
 export function importStudents(
   current: MonitoringState,
   courseName: string,
-  rawNames: string[],
+  entries: RosterEntry[],
 ): StateResult & { courseId: string; roomTemplateId: string } {
   const state = structuredClone(current);
-  const uniqueNames = [...new Set(rawNames.map((name) => name.trim()).filter(Boolean))]
+  // La validación de N° vacíos, inválidos y repetidos ocurre al leer la planilla
+  // (features/courses/lib/roster-import.ts); aquí se ordena por N° de lista.
+  const roster = entries
+    .map((entry) => ({ number: entry.number, fullName: entry.fullName.trim() }))
+    .filter((entry) => entry.fullName)
+    .sort((first, second) => first.number - second.number)
     .slice(0, 80);
-  if (!uniqueNames.length) throw new Error("No se encontraron nombres para importar.");
+  if (!roster.length) throw new Error("No se encontraron nombres para importar.");
 
   const courseId = nextAvailableCourseId(state, courseName);
   const roomTemplateId = `${courseId}-sala-habitual`;
@@ -291,12 +297,12 @@ export function importStudents(
   }));
   state.roomSlots.push(...slots);
 
-  const importedStudents: Student[] = uniqueNames.map((name, index) => ({
-    id: `${courseId}-${slugify(name)}-${index + 1}`,
+  const importedStudents: Student[] = roster.map((entry, index) => ({
+    id: `${courseId}-${slugify(entry.fullName)}-${index + 1}`,
     courseId,
-    number: index + 1,
-    fullName: name,
-    displayName: displayName(name),
+    number: entry.number,
+    fullName: entry.fullName,
+    displayName: displayName(entry.fullName),
     seatRow: null,
     seatCol: null,
     active: true,

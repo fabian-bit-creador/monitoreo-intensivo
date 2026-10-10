@@ -14,6 +14,7 @@ import type {
   AppView,
   MonitoringCode,
   Observation,
+  RosterEntry,
   Student,
 } from "@/types/monitoring";
 import { useMonitoringStore } from "./use-monitoring-store";
@@ -263,13 +264,13 @@ export function useMonitoringController() {
     if (result) setToast("Sesión reabierta");
   }
 
-  async function importCourse(courseName: string, names: string[]) {
-    const result = await apply((state) => importStudents(state, courseName, names));
+  async function importCourse(courseName: string, entries: RosterEntry[]) {
+    const result = await apply((state) => importStudents(state, courseName, entries));
     if (!result) return false;
     setCourseId(result.courseId as string);
     setSelectedTemplateId(result.roomTemplateId as string);
     setActiveSessionId(null);
-    setToast(`${names.length} estudiantes importados`);
+    setToast(`${Math.min(entries.length, 80)} estudiantes importados`);
     return true;
   }
 

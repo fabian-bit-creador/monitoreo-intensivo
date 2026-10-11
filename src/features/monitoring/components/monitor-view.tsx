@@ -3,6 +3,7 @@ import {
   ClipboardCheck,
   LayoutGrid,
   List,
+  ListOrdered,
   Move,
   Search,
 } from "lucide-react";
@@ -44,6 +45,7 @@ export type MonitorViewProps = {
   setReorganizing: (value: boolean) => void;
   movingStudent: Student | null;
   moveTo: (row: number | null, col: number | null) => void;
+  onAssignSeats: () => void;
   onStart: () => void;
   onClose: () => void;
   busy: boolean;
@@ -72,10 +74,13 @@ export function MonitorView(props: MonitorViewProps) {
     setReorganizing,
     movingStudent,
     moveTo,
+    onAssignSeats,
     onStart,
     onClose,
     busy,
   } = props;
+  const seated = new Set(seatAssignments.map((assignment) => assignment.studentId));
+  const unseated = allStudents.filter((student) => student.active && !seated.has(student.id)).length;
 
   if (!session) {
     return (
@@ -190,6 +195,11 @@ export function MonitorView(props: MonitorViewProps) {
               : "Toca un estudiante y luego su puesto de destino. Si está ocupado, intercambiarán lugares."}
           </p>
           {movingStudent ? <button onClick={() => moveTo(null, null)}>Dejar sin puesto</button> : null}
+          {!movingStudent && unseated ? (
+            <button onClick={onAssignSeats} disabled={busy}>
+              <ListOrdered size={16} /> Asignar por N° ({unseated} sin puesto)
+            </button>
+          ) : null}
         </div>
       ) : null}
 

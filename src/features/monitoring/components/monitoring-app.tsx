@@ -13,20 +13,59 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { PendingCourseState } from "@/components/ui/empty-state";
+import { NoAccessScreen } from "@/features/auth/components/no-access-screen";
+import { SupabaseGate, type AuthSession } from "@/features/auth/components/supabase-gate";
 import { ImportCourseModal } from "@/features/courses/components/import-course-modal";
 import { HistoryView } from "@/features/history/components/history-view";
 import { useMonitoringController } from "@/features/monitoring/hooks/use-monitoring-controller";
+import type { StoreRepository } from "@/features/monitoring/hooks/use-monitoring-store";
+import {
+  createMonitoringRepository,
+  SupabaseMonitoringRepository,
+} from "@/features/monitoring/repositories";
 import { ReportView } from "@/features/reports/components/report-view";
 import { SettingsView } from "@/features/settings/components/settings-view";
 import { StudentSheet } from "@/features/students/components/student-sheet";
 import { MonitorView } from "./monitor-view";
 import { SessionFormModal } from "./session-form-modal";
 import { StorageRecoveryScreen } from "./storage-recovery-screen";
+import { getSupabaseClient, supabaseConfig } from "@/lib/supabase";
 
+/**
+ * Con Supabase configurado, pide iniciar sesión y trabaja contra el servidor;
+ * sin configuración, funciona como siempre en este navegador.
+ */
 export function MonitoringApp() {
-  const controller = useMonitoringController();
+  if (supabaseConfig()) {
+    return (
+      <SupabaseGate>
+        {(session) => (
+          <MonitoringWorkspace
+            key={session.userId}
+            session={session}
+            createRepository={() => new SupabaseMonitoringRepository(
+              getSupabaseClient(),
+              { id: session.userId, email: session.email },
+            )}
+          />
+        )}
+      </SupabaseGate>
+    );
+  }
+  return <MonitoringWorkspace session={null} createRepository={createMonitoringRepository} />;
+}
+
+type MonitoringWorkspaceProps = {
+  session: AuthSession | null;
+  createRepository: () => StoreRepository;
+};
+
+function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceProps) {
+  const controller = useMonitoringController(createRepository);
   const {
     data,
+    account,
+    localBackup,
     blocked,
     error,
     busy,
@@ -90,6 +129,9 @@ export function MonitoringApp() {
     startFresh,
     listSavedCopies,
     deleteSavedCopy,
+    assignSeats,
+    importToServer,
+    updateProfileName,
   } = controller;
 
   if (blocked) {
@@ -115,6 +157,10 @@ export function MonitoringApp() {
     );
   }
 
+  if (session && account && !account.schools.length) {
+    return <NoAccessScreen email={session.email} onSignOut={() => void session.signOut()} />;
+  }
+
   if (!data) {
     return (
       <div className="loading-screen error-screen">
@@ -135,6 +181,7 @@ export function MonitoringApp() {
         onNewSession={openSessionForm}
         onRefresh={() => void reload()}
         courseReady={courseReady}
+        canImport={!account || account.adminSchoolIds.length > 0}
         persistence={persistence}
       />
 
@@ -191,6 +238,7 @@ export function MonitoringApp() {
               setReorganizing={toggleReorganizing}
               movingStudent={movingStudent}
               moveTo={moveTo}
+              onAssignSeats={() => void assignSeats()}
               onStart={openSessionForm}
               onClose={() => void closeSession()}
               busy={busy}
@@ -212,6 +260,7 @@ export function MonitoringApp() {
               onExcel={() => void exportExcel()}
               onPdf={() => void exportPdf()}
               onReopen={() => void reopenSession()}
+              storageLabel={persistence.mode === "remote" ? "Sincronizado" : "Guardado local"}
             />
           ) : null}
 
@@ -238,12 +287,19 @@ export function MonitoringApp() {
               backup={{
                 busy,
                 error,
+                allowRestore: localBackup,
                 onDownload: downloadBackup,
                 onRestore: restoreBackup,
                 onDownloadCopy: downloadRawData,
                 listSavedCopies,
                 deleteSavedCopy,
               }}
+              remote={session && account ? {
+                account,
+                onSignOut: () => void session.signOut(),
+                onUpdateName: updateProfileName,
+                onImportToServer: importToServer,
+              } : null}
             />
           ) : null}
         </main>

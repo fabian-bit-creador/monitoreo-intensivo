@@ -6,6 +6,7 @@ import type {
 } from "@/types/monitoring";
 import {
   addObservation,
+  assignSeatsByNumber,
   createSession,
   importStudents,
   moveStudent,
@@ -33,7 +34,8 @@ export type MonitoringCommand =
       col: number | null;
     }
   | { type: "importStudents"; courseName: string; entries: RosterEntry[] }
-  | { type: "updateRoster"; courseId: string; entries: RosterEntry[] };
+  | { type: "updateRoster"; courseId: string; entries: RosterEntry[] }
+  | { type: "assignSeatsByNumber"; roomTemplateId: string };
 
 type CommandOutputs = {
   createSession: { sessionId: number };
@@ -43,6 +45,7 @@ type CommandOutputs = {
   moveStudent: object;
   importStudents: { courseId: string; roomTemplateId: string };
   updateRoster: { plan: RosterUpdatePlan };
+  assignSeatsByNumber: { assigned: number };
 };
 
 export type CommandResult<C extends MonitoringCommand = MonitoringCommand> =
@@ -64,6 +67,8 @@ function run(state: MonitoringState, command: MonitoringCommand): CommandResult 
       return importStudents(state, command.courseName, command.entries);
     case "updateRoster":
       return updateRoster(state, command.courseId, command.entries);
+    case "assignSeatsByNumber":
+      return assignSeatsByNumber(state, command.roomTemplateId);
   }
 }
 

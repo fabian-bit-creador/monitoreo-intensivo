@@ -49,6 +49,7 @@ type ReportViewProps = {
   onExcel: () => void;
   onPdf: () => void;
   onReopen: () => void;
+  storageLabel: string;
 };
 
 export function ReportView(props: ReportViewProps) {
@@ -63,6 +64,7 @@ export function ReportView(props: ReportViewProps) {
     onExcel,
     onPdf,
     onReopen,
+    storageLabel,
   } = props;
 
   if (!session || !metrics) {
@@ -164,7 +166,7 @@ export function ReportView(props: ReportViewProps) {
       <div className="source-strip">
         <FileSpreadsheet size={16} />
         <span>Fuente base: {data.source.title} · pestañas {data.source.tabs.join(", ")}</span>
-        <span className="source-status">Guardado local</span>
+        <span className="source-status">{storageLabel}</span>
       </div>
 
       <section className="report-kpis">

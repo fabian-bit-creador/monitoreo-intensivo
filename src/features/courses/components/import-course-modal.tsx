@@ -1,33 +1,19 @@
 import { ChangeEvent, useRef, useState } from "react";
 import { Download, FileSpreadsheet, LoaderCircle, Upload } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
-import {
-  ROSTER_NAME_HEADER,
-  ROSTER_NUMBER_HEADER,
-  downloadRosterTemplate,
-} from "@/features/courses/lib/roster-template";
+import { decodeCsv, parseRoster } from "@/features/courses/lib/roster-import";
+import type { RosterEntry } from "@/types/monitoring";
+import { downloadRosterTemplate } from "@/features/courses/lib/roster-template";
 
 type ImportCourseModalProps = {
   suggestedCourseName: string;
   busy: boolean;
-  onImport: (courseName: string, names: string[]) => Promise<boolean>;
+  onImport: (courseName: string, entries: RosterEntry[]) => Promise<boolean>;
   onError: (message: string) => void;
   onClose: () => void;
 };
 
-const NAME_HEADERS = [
-  ROSTER_NAME_HEADER,
-  "Nombre completo",
-  "Nombre",
-  "Estudiante",
-  "Alumno",
-];
-
-// Encabezados conocidos: la plantilla en blanco solo trae esta fila, y el
-// respaldo heurístico no debe confundirla con nombres de estudiantes.
-const HEADER_LABELS = new Set(
-  [...NAME_HEADERS, ROSTER_NUMBER_HEADER].map((label) => label.toLocaleLowerCase("es")),
-);
+const MAX_ERRORS_SHOWN = 3;
 
 export function ImportCourseModal(props: ImportCourseModalProps) {
   const { suggestedCourseName, busy, onImport, onError, onClose } = props;
@@ -40,26 +26,25 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
     setReading(true);
     try {
       const XLSX = await import("xlsx");
-      const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const workbook = /\.csv$/i.test(file.name) || file.type === "text/csv"
+        ? XLSX.read(decodeCsv(bytes), { type: "string" })
+        : XLSX.read(bytes, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
-      const header = NAME_HEADERS.find((candidate) =>
-        rows.some((row) => String(row[candidate] ?? "").trim()),
-      );
-      const names = header
-        ? rows.map((row) => String(row[header] ?? "").trim()).filter(Boolean)
-        : XLSX.utils
-            .sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" })
-            .flatMap((row) => row.map((cell) => String(cell).trim()))
-            .filter((value) => value.split(/\s+/).length >= 2)
-            .filter((value) => !HEADER_LABELS.has(value.toLocaleLowerCase("es")));
-      if (!names.length) {
-        onError(`La planilla no tiene estudiantes. Completa la columna “${ROSTER_NAME_HEADER}” y vuelve a subirla.`);
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "", blankrows: true });
+      const firstRow = sheet["!ref"] ? XLSX.utils.decode_range(sheet["!ref"]).s.r + 1 : 1;
+      const parsed = parseRoster(rows, firstRow);
+      if (!parsed.ok) {
+        const extra = parsed.errors.length - MAX_ERRORS_SHOWN;
+        onError([
+          ...parsed.errors.slice(0, MAX_ERRORS_SHOWN),
+          ...(extra > 0 ? [`Y ${extra} problema${extra === 1 ? "" : "s"} más.`] : []),
+        ].join(" "));
         return;
       }
       const courseName = window.prompt("Nombre del curso", suggestedCourseName)?.trim();
       if (!courseName) return;
-      const imported = await onImport(courseName, names);
+      const imported = await onImport(courseName, parsed.entries);
       if (imported) onClose();
     } catch {
       onError("No pudimos leer el archivo. Usa una planilla con una columna de nombres.");

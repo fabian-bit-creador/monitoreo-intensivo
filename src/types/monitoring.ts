@@ -83,6 +83,9 @@ export type Observation = {
   createdAt: string;
 };
 
+/** Un estudiante leído desde la planilla de nómina, con su N° de lista. */
+export type RosterEntry = { number: number; fullName: string };
+
 export type SourceMetadata = {
   title: string;
   tabs: string[];

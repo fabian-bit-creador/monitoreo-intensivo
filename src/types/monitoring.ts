@@ -66,10 +66,21 @@ export type ClassSession = {
   closedAt: string | null;
 };
 
+/**
+ * Nómina de una clase y su asistencia. Los campos opcionales son la
+ * fotografía del estudiante al iniciar la clase: así, cambiar después el N°,
+ * el nombre o el puesto no altera informes anteriores. Las clases creadas
+ * antes de existir la fotografía la reciben al primer cambio de nómina.
+ */
 export type SessionStudent = {
   sessionId: number;
   studentId: string;
   present: boolean;
+  number?: number | null;
+  fullName?: string;
+  displayName?: string;
+  seatRow?: number | null;
+  seatCol?: number | null;
 };
 
 export type Observation = {

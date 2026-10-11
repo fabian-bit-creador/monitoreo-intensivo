@@ -333,6 +333,24 @@ describe("sessionMetrics", () => {
       expect(metrics.roster.map((student) => student.id)).toEqual(["a", "b", "c", "d"]);
     });
 
+    it("muestra el N° y el nombre de la fotografía y ordena por ese N°", () => {
+      const presence = presenceRows(1, SNAPSHOT).map((row) => (row.studentId === "a"
+        ? { ...row, number: 9, fullName: "Nombre al iniciar", displayName: "Nombre a." }
+        : row));
+
+      const metrics = metricsFor([], { presence });
+
+      expect(metrics.roster.map((student) => [student.id, student.number])).toEqual([["b", 2], ["c", 3], ["d", 4], ["a", 9]]);
+      expect(metrics.roster.at(-1)).toMatchObject({ fullName: "Nombre al iniciar", displayName: "Nombre a." });
+    });
+
+    it("una fotografía con N° vacío lo conserva vacío", () => {
+      const presence = presenceRows(1, SNAPSHOT).map((row) => (row.studentId === "b" ? { ...row, number: null } : row));
+
+      expect(metricsFor([], { presence }).roster.map((student) => [student.id, student.number]))
+        .toEqual([["a", 1], ["c", 3], ["d", 4], ["b", null]]);
+    });
+
     it("una sesión sin fotografía no tiene nómina", () => {
       const metrics = metricsFor(observationRows([{ studentId: "a", code: "C" }]), { presence: [] });
 

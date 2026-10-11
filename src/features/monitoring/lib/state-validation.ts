@@ -134,11 +134,20 @@ const readSession = (row: Row, path: string): ClassSession => ({
   closedAt: nullableText(row.closedAt, `${path}.closedAt`),
 });
 
-const readSessionStudent = (row: Row, path: string): SessionStudent => ({
-  sessionId: integer(row.sessionId, `${path}.sessionId`, 1),
-  studentId: text(row.studentId, `${path}.studentId`),
-  present: bool(row.present, `${path}.present`),
-});
+// La fotografía es opcional: se conservan solo los campos presentes.
+function readSessionStudent(row: Row, path: string): SessionStudent {
+  const result: SessionStudent = {
+    sessionId: integer(row.sessionId, `${path}.sessionId`, 1),
+    studentId: text(row.studentId, `${path}.studentId`),
+    present: bool(row.present, `${path}.present`),
+  };
+  if ("number" in row) result.number = nullableInteger(row.number, `${path}.number`);
+  if ("fullName" in row) result.fullName = text(row.fullName, `${path}.fullName`);
+  if ("displayName" in row) result.displayName = text(row.displayName, `${path}.displayName`);
+  if ("seatRow" in row) result.seatRow = nullableInteger(row.seatRow, `${path}.seatRow`, 0);
+  if ("seatCol" in row) result.seatCol = nullableInteger(row.seatCol, `${path}.seatCol`, 0);
+  return result;
+}
 
 const readObservation = (row: Row, path: string): Observation => ({
   id: integer(row.id, `${path}.id`, 1),

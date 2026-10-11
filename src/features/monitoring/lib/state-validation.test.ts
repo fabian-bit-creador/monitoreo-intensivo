@@ -26,6 +26,24 @@ describe("parseMonitoringState", () => {
     expect(parseMonitoringState(fullState())).toEqual({ ok: true, state: fullState() });
   });
 
+  it("conserva la fotografía de la nómina cuando existe", () => {
+    const value = withChange((state) => {
+      (state.sessionStudents as Array<Record<string, unknown>>)[0] = {
+        sessionId: 1, studentId: "a", present: true, number: null, fullName: "A", displayName: "A", seatRow: 0, seatCol: null,
+      };
+    });
+
+    const result = parseMonitoringState(value);
+
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) {
+      expect(result.state.sessionStudents[0]).toEqual({
+        sessionId: 1, studentId: "a", present: true, number: null, fullName: "A", displayName: "A", seatRow: 0, seatCol: null,
+      });
+      expect(result.state.sessionStudents[1]).not.toHaveProperty("number");
+    }
+  });
+
   it("descarta campos desconocidos, como el createdAt de estudiantes del Site anterior", () => {
     const value = withChange((state) => {
       (state.students as Array<Record<string, unknown>>)[0].createdAt = "2026-08-01T00:00:00.000Z";

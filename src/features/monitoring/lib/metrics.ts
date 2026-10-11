@@ -63,6 +63,16 @@ export function preferredSession(
   );
 }
 
+/** El estudiante como estaba al iniciar la clase, si hay fotografía. */
+function withSnapshot(student: Student, row: SessionStudent): Student {
+  return {
+    ...student,
+    number: row.number !== undefined ? row.number : student.number,
+    fullName: row.fullName ?? student.fullName,
+    displayName: row.displayName ?? student.displayName,
+  };
+}
+
 export function sessionMetrics(
   session: ClassSession,
   students: Student[],
@@ -70,15 +80,21 @@ export function sessionMetrics(
   observations: Observation[],
 ): SessionMetrics {
   // La nómina de la sesión es la fotografía guardada en sessionStudents al
-  // crearla, no los estudiantes actuales del curso: así, altas o bajas
-  // posteriores no alteran un informe ya realizado.
-  const presenceMap = new Map(
+  // crearla, no los estudiantes actuales del curso: así, altas, bajas o
+  // cambios de N° y nombre posteriores no alteran un informe ya realizado.
+  const snapshots = new Map(
     presence
       .filter((row) => row.sessionId === session.id)
-      .map((row) => [row.studentId, row.present]),
+      .map((row) => [row.studentId, row]),
   );
-  // Se recorre students para conservar el orden de lista en informes y exportaciones.
-  const roster = students.filter((student) => presenceMap.has(student.id));
+  const presenceMap = new Map(
+    [...snapshots].map(([studentId, row]) => [studentId, row.present]),
+  );
+  // Orden de lista: N° de la fotografía y, a igual N°, el orden de students.
+  const roster = students
+    .filter((student) => snapshots.has(student.id))
+    .map((student) => withSnapshot(student, snapshots.get(student.id) as SessionStudent))
+    .sort((first, second) => (first.number ?? Infinity) - (second.number ?? Infinity));
   const present = roster.filter((student) => presenceMap.get(student.id) === true);
   const sessionObs = sortObservations(
     observations.filter((row) => row.sessionId === session.id),

@@ -15,8 +15,14 @@ const INSTRUCTIONS: string[][] = [
   ],
   ["4", "No dejes algunos N° vacíos ni repitas un número: la planilla se rechazará indicando la fila."],
   ["5", "Las filas con N° pero sin nombre se ignoran, así que puedes dejar cupos libres."],
-  ["6", "No cambies los nombres de las columnas ni el orden de las hojas."],
-  ["7", "No agregues RUT, correos, diagnósticos, calificaciones ni datos de apoderados."],
+  ["6", "Dos estudiantes con el mismo nombre se conservan como estudiantes distintos; distínguelos por su N°."],
+  [
+    "7",
+    "Para actualizar un curso, sube su nómina completa: antes de cargar verás quién entra, quién"
+    + " cambia de N° y quién deja el curso. Cada estudiante conserva sus registros y su puesto.",
+  ],
+  ["8", "No cambies los nombres de las columnas."],
+  ["9", "No agregues RUT, correos, diagnósticos, calificaciones ni datos de apoderados."],
   [],
   ["Puestos"],
   [

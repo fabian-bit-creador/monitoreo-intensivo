@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { EMPTY_ROSTER_MESSAGE, decodeCsv, parseRoster } from "./roster-import";
+import {
+  EMPTY_ROSTER_MESSAGE,
+  MAX_ROSTER_SIZE,
+  decodeCsv,
+  looksLikeFullName,
+  parseRoster,
+  parseRosterWorkbook,
+  type RosterSheet,
+} from "./roster-import";
 
 const HEADER = ["N°", "Nombre Completo Alumno"];
 
@@ -68,10 +76,17 @@ describe("parseRoster sin N°", () => {
     expect(result.entries.map((entry) => entry.number)).toEqual([1, 2]);
   });
 
-  it("numerando por orden, un nombre repetido se importa una sola vez", () => {
+  it("numerando por orden, conserva los homónimos y avisa", () => {
     const result = entriesOf([HEADER, ["", "Ana Rivas Soto"], ["", "Ana Rivas Soto"], ["", "Bruno Tapia León"]]);
 
-    expect(result.entries.map((entry) => entry.fullName)).toEqual(["Ana Rivas Soto", "Bruno Tapia León"]);
+    expect(result.entries).toEqual([
+      { number: 1, fullName: "Ana Rivas Soto" },
+      { number: 2, fullName: "Ana Rivas Soto" },
+      { number: 3, fullName: "Bruno Tapia León" },
+    ]);
+    expect(result.warnings).toEqual([
+      "«Ana Rivas Soto» aparece 2 veces (filas 2, 3); se importarán como estudiantes distintos.",
+    ]);
   });
 });
 
@@ -98,15 +113,18 @@ describe("parseRoster rechaza la planilla e indica la fila", () => {
       .toEqual(["El N° 4 está repetido (filas 2, 4)."]);
   });
 
-  it("si con N° un mismo nombre aparece dos veces", () => {
-    expect(errorsOf([HEADER, [1, "Ana Rivas Soto"], [2, "Ana Rivas Soto"]]))
-      .toEqual(["«Ana Rivas Soto» aparece más de una vez (filas 2, 3)."]);
-  });
-
   it("informa todos los problemas, no solo el primero", () => {
     const errors = errorsOf([HEADER, ["x", "Ana Rivas Soto"], ["", "Bruno Tapia León"], [3, "Camila Ovalle Díaz"], [3, "Diego Farías Muñoz"]]);
 
     expect(errors).toHaveLength(3);
+  });
+
+  it(`si tiene más de ${MAX_ROSTER_SIZE} estudiantes`, () => {
+    const rows = [HEADER, ...Array.from({ length: MAX_ROSTER_SIZE + 1 }, (_, index) => [index + 1, `Estudiante Ficticio ${index + 1}`])];
+
+    expect(errorsOf(rows)).toEqual([
+      `La planilla tiene ${MAX_ROSTER_SIZE + 1} estudiantes y el máximo es ${MAX_ROSTER_SIZE}. Revisa si incluye más de un curso.`,
+    ]);
   });
 
   it("usa el número de fila real de la planilla", () => {
@@ -149,14 +167,135 @@ describe("parseRoster con planillas propias", () => {
     expect(result.entries[0].fullName).toBe("Ana Rivas Soto");
   });
 
-  it("sin encabezado reconocible, toma las celdas que parecen nombres completos y numera por orden", () => {
-    const result = entriesOf([["Ana Rivas Soto", "x"], ["Bruno Tapia León", 7], ["Ana Rivas Soto", ""]]);
+  it("con N°, conserva los homónimos con números distintos y avisa", () => {
+    const result = entriesOf([HEADER, [4, "Ana Rivas Soto"], [17, "ana rivas soto"]]);
 
-    expect(result.numberedByOrder).toBe(true);
+    expect(result.entries.map((entry) => entry.number)).toEqual([4, 17]);
+    expect(result.warnings).toEqual([
+      "«Ana Rivas Soto» aparece 2 veces (filas 2, 3); se importarán como estudiantes distintos.",
+    ]);
+  });
+});
+
+describe("parseRoster sin encabezado reconocible", () => {
+  it("toma la columna con más nombres, numera por orden y pide revisar la lista", () => {
+    const result = entriesOf([
+      ["Curso III°B 2026", ""],
+      ["Profesor jefe: Daniel Prueba", ""],
+      ["", "Ana Rivas Soto"],
+      ["", "Bruno Tapia León"],
+      ["Lista de estudiantes", "Camila Ovalle Díaz"],
+    ]);
+
+    expect(result.detectedBy).toBe("shape");
     expect(result.entries).toEqual([
       { number: 1, fullName: "Ana Rivas Soto" },
       { number: 2, fullName: "Bruno Tapia León" },
+      { number: 3, fullName: "Camila Ovalle Díaz" },
     ]);
+    expect(result.warnings[0]).toBe(
+      "No encontramos la columna «Nombre Completo Alumno»: se tomaron los nombres de la columna B por su forma. Revisa la lista antes de importar.",
+    );
+  });
+
+  it("no mezcla otra columna de nombres, como la de apoderados", () => {
+    const result = entriesOf([
+      ["Ana Rivas Soto", "Pedro Rivas Mora"],
+      ["Bruno Tapia León", "Marta León Díaz"],
+      ["Camila Ovalle Díaz", ""],
+    ]);
+
+    expect(result.entries.map((entry) => entry.fullName)).toEqual(["Ana Rivas Soto", "Bruno Tapia León", "Camila Ovalle Díaz"]);
+    expect(result.warnings[0]).toContain("columna A");
+  });
+
+  it("conserva los homónimos también sin encabezado", () => {
+    const result = entriesOf([["Ana Rivas Soto"], ["Bruno Tapia León"], ["Ana Rivas Soto"]]);
+
+    expect(result.entries.map((entry) => entry.fullName)).toEqual(["Ana Rivas Soto", "Bruno Tapia León", "Ana Rivas Soto"]);
+    expect(result.warnings).toHaveLength(2);
+  });
+});
+
+describe("looksLikeFullName", () => {
+  it.each([
+    "Ana Rivas Soto",
+    "María de los Ángeles Pérez",
+    "José-Tomás O'Higgins Muñoz",
+    "Rivas Soto, Ana",
+  ])("acepta «%s»", (value) => {
+    expect(looksLikeFullName(value)).toBe(true);
+  });
+
+  it.each([
+    "Ana",
+    "Escribe un estudiante por fila.",
+    "Lista de estudiantes",
+    "Profesor jefe: Daniel Prueba",
+    "Curso III°B 2026",
+    "Nómina del curso",
+    "Total alumnos",
+    "uno dos tres cuatro cinco seis siete",
+    "Rivas, Soto, Ana",
+    "(Ana Rivas)",
+  ])("descarta «%s»", (value) => {
+    expect(looksLikeFullName(value)).toBe(false);
+  });
+});
+
+describe("parseRosterWorkbook", () => {
+  const sheet = (name: string, rows: unknown[][]): RosterSheet => ({ name, rows, firstRowNumber: 1 });
+  const instructions = sheet("Instrucciones", [
+    ["Cómo completar esta plantilla"],
+    ["1", "Escribe un estudiante por fila en la hoja Nómina"],
+    ["", "Esta plantilla no incluye la distribución de la sala"],
+  ]);
+
+  it("encuentra la nómina aunque no esté en la primera hoja", () => {
+    const result = parseRosterWorkbook([instructions, sheet("Curso", [HEADER, [1, "Ana Rivas Soto"]])]);
+
+    expect(result.options.map((option) => option.sheetName)).toEqual(["Curso"]);
+    expect(result.options[0].result).toMatchObject({ ok: true, entries: [{ number: 1, fullName: "Ana Rivas Soto" }] });
+  });
+
+  it("con la nómina en blanco, rechaza en vez de leer las instrucciones", () => {
+    const result = parseRosterWorkbook([sheet("Nómina", [HEADER]), instructions]);
+
+    expect(result.options).toEqual([{ sheetName: "Nómina", result: { ok: false, errors: [EMPTY_ROSTER_MESSAGE] } }]);
+  });
+
+  it("con varias hojas con encabezado, ofrece todas y prefiere la llamada «Nómina»", () => {
+    const result = parseRosterWorkbook([
+      sheet("Otro curso", [HEADER, [1, "Ana Rivas Soto"], [2, "Bruno Tapia León"]]),
+      sheet("NOMINA", [HEADER, [1, "Camila Ovalle Díaz"]]),
+    ]);
+
+    expect(result.options.map((option) => option.sheetName)).toEqual(["Otro curso", "NOMINA"]);
+    expect(result.preferred).toBe(1);
+  });
+
+  it("sin hoja «Nómina», prefiere la que tiene más estudiantes", () => {
+    const result = parseRosterWorkbook([
+      sheet("A", [HEADER, [1, "Ana Rivas Soto"]]),
+      sheet("B", [HEADER, [1, "Bruno Tapia León"], [2, "Camila Ovalle Díaz"]]),
+    ]);
+
+    expect(result.preferred).toBe(1);
+  });
+
+  it("sin encabezados, usa solo las hojas donde reconoce nombres", () => {
+    const result = parseRosterWorkbook([instructions, sheet("Hoja2", [["Ana Rivas Soto"], ["Bruno Tapia León"]])]);
+
+    expect(result.options.map((option) => option.sheetName)).toEqual(["Hoja2"]);
+    expect(result.options[0].result).toMatchObject({ ok: true, detectedBy: "shape" });
+  });
+
+  it("si no reconoce nada, informa la planilla vacía", () => {
+    expect(parseRosterWorkbook([sheet("Hoja1", [["x", 1]])])).toEqual({
+      options: [{ sheetName: "Hoja1", result: { ok: false, errors: [EMPTY_ROSTER_MESSAGE] } }],
+      preferred: 0,
+    });
+    expect(parseRosterWorkbook([]).options[0].result).toEqual({ ok: false, errors: [EMPTY_ROSTER_MESSAGE] });
   });
 });
 

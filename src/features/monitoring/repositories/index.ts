@@ -1,8 +1,57 @@
-import { LocalStorageMonitoringRepository } from "./local-storage-monitoring-repository";
-import type { MonitoringRepository } from "./monitoring-repository";
+import {
+  LocalStorageMonitoringRepository,
+  type LocalRepositoryOptions,
+  type StorageLike,
+} from "./local-storage-monitoring-repository";
 
-export function createMonitoringRepository(): MonitoringRepository {
-  return new LocalStorageMonitoringRepository();
+const blockedStorage: StorageLike = {
+  getItem: () => {
+    throw new Error("Almacenamiento bloqueado.");
+  },
+  setItem: () => {
+    throw new Error("Almacenamiento bloqueado.");
+  },
+  removeItem: () => undefined,
+};
+
+function browserOptions(): LocalRepositoryOptions {
+  if (typeof window === "undefined") return { storage: null };
+
+  let storage: StorageLike;
+  try {
+    storage = window.localStorage;
+  } catch {
+    // Algunos navegadores lanzan un error si el almacenamiento está bloqueado:
+    // cada lectura o escritura fallará y la barra superior lo mostrará.
+    storage = blockedStorage;
+  }
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+
+  return {
+    storage,
+    runExclusive: locks
+      ? <T>(name: string, task: () => T) => locks.request(name, () => task()) as Promise<T>
+      : null,
+    listen: (handler) => {
+      const onStorage = (event: StorageEvent) => {
+        if (event.storageArea === storage) handler(event.key);
+      };
+      window.addEventListener("storage", onStorage);
+      return () => window.removeEventListener("storage", onStorage);
+    },
+  };
 }
 
-export type { MonitoringRepository } from "./monitoring-repository";
+export function createMonitoringRepository() {
+  return new LocalStorageMonitoringRepository(browserOptions());
+}
+
+export type {
+  BlockedReason,
+  LoadResult,
+  LocalBackupStore,
+  MonitoringRepository,
+  SavedCopy,
+  SavedCopyKind,
+} from "./monitoring-repository";
+export { StorageWriteError } from "./monitoring-repository";

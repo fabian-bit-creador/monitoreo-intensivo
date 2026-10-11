@@ -9,17 +9,20 @@ import { DEMO_COURSE_ID } from "@/config/app";
 import { CourseStatusList } from "@/features/courses/components/course-status-list";
 import { TeacherList } from "@/features/teachers/components/teacher-list";
 import type { MonitoringState } from "@/types/monitoring";
+import { BackupCard, type BackupCardProps } from "./backup-card";
 
 type SettingsViewProps = {
   data: MonitoringState;
   selectedTeacherId: string;
   onSelectTeacher: (teacherId: string) => void;
+  backup: Omit<BackupCardProps, "data">;
 };
 
 export function SettingsView({
   data,
   selectedTeacherId,
   onSelectTeacher,
+  backup,
 }: SettingsViewProps) {
   const operationalTemplates = data.roomTemplates.filter(
     (template) => template.courseId === DEMO_COURSE_ID,
@@ -67,6 +70,8 @@ export function SettingsView({
               <li><Check size={16} /> El historial y las tendencias se separan por profesor.</li>
             </ul>
           </article>
+
+          <BackupCard data={data} {...backup} />
 
           <article className="card settings-card beta-warning">
             <div className="card-heading">

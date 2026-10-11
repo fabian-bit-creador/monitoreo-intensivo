@@ -425,6 +425,25 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .restore-summary strong { display: flex; align-items: center; gap: 7px; color: var(--navy); font-size: 14px; margin-bottom: 11px; overflow-wrap: anywhere; }
 .restore-summary strong svg { flex: 0 0 auto; color: var(--teal); }
 .restore-note { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.form-help > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.import-panel .error-banner { text-align: left; margin: 0 0 14px; }
+.roster-errors { align-items: flex-start; }
+.roster-errors p { margin: 0; }
+.roster-errors ul { margin: 6px 0 0; padding-left: 18px; }
+.import-target { display: flex; flex-direction: column; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.import-target legend { margin-bottom: 7px; padding: 0; color: #4f5b6f; font-size: 12px; font-weight: 700; }
+.form-stack .target-option { flex-direction: row; align-items: flex-start; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.form-stack .target-option.selected { border-color: var(--teal); background: var(--teal-soft); }
+.form-stack .target-option input { width: auto; margin: 2px 0 0; padding: 0; border: 0; accent-color: var(--teal); }
+.form-stack .target-option > span { display: flex; flex-direction: column; gap: 2px; color: var(--ink); font-weight: 400; }
+.target-option strong { color: var(--navy); font-size: 13px; }
+.target-option small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.roster-diff { margin: 0; }
+.roster-list { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.roster-list summary { cursor: pointer; color: var(--navy); font-size: 12px; font-weight: 700; }
+.roster-list ol { list-style: none; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; margin: 10px 0 0; padding: 0; }
+.roster-list li { display: flex; gap: 10px; color: #526075; font-size: 12px; }
+.roster-list li span { min-width: 26px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
 
 .student-sheet { width: min(680px, 100%); max-height: calc(100vh - 30px); overflow-y: auto; background: #fff; border-radius: 22px; padding: 20px; box-shadow: 0 30px 80px rgba(8, 20, 37, 0.28); }
 .sheet-handle { display: none; }

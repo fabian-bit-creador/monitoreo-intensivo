@@ -1,3 +1,4 @@
+import { updateRoster, type RosterUpdatePlan } from "@/features/courses/lib/roster-update";
 import type {
   MonitoringState,
   RosterEntry,
@@ -31,7 +32,8 @@ export type MonitoringCommand =
       row: number | null;
       col: number | null;
     }
-  | { type: "importStudents"; courseName: string; entries: RosterEntry[] };
+  | { type: "importStudents"; courseName: string; entries: RosterEntry[] }
+  | { type: "updateRoster"; courseId: string; entries: RosterEntry[] };
 
 type CommandOutputs = {
   createSession: { sessionId: number };
@@ -40,6 +42,7 @@ type CommandOutputs = {
   setSessionStatus: object;
   moveStudent: object;
   importStudents: { courseId: string; roomTemplateId: string };
+  updateRoster: { plan: RosterUpdatePlan };
 };
 
 export type CommandResult<C extends MonitoringCommand = MonitoringCommand> =
@@ -59,6 +62,8 @@ function run(state: MonitoringState, command: MonitoringCommand): CommandResult 
       return moveStudent(state, command.studentId, command.roomTemplateId, command.row, command.col);
     case "importStudents":
       return importStudents(state, command.courseName, command.entries);
+    case "updateRoster":
+      return updateRoster(state, command.courseId, command.entries);
   }
 }
 

@@ -1,4 +1,5 @@
 import { DEFAULT_ROOM_TEMPLATE_ID } from "@/config/app";
+import { layoutError, type RoomLayout } from "@/features/courses/lib/room-layouts";
 import { displayName, slugify } from "@/lib/text";
 import type {
   MonitoringCode,
@@ -392,4 +393,98 @@ export function importStudents(
   };
 
   return { state, courseId, roomTemplateId };
+}
+
+function slotsFor(templateId: string, layout: RoomLayout): RoomSlot[] {
+  return layout.slots.map((slot) => ({
+    templateId,
+    seatRow: slot.row,
+    seatCol: slot.col,
+    status: "available",
+    ...(slot.group ? { groupLabel: slot.group } : {}),
+  }));
+}
+
+function checkRoom(name: string, layout: RoomLayout) {
+  const roomName = name.trim();
+  if (!roomName) throw new Error("Escribe el nombre de la sala.");
+  const error = layoutError(layout);
+  if (error) throw new Error(error);
+  return roomName;
+}
+
+/**
+ * Agrega una sala al curso con la forma elegida (filas, laboratorio o
+ * trabajo grupal). Un curso puede tener varias: la sala habitual y el
+ * laboratorio, por ejemplo.
+ */
+export function createRoomTemplate(
+  current: MonitoringState,
+  courseId: string,
+  name: string,
+  layout: RoomLayout,
+): StateResult & { roomTemplateId: string } {
+  const state = structuredClone(current);
+  if (!state.courses.some((course) => course.id === courseId)) throw new Error("No se encontró el curso.");
+  const roomName = checkRoom(name, layout);
+  const base = `${courseId}-${slugify(roomName) || "sala"}`;
+  let roomTemplateId = base;
+  for (let suffix = 2; state.roomTemplates.some((item) => item.id === roomTemplateId); suffix += 1) {
+    roomTemplateId = `${base}-${suffix}`;
+  }
+  state.roomTemplates.push({
+    id: roomTemplateId,
+    courseId,
+    name: roomName,
+    description: "",
+    rowCount: layout.rows,
+    columnCount: layout.cols,
+    active: true,
+    createdAt: new Date().toISOString(),
+    layout: layout.kind,
+  });
+  state.roomSlots.push(...slotsFor(roomTemplateId, layout));
+  return { state, roomTemplateId };
+}
+
+/**
+ * Cambia la forma de una sala. Quien queda sin puesto pasa a «Sin puesto
+ * asignado»; las demás asignaciones se conservan. Las clases ya iniciadas
+ * conservan su fotografía.
+ */
+export function updateRoomLayout(
+  current: MonitoringState,
+  roomTemplateId: string,
+  name: string,
+  layout: RoomLayout,
+): StateResult & { released: number } {
+  const state = structuredClone(current);
+  const template = state.roomTemplates.find((item) => item.id === roomTemplateId);
+  if (!template) throw new Error("Plantilla no válida.");
+  const roomName = checkRoom(name, layout);
+  const seats = new Set(layout.slots.map((slot) => `${slot.row}-${slot.col}`));
+
+  const released = state.seatAssignments.filter(
+    (item) => item.templateId === roomTemplateId && !seats.has(`${item.seatRow}-${item.seatCol}`),
+  );
+  const releasedIds = new Set(released.map((item) => item.studentId));
+  state.seatAssignments = state.seatAssignments.filter((item) => !released.includes(item));
+  if (roomTemplateId === DEFAULT_ROOM_TEMPLATE_ID) {
+    for (const student of state.students) {
+      if (releasedIds.has(student.id)) {
+        student.seatRow = null;
+        student.seatCol = null;
+      }
+    }
+  }
+
+  state.roomSlots = [
+    ...state.roomSlots.filter((slot) => slot.templateId !== roomTemplateId),
+    ...slotsFor(roomTemplateId, layout),
+  ];
+  template.name = roomName;
+  template.rowCount = layout.rows;
+  template.columnCount = layout.cols;
+  template.layout = layout.kind;
+  return { state, released: released.length };
 }

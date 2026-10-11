@@ -50,24 +50,37 @@ async function all<T>(build: (from: number, to: number) => Query): Promise<T[]> 
   }
 }
 
+/** Columna inexistente: la base todavía no tiene la migración que la agrega. */
+const UNDEFINED_COLUMN = "42703";
+
 async function fetchRows(client: SupabaseClient, user: { id: string; email: string }): Promise<DbRows> {
-  const table = (name: string, columns: string, order: string[]) => all((from, to) => {
+  const select = (name: string, columns: string, order: string[]) => all((from, to) => {
     let query = client.from(name).select(columns);
     for (const column of order) query = query.order(column);
     return query.range(from, to);
   });
+  // Las columnas de ADR 0004 son opcionales: sin la migración, se leen las anteriores.
+  const table = async (name: string, columns: string, order: string[], newer: string[] = []) => {
+    if (!newer.length) return select(name, columns, order);
+    try {
+      return await select(name, [columns, ...newer].join(", "), order);
+    } catch (error) {
+      if ((error as { code?: string }).code !== UNDEFINED_COLUMN) throw error;
+      return select(name, columns, order);
+    }
+  };
   const [
     schools, memberships, profiles, courses, students, enrollments, roomTemplates,
     roomSlots, seatAssignments, sessions, sessionStudents, observations,
   ] = await Promise.all([
-    table("schools", "id, name", ["id"]),
+    table("schools", "id, name", ["id"], ["kind"]),
     table("school_memberships", "school_id, user_id, role, active", ["school_id", "user_id"]),
     table("profiles", "id, full_name, created_at", ["id"]),
     table("courses", "id, school_id, name, archived_at, created_at", ["id"]),
     table("students", "id, full_name, display_name", ["id"]),
     table("enrollments", "id, course_id, student_id, list_number, active", ["id"]),
-    table("room_templates", "id, course_id, name, description, row_count, column_count, active, created_at", ["id"]),
-    table("room_slots", "template_id, seat_row, seat_col, status", ["template_id", "seat_row", "seat_col"]),
+    table("room_templates", "id, course_id, name, description, row_count, column_count, active, created_at", ["id"], ["layout"]),
+    table("room_slots", "template_id, seat_row, seat_col, status", ["template_id", "seat_row", "seat_col"], ["group_label"]),
     table("seat_assignments", "template_id, enrollment_id, seat_row, seat_col", ["template_id", "enrollment_id"]),
     table(
       "class_sessions",
@@ -235,7 +248,9 @@ export class SupabaseMonitoringRepository implements MonitoringRepository {
         return { assigned };
       }
       case "importStudents": {
-        const schoolId = this.account?.adminSchoolIds[0];
+        const schoolId = command.spaceId
+          ?? this.account?.personalSpaceId
+          ?? this.account?.adminSchoolIds[0];
         if (!schoolId) throw new Error("Solo administración puede crear cursos.");
         const created = await this.rpc<{ courseId: string; roomTemplateId: string }>("create_course", {
           p_school_id: schoolId,
@@ -259,6 +274,29 @@ export class SupabaseMonitoringRepository implements MonitoringRepository {
           },
         });
         return { plan };
+      }
+      case "createRoomTemplate": {
+        const roomTemplateId = await this.rpc<string>("create_room_template", {
+          p_id: crypto.randomUUID(),
+          p_course_id: command.courseId,
+          p_name: command.name,
+          p_layout: command.layout.kind,
+          p_rows: command.layout.rows,
+          p_cols: command.layout.cols,
+          p_slots: command.layout.slots,
+        }, true);
+        return { roomTemplateId };
+      }
+      case "updateRoomLayout": {
+        const released = await this.rpc<number>("update_room_layout", {
+          p_template_id: command.roomTemplateId,
+          p_name: command.name,
+          p_layout: command.layout.kind,
+          p_rows: command.layout.rows,
+          p_cols: command.layout.cols,
+          p_slots: command.layout.slots,
+        });
+        return { released };
       }
     }
   }

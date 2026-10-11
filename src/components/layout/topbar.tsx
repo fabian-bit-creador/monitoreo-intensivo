@@ -1,24 +1,35 @@
 import {
   Activity,
+  AlertTriangle,
   Database,
   Plus,
   RefreshCcw,
   Upload,
 } from "lucide-react";
 import { APP_NAME, APP_SUBTITLE } from "@/config/app";
+import type { PersistenceStatus } from "@/features/monitoring/hooks/use-monitoring-store";
 
 type TopbarProps = {
   onImport: () => void;
   onNewSession: () => void;
   onRefresh: () => void;
   courseReady: boolean;
+  persistence: PersistenceStatus;
 };
+
+function savedTitle(savedAt: string | null) {
+  if (!savedAt) return "Datos guardados en este navegador";
+  const time = new Intl.DateTimeFormat("es-CL", { hour: "2-digit", minute: "2-digit" })
+    .format(new Date(savedAt));
+  return `Guardado en este navegador a las ${time}`;
+}
 
 export function Topbar({
   onImport,
   onNewSession,
   onRefresh,
   courseReady,
+  persistence,
 }: TopbarProps) {
   return (
     <header className="topbar">
@@ -30,9 +41,19 @@ export function Topbar({
         </div>
       </div>
       <div className="topbar-actions">
-        <span className="connectivity online" title="Datos guardados en este navegador">
-          <Database size={14} /> Guardado local
-        </span>
+        {persistence.state === "error" ? (
+          <span
+            className="connectivity error"
+            role="status"
+            title="El último cambio no se pudo guardar en este navegador"
+          >
+            <AlertTriangle size={14} /> Sin guardar
+          </span>
+        ) : (
+          <span className="connectivity online" role="status" title={savedTitle(persistence.savedAt)}>
+            <Database size={14} /> Guardado local
+          </span>
+        )}
         <button className="icon-button mobile-only" aria-label="Actualizar" onClick={onRefresh}>
           <RefreshCcw size={18} />
         </button>

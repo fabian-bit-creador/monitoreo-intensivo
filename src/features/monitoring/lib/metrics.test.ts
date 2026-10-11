@@ -3,6 +3,7 @@ import { DEFAULT_ROOM_TEMPLATE_ID, DEFAULT_TEACHER_ID } from "@/config/app";
 import { createDemoState } from "@/data/demo-state";
 import type { Observation, SessionStudent, Student } from "@/types/monitoring";
 import {
+  compareObservations,
   latestObservations,
   metricsForSession,
   preferredSession,
@@ -51,6 +52,54 @@ describe("latestObservations", () => {
 
     expect(latest.size).toBe(2);
     expect(latest.get("a")).toMatchObject({ code: "R", progress: 70 });
+  });
+
+  describe("cronología explícita", () => {
+    function at(rows: Observation[], times: string[]) {
+      return rows.map((row, index) => ({ ...row, createdAt: times[index] }));
+    }
+
+    it("la vigente es la más reciente por hora de registro, no la última del arreglo", () => {
+      const rows = at(observationRows([
+        { studentId: "a", code: "C" },
+        { studentId: "a", code: "I" },
+      ]), ["2026-03-10T10:20:00.000Z", "2026-03-10T10:05:00.000Z"]);
+
+      expect(latestObservations(rows).get("a")).toMatchObject({ code: "C" });
+      expect(latestObservations([...rows].reverse()).get("a")).toMatchObject({ code: "C" });
+    });
+
+    it("a igual hora, desempata el id mayor sin importar el orden del arreglo", () => {
+      const rows = observationRows([
+        { studentId: "a", code: "I" },
+        { studentId: "a", code: "R", progress: 25 },
+      ]);
+
+      expect(latestObservations([...rows].reverse()).get("a")).toMatchObject({ id: 2, code: "R" });
+    });
+
+    it("si una hora no se puede leer, ordena por id", () => {
+      const [first, second] = at(observationRows([
+        { studentId: "a", code: "I" },
+        { studentId: "a", code: "C" },
+      ]), ["sin hora", "2026-03-10T09:00:00.000Z"]);
+
+      expect(compareObservations(first, second)).toBeLessThan(0);
+      expect(latestObservations([second, first]).get("a")).toMatchObject({ id: 2 });
+    });
+
+    it("la progresión y el historial de la sesión siguen la cronología", () => {
+      const rows = at(observationRows([
+        { studentId: "a", code: "R", progress: 50 },
+        { studentId: "a", code: "I" },
+      ]), ["2026-03-10T10:30:00.000Z", "2026-03-10T10:00:00.000Z"]);
+
+      const metrics = metricsFor(rows);
+
+      expect(metrics.progressed).toBe(1);
+      expect(metrics.counts).toEqual({ I: 0, R: 1, C: 0 });
+      expect(metrics.sessionObs.map((row) => row.code)).toEqual(["I", "R"]);
+    });
   });
 });
 

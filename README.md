@@ -104,7 +104,16 @@ docs/
   known-differences.md
 ```
 
-La interfaz no conoce dónde se guardan los datos. `MonitoringRepository` define el contrato y `LocalStorageMonitoringRepository` es la implementación de esta etapa. Un adaptador Supabase futuro deberá cumplir el mismo contrato.
+La interfaz no conoce dónde se guardan los datos. Las vistas emiten **comandos** (iniciar clase, registrar observación, modificar asistencia, cerrar o reabrir, mover puestos, importar nómina) y `MonitoringRepository` los aplica. `LocalStorageMonitoringRepository` es la implementación de esta etapa; un adaptador Supabase futuro deberá cumplir el mismo contrato (ADR 0002 y 0003).
+
+## Respaldo y datos guardados
+
+Los datos viven en el navegador que se usa. En **Configuración → Respaldo**:
+
+- **Descargar respaldo** entrega un JSON con todos los datos de ese navegador.
+- **Restaurar respaldo** muestra qué contiene el archivo antes de reemplazar nada y guarda una copia de los datos anteriores. Acepta los respaldos de esta aplicación y los datos exportados del Site anterior, que tienen la misma forma.
+
+La aplicación nunca reemplaza por su cuenta datos que no puede abrir: si fueron guardados por una versión más nueva, pide recargar; si no se pueden leer, ofrece descargarlos antes de empezar de nuevo. Dos pestañas abiertas no se borran el trabajo entre sí.
 
 ## Variables de entorno
 
@@ -189,6 +198,7 @@ Cada Pull Request puede usar un Preview Deployment. La rama `main` debe alimenta
 - El repositorio contiene únicamente estudiantes ficticios.
 - No agregues RUT, correos, diagnósticos, calificaciones ni datos de apoderados.
 - Una nómina importada queda en `localStorage`; no se envía a un servidor en esta versión.
+- Un respaldo descargado contiene los nombres y registros de los estudiantes: guárdalo en un lugar privado y nunca en este repositorio.
 - Antes de integrar Supabase se deben definir autenticación, roles, políticas RLS, retención y tratamiento de datos.
 
 ## Documentación de referencia

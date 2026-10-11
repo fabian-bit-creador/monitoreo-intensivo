@@ -21,13 +21,16 @@ import { SettingsView } from "@/features/settings/components/settings-view";
 import { StudentSheet } from "@/features/students/components/student-sheet";
 import { MonitorView } from "./monitor-view";
 import { SessionFormModal } from "./session-form-modal";
+import { StorageRecoveryScreen } from "./storage-recovery-screen";
 
 export function MonitoringApp() {
   const controller = useMonitoringController();
   const {
     data,
+    blocked,
     error,
     busy,
+    persistence,
     reload,
     setError,
     view,
@@ -80,7 +83,26 @@ export function MonitoringApp() {
     openHistorySession,
     closeStudentSheet,
     toggleReorganizing,
+    downloadBackup,
+    downloadRawData,
+    restoreBackup,
+    startFresh,
+    listSavedCopies,
+    deleteSavedCopy,
   } = controller;
+
+  if (blocked) {
+    return (
+      <StorageRecoveryScreen
+        blocked={blocked}
+        busy={busy}
+        error={error}
+        onDownload={() => downloadRawData(blocked.raw, "monitoreo-datos-guardados")}
+        onReload={() => window.location.reload()}
+        onStartFresh={() => void startFresh()}
+      />
+    );
+  }
 
   if (!data && !error) {
     return (
@@ -112,6 +134,7 @@ export function MonitoringApp() {
         onNewSession={openSessionForm}
         onRefresh={() => void reload()}
         courseReady={courseReady}
+        persistence={persistence}
       />
 
       <div className="workspace">
@@ -211,6 +234,15 @@ export function MonitoringApp() {
               data={data}
               selectedTeacherId={selectedTeacherId}
               onSelectTeacher={chooseTeacher}
+              backup={{
+                busy,
+                error,
+                onDownload: downloadBackup,
+                onRestore: restoreBackup,
+                onDownloadCopy: downloadRawData,
+                listSavedCopies,
+                deleteSavedCopy,
+              }}
             />
           ) : null}
         </main>
@@ -230,6 +262,7 @@ export function MonitoringApp() {
           onPresence={(student, present) => void setStudentPresence(student, present)}
           onClose={closeStudentSheet}
           busy={busy}
+          error={error}
         />
       ) : null}
 

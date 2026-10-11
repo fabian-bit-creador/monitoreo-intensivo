@@ -232,6 +232,24 @@ describe("addObservation", () => {
     expect(() => addObservation(state, { sessionId, studentId: "nadie", round: 1, code: "C" })).toThrow();
   });
 
+  it.each([
+    ["de otro curso", "otro"],
+    ["inactivo al iniciar la clase", "inactivo"],
+  ])("rechaza a un estudiante %s: no está en la nómina de la clase", (_case, studentId) => {
+    const { state, sessionId } = withActiveSession();
+
+    expect(() => addObservation(state, { sessionId, studentId, round: 1, code: "C" }))
+      .toThrow("El estudiante no pertenece a la nómina de esta clase.");
+  });
+
+  it("rechaza a un estudiante agregado al curso después de iniciar la clase", () => {
+    const { state, sessionId } = withActiveSession();
+    state.students.push(buildStudent("nuevo", 9));
+
+    expect(() => addObservation(state, { sessionId, studentId: "nuevo", round: 1, code: "I" }))
+      .toThrow("El estudiante no pertenece a la nómina de esta clase.");
+  });
+
   it("no modifica el estado recibido", () => {
     const { state, sessionId } = withActiveSession();
     const before = structuredClone(state);
@@ -259,6 +277,16 @@ describe("setPresence", () => {
     expect(() => setPresence(state, sessionId, "otro", false)).toThrow(
       "No se encontró al estudiante en esta sesión.",
     );
+  });
+
+  it("no modifica la asistencia de una clase cerrada ni de una inexistente", () => {
+    const { state, sessionId } = withActiveSession();
+    const closed = setSessionStatus(state, sessionId, "closed").state;
+
+    expect(() => setPresence(closed, sessionId, "a", false))
+      .toThrow("La asistencia solo se modifica en una clase en curso.");
+    expect(() => setPresence(state, 99, "a", false))
+      .toThrow("La asistencia solo se modifica en una clase en curso.");
   });
 });
 

@@ -89,6 +89,13 @@ export function addObservation(
   if (!session || !student || session.status !== "active") {
     throw new Error("La sesión o el estudiante no están disponibles para registrar.");
   }
+  // Solo cuenta quien está en la fotografía de la nómina de la clase.
+  const presence = state.sessionStudents.find(
+    (item) => item.sessionId === session.id && item.studentId === student.id,
+  );
+  if (!presence) {
+    throw new Error("El estudiante no pertenece a la nómina de esta clase.");
+  }
 
   const round = Math.max(1, Math.min(3, Number(input.round) || 1));
   const progress = input.code === "C"
@@ -112,10 +119,7 @@ export function addObservation(
     createdAt: new Date().toISOString(),
   });
 
-  const presence = state.sessionStudents.find(
-    (item) => item.sessionId === session.id && item.studentId === student.id,
-  );
-  if (presence) presence.present = true;
+  presence.present = true;
 
   return { state };
 }
@@ -127,6 +131,10 @@ export function setPresence(
   present: boolean,
 ): StateResult {
   const state = structuredClone(current);
+  const session = state.sessions.find((item) => item.id === sessionId);
+  if (!session || session.status !== "active") {
+    throw new Error("La asistencia solo se modifica en una clase en curso.");
+  }
   const row = state.sessionStudents.find(
     (item) => item.sessionId === sessionId && item.studentId === studentId,
   );

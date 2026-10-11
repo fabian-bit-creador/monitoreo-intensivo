@@ -10,23 +10,18 @@ import {
   exportSessionExcel,
   exportSessionPdf,
 } from "@/features/reports/lib/export-report";
+import { downloadText } from "@/lib/download";
 import type {
   AppView,
   MonitoringCode,
+  MonitoringState,
   Observation,
   RosterEntry,
   Student,
 } from "@/types/monitoring";
 import { useMonitoringStore } from "./use-monitoring-store";
-import {
-  addObservation,
-  createSession,
-  importStudents,
-  moveStudent,
-  setPresence as updatePresence,
-  setSessionStatus,
-  type CreateSessionInput,
-} from "../lib/monitoring-service";
+import { backupFileName, createBackup } from "../lib/backup";
+import type { CreateSessionInput } from "../lib/monitoring-service";
 import {
   preferredSession,
   sessionMetrics,
@@ -34,11 +29,45 @@ import {
   sessionTeacherId,
 } from "../lib/metrics";
 
+function hasRosterAndTemplate(data: MonitoringState, courseId: string) {
+  return data.students.some((student) => student.courseId === courseId)
+    && data.roomTemplates.some((template) => template.courseId === courseId);
+}
+
+// Si los datos cambian por completo (respaldo restaurado u otra pestaña), la
+// elección anterior puede no existir: se usa la primera disponible.
+function resolveTeacherId(data: MonitoringState | null, choice: string) {
+  if (!data || data.teachers.some((teacher) => teacher.id === choice)) return choice;
+  return (data.teachers.find((teacher) => teacher.active) ?? data.teachers[0])?.id ?? choice;
+}
+
+function resolveCourseId(data: MonitoringState | null, choice: string) {
+  if (!data || data.courses.some((course) => course.id === choice)) return choice;
+  return (
+    data.courses.find((course) => hasRosterAndTemplate(data, course.id)) ?? data.courses[0]
+  )?.id ?? choice;
+}
+
 export function useMonitoringController() {
-  const { data, error, busy, reload, apply, setError } = useMonitoringStore();
+  const {
+    data,
+    blocked,
+    error,
+    busy,
+    persistence,
+    reload,
+    execute,
+    restore,
+    resetToDemo,
+    listSavedCopies,
+    deleteSavedCopy,
+    setError,
+  } = useMonitoringStore();
   const [view, setView] = useState<AppView>("monitor");
-  const [courseId, setCourseId] = useState(DEMO_COURSE_ID);
-  const [selectedTeacherId, setSelectedTeacherId] = useState(DEFAULT_TEACHER_ID);
+  const [courseChoice, setCourseId] = useState(DEMO_COURSE_ID);
+  const [teacherChoice, setSelectedTeacherId] = useState(DEFAULT_TEACHER_ID);
+  const courseId = resolveCourseId(data, courseChoice);
+  const selectedTeacherId = resolveTeacherId(data, teacherChoice);
   const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_ROOM_TEMPLATE_ID);
   const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const [round, setRound] = useState(1);
@@ -103,11 +132,9 @@ export function useMonitoringController() {
   );
   const readyCourseIds = useMemo(() => {
     if (!data) return new Set<string>();
-    const withStudents = new Set(data.students.map((student) => student.courseId));
-    const withTemplates = new Set(data.roomTemplates.map((template) => template.courseId));
     return new Set(
       data.courses
-        .filter((item) => withStudents.has(item.id) && withTemplates.has(item.id))
+        .filter((item) => hasRosterAndTemplate(data, item.id))
         .map((item) => item.id),
     );
   }, [data]);
@@ -161,9 +188,9 @@ export function useMonitoringController() {
   }
 
   async function createNewSession(input: CreateSessionInput) {
-    const result = await apply((state) => createSession(state, input));
+    const result = await execute({ type: "createSession", input });
     if (!result) return;
-    setActiveSessionId(result.sessionId as number);
+    setActiveSessionId(result.sessionId);
     setSelectedTemplateId(input.roomTemplateId);
     setRound(1);
     setView("monitor");
@@ -174,14 +201,17 @@ export function useMonitoringController() {
   async function record(code: MonitoringCode, progress?: number) {
     if (!activeSession || !selectedStudent) return;
     const student = selectedStudent;
-    const result = await apply((state) => addObservation(state, {
-      sessionId: activeSession.id,
-      studentId: student.id,
-      round,
-      code,
-      progress,
-      note,
-    }));
+    const result = await execute({
+      type: "addObservation",
+      input: {
+        sessionId: activeSession.id,
+        studentId: student.id,
+        round,
+        code,
+        progress,
+        note,
+      },
+    });
     if (!result) return;
     setSelectedStudent(null);
     setNote("");
@@ -190,12 +220,12 @@ export function useMonitoringController() {
 
   async function setStudentPresence(student: Student, present: boolean) {
     if (!activeSession) return;
-    const result = await apply((state) => updatePresence(
-      state,
-      activeSession.id,
-      student.id,
+    const result = await execute({
+      type: "setPresence",
+      sessionId: activeSession.id,
+      studentId: student.id,
       present,
-    ));
+    });
     if (!result) return;
     setSelectedStudent(null);
     setToast(present
@@ -205,13 +235,13 @@ export function useMonitoringController() {
 
   async function moveTo(row: number | null, col: number | null) {
     if (!movingStudent) return;
-    const result = await apply((state) => moveStudent(
-      state,
-      movingStudent.id,
-      activeRoomTemplateId,
+    const result = await execute({
+      type: "moveStudent",
+      studentId: movingStudent.id,
+      roomTemplateId: activeRoomTemplateId,
       row,
       col,
-    ));
+    });
     if (!result) return;
     setMovingStudent(null);
     setToast("Distribución actualizada");
@@ -247,12 +277,17 @@ export function useMonitoringController() {
     }
     const existing = metrics?.latest.get(student.id);
     setNote(existing?.note ?? "");
+    setError("");
     setSelectedStudent(student);
   }
 
   async function closeSession() {
     if (!activeSession) return;
-    const result = await apply((state) => setSessionStatus(state, activeSession.id, "closed"));
+    const result = await execute({
+      type: "setSessionStatus",
+      sessionId: activeSession.id,
+      status: "closed",
+    });
     if (!result) return;
     setView("report");
     setToast("Sesión cerrada e informe actualizado");
@@ -260,15 +295,19 @@ export function useMonitoringController() {
 
   async function reopenSession() {
     if (!activeSession) return;
-    const result = await apply((state) => setSessionStatus(state, activeSession.id, "active"));
+    const result = await execute({
+      type: "setSessionStatus",
+      sessionId: activeSession.id,
+      status: "active",
+    });
     if (result) setToast("Sesión reabierta");
   }
 
   async function importCourse(courseName: string, entries: RosterEntry[]) {
-    const result = await apply((state) => importStudents(state, courseName, entries));
+    const result = await execute({ type: "importStudents", courseName, entries });
     if (!result) return false;
-    setCourseId(result.courseId as string);
-    setSelectedTemplateId(result.roomTemplateId as string);
+    setCourseId(result.courseId);
+    setSelectedTemplateId(result.roomTemplateId);
     setActiveSessionId(null);
     setToast(`${Math.min(entries.length, 80)} estudiantes importados`);
     return true;
@@ -314,6 +353,49 @@ export function useMonitoringController() {
     setView("report");
   }
 
+  function downloadBackup() {
+    if (!data) return;
+    downloadText(backupFileName(), JSON.stringify(createBackup(data), null, 2));
+  }
+
+  function downloadRawData(raw: string, prefix: string) {
+    downloadText(backupFileName(prefix), raw);
+  }
+
+  // Tras reemplazar los datos, la plantilla elegida también debe existir.
+  function resetSessionView(state: MonitoringState) {
+    const nextCourseId = resolveCourseId(state, courseChoice);
+    setSelectedTemplateId(
+      state.roomTemplates.find((template) => template.courseId === nextCourseId)?.id
+        ?? DEFAULT_ROOM_TEMPLATE_ID,
+    );
+    setActiveSessionId(null);
+    setSelectedStudent(null);
+    setNote("");
+    setReorganizing(false);
+    setMovingStudent(null);
+    setSearch("");
+    setView("monitor");
+  }
+
+  async function restoreBackup(state: MonitoringState) {
+    const result = await restore(state);
+    if (!result) return false;
+    // Los ids numéricos de clase pueden repetirse entre respaldos distintos.
+    resetSessionView(state);
+    setToast(result.copyKept
+      ? "Respaldo restaurado"
+      : "Respaldo restaurado, sin espacio para guardar una copia de los datos anteriores");
+    return true;
+  }
+
+  async function startFresh() {
+    const state = await resetToDemo();
+    if (!state) return;
+    resetSessionView(state);
+    setToast("Se cargaron los datos de demostración");
+  }
+
   function closeStudentSheet() {
     setSelectedStudent(null);
     setNote("");
@@ -326,8 +408,10 @@ export function useMonitoringController() {
 
   return {
     data,
+    blocked,
     error,
     busy,
+    persistence,
     reload,
     setError,
     view,
@@ -381,5 +465,11 @@ export function useMonitoringController() {
     openHistorySession,
     closeStudentSheet,
     toggleReorganizing,
+    downloadBackup,
+    downloadRawData,
+    restoreBackup,
+    startFresh,
+    listSavedCopies,
+    deleteSavedCopy,
   };
 }

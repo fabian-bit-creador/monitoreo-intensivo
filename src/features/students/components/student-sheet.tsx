@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UserRoundX, X } from "lucide-react";
+import { AlertTriangle, UserRoundX, X } from "lucide-react";
 import { CODE_META } from "@/config/app";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { MonitoringCode, Observation, Student } from "@/types/monitoring";
@@ -15,6 +15,7 @@ type StudentSheetProps = {
   onPresence: (student: Student, present: boolean) => void;
   onClose: () => void;
   busy: boolean;
+  error: string;
 };
 
 export function StudentSheet(props: StudentSheetProps) {
@@ -29,6 +30,7 @@ export function StudentSheet(props: StudentSheetProps) {
     onPresence,
     onClose,
     busy,
+    error,
   } = props;
   const [showProgress, setShowProgress] = useState(false);
 
@@ -59,6 +61,9 @@ export function StudentSheet(props: StudentSheetProps) {
           <span>Estado actual</span>
           <StatusBadge observation={observation} absent={!present} />
         </div>
+        {error ? (
+          <div className="error-banner" role="alert"><AlertTriangle size={17} /> {error}</div>
+        ) : null}
         {!present ? (
           <div className="absent-panel">
             <UserRoundX size={25} />

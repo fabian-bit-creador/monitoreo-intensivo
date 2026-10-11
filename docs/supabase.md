@@ -39,15 +39,33 @@ Solo con autorización explícita si el proyecto tiene datos reales.
    el editor SQL del panel o con el conector de Supabase.
 2. Revisa **Advisors → Security** en el panel.
 
+El conector de Supabase pide confirmar el SQL que quita permisos (`revoke`). Si el cliente no
+muestra esa confirmación, la operación se cancela y no se aplica nada. En ese caso, pega los
+archivos en el editor SQL entre `begin;` y `commit;`: se aplican completos o no se aplica nada.
+
 ## Primer establecimiento y administración
 
-El usuario debe existir en **Authentication → Users**. Desde el editor SQL:
+Si el usuario ya existe en **Authentication → Users**, desde el editor SQL:
 
 ```sql
 select public.bootstrap_school('Nombre del establecimiento', '<id del usuario>');
 ```
 
 La función no se puede llamar desde la aplicación.
+
+Si todavía no existe, crea el establecimiento con una invitación de administración:
+
+```sql
+with school as (
+  insert into public.schools (name) values ('Nombre del establecimiento') returning id
+)
+insert into public.school_invitations (school_id, email, role)
+select id, 'correo@dominio.cl', 'admin' from school;
+```
+
+Luego crea el usuario en **Authentication → Users → Add user → Create new user**, con ese correo,
+una contraseña y **Auto Confirm User** marcado. La aplicación acepta la invitación al primer
+inicio de sesión. Así la contraseña nunca pasa por otra persona.
 
 ## Agregar docentes
 
@@ -76,6 +94,11 @@ values ('<id del establecimiento>', '<id del curso>', '<id del usuario>');
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave publicable (`sb_publishable_…`) |
 
 Sin estas variables, la aplicación funciona en modo local, como antes.
+
+Hoy están definidas solo para **Preview** y **Development**: las vistas previas de cada rama usan
+el proyecto piloto y la producción sigue en modo local. Activar Supabase en producción requiere
+autorización explícita y un nuevo despliegue, porque Next.js incorpora estas variables al
+compilar.
 
 ## Subir los datos del Site anterior
 

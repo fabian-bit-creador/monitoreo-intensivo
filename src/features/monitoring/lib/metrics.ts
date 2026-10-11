@@ -11,9 +11,30 @@ import type {
   Student,
 } from "@/types/monitoring";
 
+/**
+ * Orden cronológico explícito: hora de registro y, a igual hora o si alguna
+ * no se puede leer, id creciente. No depende de la posición en el arreglo.
+ */
+export function compareObservations(first: Observation, second: Observation) {
+  const firstTime = Date.parse(first.createdAt);
+  const secondTime = Date.parse(second.createdAt);
+  if (Number.isFinite(firstTime) && Number.isFinite(secondTime) && firstTime !== secondTime) {
+    return firstTime - secondTime;
+  }
+  return first.id - second.id;
+}
+
+export function sortObservations(rows: Observation[]) {
+  return [...rows].sort(compareObservations);
+}
+
+/** Observación vigente de cada estudiante: la más reciente. */
 export function latestObservations(rows: Observation[]) {
   const latest = new Map<string, Observation>();
-  rows.forEach((row) => latest.set(row.studentId, row));
+  rows.forEach((row) => {
+    const current = latest.get(row.studentId);
+    if (!current || compareObservations(current, row) < 0) latest.set(row.studentId, row);
+  });
   return latest;
 }
 
@@ -59,7 +80,9 @@ export function sessionMetrics(
   // Se recorre students para conservar el orden de lista en informes y exportaciones.
   const roster = students.filter((student) => presenceMap.has(student.id));
   const present = roster.filter((student) => presenceMap.get(student.id) === true);
-  const sessionObs = observations.filter((row) => row.sessionId === session.id);
+  const sessionObs = sortObservations(
+    observations.filter((row) => row.sessionId === session.id),
+  );
   const latest = latestObservations(sessionObs);
   const counts = { I: 0, R: 0, C: 0 };
 

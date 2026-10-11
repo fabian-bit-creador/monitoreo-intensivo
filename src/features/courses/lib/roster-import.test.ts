@@ -6,6 +6,7 @@ import {
   looksLikeFullName,
   parseRoster,
   parseRosterWorkbook,
+  rosterRowsFromText,
   type RosterSheet,
 } from "./roster-import";
 
@@ -308,5 +309,47 @@ describe("decodeCsv", () => {
     ["Windows-1252, como «CSV delimitado por comas» de Excel", Uint8Array.from([...text].map((char) => char.charCodeAt(0)))],
   ])("conserva tildes y ñ en %s", (_, bytes) => {
     expect(decodeCsv(bytes)).toBe(text);
+  });
+});
+
+describe("rosterRowsFromText", () => {
+  const parse = (text: string) => parseRoster(rosterRowsFromText(text), 0);
+
+  it("una línea por estudiante: sin N°, se numera por orden", () => {
+    const result = parse("Ana Rivas Soto\n\n  Bruno Díaz Pérez  \nCamila Ruiz\n");
+    expect(result).toMatchObject({ ok: true, numberedByOrder: true });
+    expect(result.ok && result.entries).toEqual([
+      { number: 1, fullName: "Ana Rivas Soto" },
+      { number: 2, fullName: "Bruno Díaz Pérez" },
+      { number: 3, fullName: "Camila Ruiz" },
+    ]);
+  });
+
+  it.each([
+    ["con punto", "2. Bruno Díaz\n1. Ana Rivas"],
+    ["con paréntesis", "2) Bruno Díaz\n1) Ana Rivas"],
+    ["con guion", "2 - Bruno Díaz\n1 - Ana Rivas"],
+    ["copiado de dos columnas", "N°\tNombre\n2\tBruno Díaz\n1\tAna Rivas"],
+  ])("respeta el N° escrito %s", (_case, text) => {
+    const result = parse(text);
+    expect(result.ok && result.entries).toEqual([
+      { number: 1, fullName: "Ana Rivas" },
+      { number: 2, fullName: "Bruno Díaz" },
+    ]);
+  });
+
+  it("une apellidos y nombres copiados en columnas separadas", () => {
+    const result = parse("1\tRivas\tSoto\tAna");
+    expect(result.ok && result.entries).toEqual([{ number: 1, fullName: "Rivas Soto Ana" }]);
+  });
+
+  it("si solo algunos tienen N°, avisa la línea", () => {
+    const result = parse("1 Ana Rivas\nBruno Díaz");
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.errors.join(" ")).toContain("Fila 2");
+  });
+
+  it("una lista vacía no tiene estudiantes", () => {
+    expect(parse("   \n").ok).toBe(false);
   });
 });

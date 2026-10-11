@@ -21,6 +21,10 @@ type RosterPreviewProps = {
   error: string;
   onBack: () => void;
   onConfirm: (entries: RosterEntry[]) => void;
+  /** Texto del botón para volver; por defecto, elegir otro archivo. */
+  backLabel?: string;
+  /** Texto del botón para un curso nuevo; por defecto, crearlo de inmediato. */
+  newCourseLabel?: (count: number) => string;
 };
 
 const MAX_ERRORS_SHOWN = 5;
@@ -44,6 +48,8 @@ export function RosterPreview(props: RosterPreviewProps) {
     error,
     onBack,
     onConfirm,
+    backLabel = "Elegir otro archivo",
+    newCourseLabel = (count: number) => `Crear curso con ${count} estudiantes`,
   } = props;
   const result = options[sheetIndex].result;
   const entries = result.ok ? result.entries : [];
@@ -214,11 +220,11 @@ export function RosterPreview(props: RosterPreviewProps) {
 
       <div className="import-actions">
         <button className="secondary-button wide" onClick={onBack} disabled={busy}>
-          <ArrowLeft size={18} /> Elegir otro archivo
+          <ArrowLeft size={18} /> {backLabel}
         </button>
         <button className="primary-button wide" onClick={() => onConfirm(entries)} disabled={!canConfirm}>
           {busy ? <LoaderCircle className="spin" size={18} /> : <Upload size={18} />}
-          {target.mode === "update" ? "Actualizar nómina" : `Crear curso con ${entries.length} estudiantes`}
+          {target.mode === "update" ? "Actualizar nómina" : newCourseLabel(entries.length)}
         </button>
       </div>
     </div>

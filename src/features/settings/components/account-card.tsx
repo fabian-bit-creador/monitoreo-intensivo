@@ -33,7 +33,9 @@ export function AccountCard({ account, busy, onUpdateName, onSignOut }: AccountC
       <ul className="settings-list">
         <li>{account.email}</li>
         {account.schools.map((school) => (
-          <li key={school.id}>{school.name} · {ROLE_LABELS[school.role]}</li>
+          <li key={school.id}>
+            {school.name} · {school.kind === "personal" ? "tu espacio personal" : ROLE_LABELS[school.role]}
+          </li>
         ))}
         <li>Tus clases y registros quedan a nombre de esta cuenta.</li>
       </ul>

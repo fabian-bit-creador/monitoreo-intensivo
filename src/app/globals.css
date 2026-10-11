@@ -217,6 +217,11 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .workshop-grid .seat-cell.col-2, .workshop-grid .seat-cell.col-4 { margin-left: 0; }
 .workshop-grid .seat-cell.col-3 { margin-left: 30px; }
 .seat-cell.hidden-seat { visibility: hidden; pointer-events: none; }
+/* Salas con forma (ADR 0004): sin los pasillos fijos de la sala clásica. */
+.seat-grid.designed-grid .seat-cell { margin-left: 0; position: relative; }
+.seat-grid.designed-grid .seat-cell.gap-cell { min-height: 0; }
+.seat-group-label { position: absolute; z-index: 1; top: -9px; left: 10px; max-width: calc(100% - 20px); padding: 1px 7px; border-radius: 999px; background: var(--navy); color: #fff; font-size: 9px; font-weight: 800; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.designed-grid { row-gap: 14px; padding-top: 10px; }
 .student-card { width: 100%; min-height: 112px; position: relative; border: 1px solid #dce3ed; border-radius: 13px; padding: 13px 10px 10px; background: #fff; text-align: left; cursor: pointer; overflow: hidden; transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
 .student-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: #bac3cf; }
 @media (hover: hover) and (pointer: fine) {
@@ -519,8 +524,61 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .login-card h1 { margin: 10px 0 6px; color: var(--navy); font-size: 24px; }
 .login-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
 .login-card .login-note { font-size: 11px; }
+.login-card .google-button { gap: 10px; }
+.login-divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
+.login-divider::before, .login-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .account-form { margin-top: 16px; }
 .mobile-nav, .mobile-only { display: none; }
+
+/* Nuevo curso y salas con forma (ADR 0004). */
+.course-sources { display: grid; gap: 14px; }
+.course-sources .import-panel { border: 1px solid var(--line); border-radius: 16px; padding: 18px 16px 16px; }
+.course-sources .import-panel .import-icon { width: 52px; height: 52px; margin-bottom: 12px; }
+.course-sources .import-panel p { margin: 7px auto 14px; }
+.roster-text { width: 100%; min-height: 140px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfd; padding: 11px 12px; color: var(--ink); font: inherit; font-size: 13px; line-height: 1.5; resize: vertical; text-align: left; }
+.course-sources-note { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; text-align: center; }
+.layout-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f3f5f8; border-radius: 13px; padding: 4px; }
+.layout-tabs button { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 10px; background: transparent; color: #4f5b6f; font-weight: 700; font-size: 12px; cursor: pointer; }
+.layout-tabs button.active { background: #fff; color: var(--navy); box-shadow: 0 3px 10px rgba(23, 55, 94, 0.12); }
+.layout-params { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.room-capacity { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 11px; background: var(--teal-soft); color: #2f5f5c; font-size: 12px; }
+.room-capacity.short { background: #fff6e2; color: #8a5a00; }
+.room-capacity svg { flex: 0 0 auto; }
+.room-preview { overflow-x: auto; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: #fafbfd; }
+.room-preview-grid { display: grid; gap: 4px; width: max-content; margin: 0 auto; }
+.preview-seat, .preview-aisle { width: 100%; aspect-ratio: 1; min-width: 18px; border-radius: 5px; cursor: pointer; padding: 0; }
+.preview-seat { border: 1px solid #aebcd0; background: #fff; }
+.preview-seat.tint-a { background: #dcebfb; border-color: #9fbde0; }
+.preview-seat.tint-b { background: #d9f1ec; border-color: #94cfc5; }
+.preview-aisle { border: 1px dashed #d5dce6; background: transparent; }
+.room-preview-board { width: 60%; min-width: 120px; margin: 10px auto 0; padding: 4px; border-radius: 6px; background: #e9eef5; color: #66758a; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-align: center; text-transform: uppercase; }
+.room-preview-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.room-preview-tools p { margin: 0; color: var(--muted); font-size: 11px; }
+.room-preview-tools div { display: flex; gap: 6px; }
+.room-preview-tools button { border: 1px solid var(--line); background: #fff; color: var(--navy); border-radius: 8px; padding: 6px 9px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.room-preview-tools button:disabled { opacity: 0.5; cursor: default; }
+.room-prep { margin-top: 18px; }
+.room-prep-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.room-prep-heading h2 { margin: 0; color: var(--navy); font-size: 19px; }
+.room-prep-heading .eyebrow { margin-bottom: 4px; }
+.room-note { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.modal-card .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.room-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 14px; margin: -5px 0 13px; border-radius: 12px; background: #f7f9fc; border: 1px solid var(--line); color: var(--navy); }
+.room-bar label { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px; }
+.room-bar label span { color: var(--muted); font-size: 12px; font-weight: 700; }
+.room-bar select { flex: 1; max-width: 280px; border: 1px solid var(--line); border-radius: 9px; background: #fff; padding: 7px 9px; color: var(--ink); font-size: 13px; }
+.room-bar p { margin: 0; flex: 1; font-size: 13px; }
+.room-bar button { border: 1px solid var(--line); background: #fff; color: var(--navy); border-radius: 8px; padding: 7px 10px; font-size: 13px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.room-bar button:disabled { opacity: 0.55; cursor: default; }
+@media (max-width: 680px) {
+  .layout-tabs button { flex-direction: column; gap: 3px; font-size: 11px; min-height: 52px; }
+  .layout-params { grid-template-columns: 1fr 1fr; }
+  .room-preview-tools { flex-direction: column; align-items: flex-start; }
+  .room-bar label { min-width: 100%; }
+  /* El aviso de mover puestos pasa sus botones a una segunda línea. */
+  .move-banner { flex-wrap: wrap; }
+  .move-banner p { flex: 1 1 220px; }
+}
 
 @media (max-width: 1120px) {
   .live-kpis { grid-template-columns: repeat(5, minmax(105px, 1fr)); }

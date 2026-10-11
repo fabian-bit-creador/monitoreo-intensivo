@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Activity, LoaderCircle } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
-import { getSupabaseClient } from "@/lib/supabase";
+import { enabledAuthProviders, getSupabaseClient } from "@/lib/supabase";
 import { LoginScreen } from "./login-screen";
 
 export type AuthSession = {
@@ -11,6 +11,24 @@ export type AuthSession = {
   email: string;
   signOut: () => Promise<void>;
 };
+
+/** Al volver de Google con un error, Supabase lo deja en la dirección. */
+function readReturnError() {
+  if (typeof window === "undefined") return "";
+  const params = new URLSearchParams(window.location.search || window.location.hash.slice(1));
+  const description = params.get("error_description") ?? params.get("error");
+  return description ? `No fue posible ingresar con Google: ${description}` : "";
+}
+
+/** Quita ?code= y los errores de la dirección después de procesarlos. */
+function cleanReturnUrl() {
+  const url = new URL(window.location.href);
+  const keys = ["code", "error", "error_code", "error_description", "state"];
+  if (!keys.some((key) => url.searchParams.has(key)) && !url.hash.includes("error")) return;
+  keys.forEach((key) => url.searchParams.delete(key));
+  url.hash = "";
+  window.history.replaceState(null, "", url.toString());
+}
 
 function signInMessage(message: string) {
   if (/invalid login credentials/i.test(message)) return "Correo o contraseña incorrectos.";
@@ -26,11 +44,18 @@ function signInMessage(message: string) {
 export function SupabaseGate({ children }: { children: (session: AuthSession) => ReactNode }) {
   const [client] = useState(getSupabaseClient);
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [google, setGoogle] = useState(false);
+  const [returnError] = useState(readReturnError);
 
   useEffect(() => {
     let active = true;
     client.auth.getSession().then(({ data }) => {
-      if (active) setSession(data.session);
+      if (!active) return;
+      setSession(data.session);
+      cleanReturnUrl();
+    });
+    enabledAuthProviders().then((providers) => {
+      if (active) setGoogle(providers.google);
     });
     const { data } = client.auth.onAuthStateChange((_event, next) => setSession(next));
     return () => {
@@ -52,10 +77,21 @@ export function SupabaseGate({ children }: { children: (session: AuthSession) =>
   if (!session) {
     return (
       <LoginScreen
+        initialError={returnError}
         onSignIn={async (email, password) => {
           const { error } = await client.auth.signInWithPassword({ email, password });
           return error ? signInMessage(error.message) : null;
         }}
+        onGoogle={google ? async () => {
+          const { error } = await client.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+              redirectTo: `${window.location.origin}${window.location.pathname}`,
+              queryParams: { prompt: "select_account" },
+            },
+          });
+          return error ? signInMessage(error.message) : null;
+        } : undefined}
       />
     );
   }

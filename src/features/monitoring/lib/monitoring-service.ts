@@ -68,11 +68,22 @@ export function createSession(
     startedAt: new Date().toISOString(),
     closedAt: null,
   });
+  // Fotografía de la nómina: N°, nombre y puesto con que el estudiante empezó la clase.
+  const seats = new Map(
+    state.seatAssignments
+      .filter((assignment) => assignment.templateId === roomTemplate.id)
+      .map((assignment) => [assignment.studentId, assignment]),
+  );
   state.sessionStudents.push(
     ...roster.map((student) => ({
       sessionId,
       studentId: student.id,
       present: true,
+      number: student.number,
+      fullName: student.fullName,
+      displayName: student.displayName,
+      seatRow: seats.get(student.id)?.seatRow ?? null,
+      seatCol: seats.get(student.id)?.seatCol ?? null,
     })),
   );
 
@@ -267,6 +278,37 @@ function nextAvailableCourseId(state: MonitoringState, name: string) {
   return candidate;
 }
 
+/**
+ * Agrega al estado (ya clonado) la sala habitual de 7 × 6, sin asignaciones:
+ * los puestos se ordenan dentro de la aplicación. Devuelve su id.
+ */
+export function addDefaultRoomTemplate(
+  state: MonitoringState,
+  courseId: string,
+  courseName: string,
+  now = new Date().toISOString(),
+) {
+  const roomTemplateId = `${courseId}-sala-habitual`;
+  state.roomTemplates.push({
+    id: roomTemplateId,
+    courseId,
+    name: "Sala habitual",
+    description: `Distribución habitual de ${courseName}`,
+    rowCount: 7,
+    columnCount: 6,
+    active: true,
+    createdAt: now,
+  });
+  const slots: RoomSlot[] = Array.from({ length: 42 }, (_, index) => ({
+    templateId: roomTemplateId,
+    seatRow: Math.floor(index / 6),
+    seatCol: index % 6,
+    status: "available",
+  }));
+  state.roomSlots.push(...slots);
+  return roomTemplateId;
+}
+
 export function importStudents(
   current: MonitoringState,
   courseName: string,
@@ -283,27 +325,9 @@ export function importStudents(
   if (!roster.length) throw new Error("No se encontraron nombres para importar.");
 
   const courseId = nextAvailableCourseId(state, courseName);
-  const roomTemplateId = `${courseId}-sala-habitual`;
   const now = new Date().toISOString();
   state.courses.push({ id: courseId, name: courseName, createdAt: now });
-  state.roomTemplates.push({
-    id: roomTemplateId,
-    courseId,
-    name: "Sala habitual",
-    description: `Distribución habitual de ${courseName}`,
-    rowCount: 7,
-    columnCount: 6,
-    active: true,
-    createdAt: now,
-  });
-
-  const slots: RoomSlot[] = Array.from({ length: 42 }, (_, index) => ({
-    templateId: roomTemplateId,
-    seatRow: Math.floor(index / 6),
-    seatCol: index % 6,
-    status: "available",
-  }));
-  state.roomSlots.push(...slots);
+  const roomTemplateId = addDefaultRoomTemplate(state, courseId, courseName, now);
 
   const importedStudents: Student[] = roster.map((entry, index) => ({
     id: `${courseId}-${slugify(entry.fullName)}-${index + 1}`,

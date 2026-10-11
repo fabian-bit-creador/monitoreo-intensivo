@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { updateRoster } from "@/features/courses/lib/roster-update";
 import { applyCommand } from "./commands";
 import {
   addObservation,
@@ -52,6 +53,9 @@ describe("applyCommand", () => {
     expect(withoutTimes(applyCommand(state, {
       type: "importStudents", courseName: "Curso nuevo", entries: [{ number: 1, fullName: "Ana Ficticia Uno" }],
     }))).toEqual(withoutTimes(importStudents(state, "Curso nuevo", [{ number: 1, fullName: "Ana Ficticia Uno" }])));
+    const entries = [{ number: 1, fullName: "Estudiante ficticio a" }, { number: 2, fullName: "Ana Ficticia Uno" }];
+    expect(applyCommand(state, { type: "updateRoster", courseId: COURSE_ID, entries }))
+      .toEqual(updateRoster(state, COURSE_ID, entries));
   });
 
   it("no modifica el estado recibido", () => {

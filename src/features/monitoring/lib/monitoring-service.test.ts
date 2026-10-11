@@ -95,6 +95,24 @@ describe("createSession", () => {
     expect(rows.every((row) => row.present)).toBe(true);
   });
 
+  it("la fotografía guarda N°, nombre y puesto de cada estudiante en la plantilla elegida", () => {
+    const { state, sessionId } = createSession(buildState(), sessionInput({ roomTemplateId: SECOND_TEMPLATE_ID }));
+    const row = (id: string) => state.sessionStudents.find((item) => item.sessionId === sessionId && item.studentId === id);
+
+    expect(row("a")).toEqual({
+      sessionId,
+      studentId: "a",
+      present: true,
+      number: 1,
+      fullName: "Estudiante ficticio a",
+      displayName: "Estudiante a",
+      seatRow: 0,
+      seatCol: 0,
+    });
+    // «b» tiene puesto en la sala principal, pero no en el taller elegido.
+    expect(row("b")).toMatchObject({ seatRow: null, seatCol: null });
+  });
+
   it("recorta los textos y usa valores por defecto cuando vienen vacíos", () => {
     const filled = createSession(buildState(), sessionInput({ module: "  Unidad 3  " }));
     expect(filled.state.sessions[0].module).toBe("Unidad 3");

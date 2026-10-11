@@ -45,7 +45,7 @@ export function MonitoringApp() {
     activeSeatAssignments,
     course,
     courseRoomTemplates,
-    courseStudents,
+    visibleStudents,
     readyCourseIds,
     courseReady,
     metrics,
@@ -78,6 +78,7 @@ export function MonitoringApp() {
     closeSession,
     reopenSession,
     importCourse,
+    updateCourseRoster,
     exportExcel,
     exportPdf,
     openHistorySession,
@@ -176,7 +177,7 @@ export function MonitoringApp() {
               seatAssignments={activeSeatAssignments}
               session={activeSession}
               students={filteredStudents}
-              allStudents={courseStudents}
+              allStudents={visibleStudents}
               metrics={metrics}
               latest={activeLatest}
               round={round}
@@ -282,10 +283,13 @@ export function MonitoringApp() {
 
       {showImport ? (
         <ImportCourseModal
+          data={data}
+          currentCourseId={courseId}
           suggestedCourseName={courseReady ? "Nuevo curso" : course?.name ?? "Nuevo curso"}
           busy={busy}
+          error={error}
           onImport={importCourse}
-          onError={setError}
+          onUpdate={updateCourseRoster}
           onClose={() => setShowImport(false)}
         />
       ) : null}

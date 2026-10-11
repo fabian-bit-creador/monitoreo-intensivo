@@ -17,3 +17,13 @@ export function displayName(fullName: string) {
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[1]?.[0] ?? ""}.`;
 }
+
+/** Clave para comparar nombres: sin tildes, sin mayúsculas y con espacios simples. */
+export function normalizeName(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es")
+    .replace(/\s+/g, " ")
+    .trim();
+}

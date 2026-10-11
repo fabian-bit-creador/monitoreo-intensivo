@@ -106,6 +106,15 @@ docs/
 
 La interfaz no conoce dónde se guardan los datos. Las vistas emiten **comandos** (iniciar clase, registrar observación, modificar asistencia, cerrar o reabrir, mover puestos, importar nómina) y `MonitoringRepository` los aplica. `LocalStorageMonitoringRepository` es la implementación de esta etapa; un adaptador Supabase futuro deberá cumplir el mismo contrato (ADR 0002 y 0003).
 
+## Importar o actualizar una nómina
+
+**Importar curso** lee planillas Excel o CSV y muestra una vista previa antes de cargar nada:
+
+- Busca la hoja con la columna «Nombre Completo Alumno» (o variantes), aunque no sea la primera; si hay varias, permite elegirla. Sin encabezado, reconoce los nombres por su forma, descarta títulos e instrucciones y pide revisar la lista.
+- Respeta el N° de lista y rechaza, indicando la fila, N° vacíos, inválidos o repetidos. Los homónimos se conservan con un aviso.
+- Permite **crear un curso nuevo** (con su nombre, dentro del mismo modal) o **actualizar la nómina de un curso existente**. Si la planilla coincide con un curso, propone actualizarlo en vez de duplicarlo.
+- Al actualizar, cada estudiante conserva su identidad, sus registros y su puesto; los nuevos quedan sin puesto y quienes dejan el curso se archivan sin borrar su historia. La clase en curso conserva su nómina y los informes anteriores no cambian: cada clase guarda una fotografía del N°, el nombre y el puesto con que empezó.
+
 ## Respaldo y datos guardados
 
 Los datos viven en el navegador que se usa. En **Configuración → Respaldo**:

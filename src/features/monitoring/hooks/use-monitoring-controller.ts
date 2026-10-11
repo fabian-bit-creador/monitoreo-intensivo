@@ -29,8 +29,9 @@ import {
   sessionTeacherId,
 } from "../lib/metrics";
 
+// Operativo: con al menos un estudiante activo y una plantilla de sala.
 function hasRosterAndTemplate(data: MonitoringState, courseId: string) {
-  return data.students.some((student) => student.courseId === courseId)
+  return data.students.some((student) => student.courseId === courseId && student.active)
     && data.roomTemplates.some((template) => template.courseId === courseId);
 }
 
@@ -148,7 +149,13 @@ export function useMonitoringController() {
       data.observations,
     );
   }, [activeSession, data]);
-  const filteredStudents = courseStudents.filter((student) =>
+  // Con una clase abierta se muestra su nómina fotografiada, con el N° y el
+  // nombre con que empezó; sin clase, los estudiantes activos del curso.
+  const visibleStudents = useMemo(
+    () => metrics?.roster ?? courseStudents.filter((student) => student.active),
+    [courseStudents, metrics],
+  );
+  const filteredStudents = visibleStudents.filter((student) =>
     student.fullName.toLocaleLowerCase("es").includes(search.toLocaleLowerCase("es")),
   );
   const activeLatest = metrics?.latest ?? new Map<string, Observation>();
@@ -303,6 +310,27 @@ export function useMonitoringController() {
     if (result) setToast("Sesión reabierta");
   }
 
+  async function updateCourseRoster(targetCourseId: string, entries: RosterEntry[]) {
+    const result = await execute({ type: "updateRoster", courseId: targetCourseId, entries });
+    if (!result) return false;
+    const { added, updated, withdrawn } = result.plan;
+    setCourseId(targetCourseId);
+    if (targetCourseId !== courseId) {
+      setActiveSessionId(null);
+      setSelectedTemplateId(
+        result.state.roomTemplates.find((template) => template.courseId === targetCourseId)?.id
+          ?? DEFAULT_ROOM_TEMPLATE_ID,
+      );
+    }
+    setToast([
+      "Nómina actualizada:",
+      `${added.length} ${added.length === 1 ? "nuevo" : "nuevos"},`,
+      `${updated.length} con cambios,`,
+      `${withdrawn.length} ${withdrawn.length === 1 ? "deja" : "dejan"} el curso`,
+    ].join(" "));
+    return true;
+  }
+
   async function importCourse(courseName: string, entries: RosterEntry[]) {
     const result = await execute({ type: "importStudents", courseName, entries });
     if (!result) return false;
@@ -428,6 +456,7 @@ export function useMonitoringController() {
     course,
     courseRoomTemplates,
     courseStudents,
+    visibleStudents,
     readyCourseIds,
     courseReady,
     metrics,
@@ -460,6 +489,7 @@ export function useMonitoringController() {
     closeSession,
     reopenSession,
     importCourse,
+    updateCourseRoster,
     exportExcel,
     exportPdf,
     openHistorySession,

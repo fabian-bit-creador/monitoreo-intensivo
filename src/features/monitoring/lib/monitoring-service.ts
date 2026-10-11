@@ -272,12 +272,21 @@ export function assignSeatsByNumber(
   const assignments = state.seatAssignments.filter((item) => item.templateId === roomTemplateId);
   const taken = new Set(assignments.map((item) => `${item.seatRow}-${item.seatCol}`));
   const seated = new Set(assignments.map((item) => item.studentId));
-  const freeSlots = state.roomSlots
-    .filter((slot) =>
-      slot.templateId === roomTemplateId
-      && slot.status === "available"
-      && !taken.has(`${slot.seatRow}-${slot.seatCol}`))
-    .sort((first, second) => first.seatRow - second.seatRow || first.seatCol - second.seatCol);
+  // En salas por grupos o mesones, los N° consecutivos quedan juntos: se
+  // llenan los grupos en el orden de su primer puesto (ADR 0004).
+  const available = state.roomSlots.filter((slot) => slot.templateId === roomTemplateId && slot.status === "available");
+  const groupStart = new Map<string, number>();
+  for (const slot of available) {
+    if (!slot.groupLabel) continue;
+    const position = slot.seatRow * 100 + slot.seatCol;
+    groupStart.set(slot.groupLabel, Math.min(groupStart.get(slot.groupLabel) ?? Infinity, position));
+  }
+  const startOf = (slot: RoomSlot) =>
+    (slot.groupLabel ? groupStart.get(slot.groupLabel) : undefined) ?? slot.seatRow * 100 + slot.seatCol;
+  const freeSlots = available
+    .filter((slot) => !taken.has(`${slot.seatRow}-${slot.seatCol}`))
+    .sort((first, second) =>
+      startOf(first) - startOf(second) || first.seatRow - second.seatRow || first.seatCol - second.seatCol);
   const unseated = state.students
     .filter((student) => student.courseId === template.courseId && student.active && !seated.has(student.id))
     .sort((first, second) =>

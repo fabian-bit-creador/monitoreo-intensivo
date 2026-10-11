@@ -10,6 +10,7 @@ Decisiones en `docs/decisions/0002-persistencia-por-operaciones.md` y
 | `supabase/migrations/20261011120000_esquema_inicial.sql` | Tablas, restricciones, RLS de lectura y operaciones (`start_session`, `record_observation`, `set_attendance`, `set_session_status`, `move_seat`, `assign_seats_by_number`, `create_course`, `update_roster`, `invite_member`, `claim_invitations`, `assign_course_teacher`, `update_my_profile`, `bootstrap_school`) |
 | `supabase/migrations/20261011120100_importar_respaldo.sql` | `import_legacy_state`: sube un respaldo o los datos del Site anterior, sin duplicar |
 | `supabase/migrations/20261012120000_espacios_y_salas.sql` | Espacio personal por cuenta y salas con forma: `create_room_template`, `update_room_layout` (ADR 0004) |
+| `supabase/migrations/20261012130000_asignar_por_grupo.sql` | «Asignar por N°» completa grupo por grupo (o mesón por mesón) |
 | `.github/workflows/migraciones.yml` | Aplica las migraciones pendientes desde GitHub, con un botón |
 | `supabase/tests/` | Emulación mínima de Supabase y pruebas de permisos, concurrencia, reintentos, historia e importación |
 

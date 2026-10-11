@@ -664,6 +664,19 @@ describe("salas configurables", () => {
     expect(seatOf(seated.state, roomTemplateId, "a")).toEqual([0, 0]);
   });
 
+  it("asignar por N° completa grupo por grupo", () => {
+    const layout = groupsLayout({ groups: 2, groupSize: 4, groupsPerRow: 2 });
+    const { state, roomTemplateId } = createRoomTemplate(buildState(), COURSE_ID, "Grupos", layout);
+    const seated = assignSeatsByNumber(state, roomTemplateId).state;
+    const groupOf = (studentId: string) => {
+      const [row, col] = seatOf(seated, roomTemplateId, studentId)!;
+      return seated.roomSlots.find((slot) => slot.templateId === roomTemplateId && slot.seatRow === row && slot.seatCol === col)?.groupLabel;
+    };
+    // Los 4 estudiantes activos (N° 1 a 4) quedan en el Grupo 1, no repartidos por fila.
+    expect(["a", "b", "c", "d"].map(groupOf)).toEqual(["Grupo 1", "Grupo 1", "Grupo 1", "Grupo 1"]);
+    expect(seatOf(seated, roomTemplateId, "c")).toEqual([1, 0]);
+  });
+
   it("no repite el id de una sala con el mismo nombre", () => {
     const layout = groupsLayout({ groups: 1, groupSize: 4, groupsPerRow: 1 });
     const first = createRoomTemplate(buildState(), COURSE_ID, "Laboratorio", layout);

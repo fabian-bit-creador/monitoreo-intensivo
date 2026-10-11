@@ -115,8 +115,9 @@ describe("salas configurables", () => {
 
     const [assigned] = await rpc<{ assign_seats_by_number: number }>(db.pool, docente, "assign_seats_by_number", [id]);
     expect(assigned.assign_seats_by_number).toBe(4);
+    // Grupo por grupo: los N° 1 a 4 completan el Grupo 1 antes de pasar al 2.
     expect(await seats(id)).toEqual([
-      "0-0 Ana Ficticia Uno", "0-1 Bruno Ficticio Dos", "0-3 Camila Ficticia Tres", "0-4 Diego Ficticio Cuatro",
+      "0-0 Ana Ficticia Uno", "0-1 Bruno Ficticio Dos", "1-0 Camila Ficticia Tres", "1-1 Diego Ficticio Cuatro",
     ]);
   });
 

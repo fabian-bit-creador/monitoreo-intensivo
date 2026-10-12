@@ -47,6 +47,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // `next dev` no debe agregar su bloque a AGENTS.md: ese archivo lo escribe el
+  // equipo y cualquier cambio pasa por revisión.
+  agentRules: false,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

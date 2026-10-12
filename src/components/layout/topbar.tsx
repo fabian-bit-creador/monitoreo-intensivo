@@ -1,5 +1,4 @@
 import {
-  Activity,
   AlertTriangle,
   Cloud,
   CloudOff,
@@ -9,8 +8,8 @@ import {
   Plus,
   RefreshCcw,
 } from "lucide-react";
-import { APP_NAME, APP_SUBTITLE } from "@/config/app";
 import type { PersistenceStatus } from "@/features/monitoring/hooks/use-monitoring-store";
+import { BrandLockup } from "./brand";
 
 type TopbarProps = {
   onImport: () => void;
@@ -69,13 +68,7 @@ export function Topbar({
 }: TopbarProps) {
   return (
     <header className="topbar">
-      <div className="brand-lockup">
-        <div className="brand-mark"><Activity size={21} /></div>
-        <div>
-          <strong>{APP_NAME}</strong>
-          <span>{APP_SUBTITLE}</span>
-        </div>
-      </div>
+      <BrandLockup />
       <div className="topbar-actions">
         <PersistenceBadge persistence={persistence} />
         <button className="icon-button mobile-only" aria-label="Actualizar" onClick={onRefresh}>

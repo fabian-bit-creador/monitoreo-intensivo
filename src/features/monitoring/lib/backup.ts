@@ -1,4 +1,4 @@
-import { STORAGE_SCHEMA_VERSION } from "@/config/app";
+import { APP_NAME, STORAGE_SCHEMA_VERSION } from "@/config/app";
 import type { MonitoringState } from "@/types/monitoring";
 import { isRecord, parseMonitoringState } from "./state-validation";
 
@@ -141,7 +141,7 @@ export function parseBackupText(text: string): ParsedBackup {
     return { ok: false, error: "El archivo no es un JSON válido." };
   }
   if (!isRecord(parsed)) {
-    return { ok: false, error: "El archivo no parece un respaldo de Monitoreo PI." };
+    return { ok: false, error: `El archivo no parece un respaldo de ${APP_NAME}.` };
   }
 
   let origin: BackupOrigin;
@@ -161,7 +161,7 @@ export function parseBackupText(text: string): ParsedBackup {
     origin = "legacy-site";
     rawState = parsed;
   } else {
-    return { ok: false, error: "El archivo no parece un respaldo de Monitoreo PI." };
+    return { ok: false, error: `El archivo no parece un respaldo de ${APP_NAME}.` };
   }
 
   const result = parseMonitoringState(rawState);

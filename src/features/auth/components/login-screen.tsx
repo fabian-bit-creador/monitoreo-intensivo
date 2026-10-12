@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
-import { Activity, AlertTriangle, LoaderCircle, LogIn } from "lucide-react";
-import { APP_NAME, APP_SUBTITLE } from "@/config/app";
+import { AlertTriangle, LoaderCircle, LogIn } from "lucide-react";
+import { BrandLockup } from "@/components/layout/brand";
 
 type LoginScreenProps = {
   /** Devuelve un mensaje de error, o null si ingresó. */
@@ -40,13 +40,7 @@ export function LoginScreen({ onSignIn, onGoogle, initialError = "" }: LoginScre
   return (
     <div className="loading-screen login-screen">
       <form className="card login-card form-stack" onSubmit={(event) => void submit(event)}>
-        <div className="brand-lockup">
-          <div className="brand-mark"><Activity size={21} /></div>
-          <div>
-            <strong>{APP_NAME}</strong>
-            <span>{APP_SUBTITLE}</span>
-          </div>
-        </div>
+        <BrandLockup />
         <div>
           <h1>Ingresar</h1>
           <p>

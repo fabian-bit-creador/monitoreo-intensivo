@@ -1,7 +1,8 @@
 import type { MonitoringCode } from "@/types/monitoring";
 
-export const APP_NAME = "Monitoreo PI";
-export const APP_SUBTITLE = "Práctica independiente";
+export const APP_NAME = "Monitoreo Intensivo";
+/** Bajo el ícono en la pantalla de inicio del celular, donde el nombre completo se corta. */
+export const APP_SHORT_NAME = "Monitoreo";
 export const DEMO_COURSE_ID = "iiia-2026";
 export const DEFAULT_TEACHER_ID = "fabian-herrera";
 export const DEFAULT_ROOM_TEMPLATE_ID = "sala-habitual-iiia-2026";

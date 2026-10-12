@@ -62,20 +62,13 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(12px);
 }
+/* Marca (ADR 0005): isotipo libre y nombre oficial en Arial Bold. */
 .brand-lockup { display: flex; align-items: center; gap: 12px; }
-.brand-lockup > div:last-child { display: flex; flex-direction: column; gap: 2px; }
-.brand-lockup strong { color: var(--navy); font-size: 17px; }
-.brand-lockup span { color: var(--muted); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
-.brand-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(145deg, var(--navy), #245182);
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(23, 55, 94, 0.2);
-}
+.brand-name { color: var(--navy); font-size: 17px; letter-spacing: -0.01em; }
+.brand-mark { display: block; flex: none; width: 36px; height: 36px; }
+.loading-screen .brand-mark { width: 48px; height: 48px; }
+.login-card .brand-mark { width: 44px; height: 44px; }
+.login-card .brand-name { font-size: 19px; }
 .topbar-actions { display: flex; align-items: center; gap: 10px; }
 .connectivity { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 7px 10px; border-radius: 999px; }
 .connectivity.online { color: #147a54; background: #eaf8f2; }
@@ -610,9 +603,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
   .desktop-only { display: none !important; }
   .mobile-only { display: inline-flex; }
   .topbar { height: 64px; padding: 0 13px; }
-  .brand-mark { width: 37px; height: 37px; }
-  .brand-lockup span { display: none; }
-  .brand-lockup strong { font-size: 15px; }
+  .brand-mark { width: 32px; height: 32px; }
+  .brand-name { font-size: 15px; }
+  /* «Monitoreo Intensivo» no cabe en una línea junto a las acciones. */
+  .topbar .brand-name { width: min-content; line-height: 1.08; }
   .connectivity { width: 9px; height: 9px; padding: 0; font-size: 0; background: var(--c) !important; }
   .connectivity.error { background: var(--danger) !important; }
   .connectivity.offline { background: var(--i) !important; }

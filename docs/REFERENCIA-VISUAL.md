@@ -82,6 +82,7 @@ status-absent #687181 / #dde1e6           card absent: opacity .56, bg #f2f3f5
 ├── .topbar            (sticky, 72px, backdrop-filter: blur(12px), bg #fffffff5, z-index 30)
 │   ├── .brand-lockup  → .brand-mark (cuadro navy 44px, radio ~14px, icono Activity blanco)
 │   │                    + "Monitoreo PI" / "PRÁCTICA INDEPENDIENTE" (uppercase, tracking amplio)
+│   │                    [Reemplazado por la marca del ADR 0005: isotipo libre + "Monitoreo Intensivo"]
 │   └── .topbar-actions
 │       ├── .connectivity.online   → pill verde suave, icono Wifi, "Sincronizado"
 │       ├── .secondary-button      → "Importar curso" (icono Upload)

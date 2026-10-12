@@ -1,3 +1,4 @@
+import { APP_NAME } from "@/config/app";
 import type {
   ClassSession,
   Course,
@@ -74,7 +75,7 @@ export async function exportSessionPdf(context: ExportContext) {
   const autoTable = autoTableModule.default;
   document.setTextColor(23, 55, 94);
   document.setFontSize(18);
-  document.text("Monitoreo PI · Informe de sesión", 14, 18);
+  document.text(`${APP_NAME} · Informe de sesión`, 14, 18);
   document.setTextColor(60, 70, 85);
   document.setFontSize(10);
   document.text(`${teacher?.fullName ?? "Docente"} · ${course?.name ?? "Curso"}`, 14, 26);

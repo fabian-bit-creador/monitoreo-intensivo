@@ -9,6 +9,9 @@ Decisiones en `docs/decisions/0002-persistencia-por-operaciones.md` y
 |---|---|
 | `supabase/migrations/20261011120000_esquema_inicial.sql` | Tablas, restricciones, RLS de lectura y operaciones (`start_session`, `record_observation`, `set_attendance`, `set_session_status`, `move_seat`, `assign_seats_by_number`, `create_course`, `update_roster`, `invite_member`, `claim_invitations`, `assign_course_teacher`, `update_my_profile`, `bootstrap_school`) |
 | `supabase/migrations/20261011120100_importar_respaldo.sql` | `import_legacy_state`: sube un respaldo o los datos del Site anterior, sin duplicar |
+| `supabase/migrations/20261012120000_espacios_y_salas.sql` | Espacio personal por cuenta y salas con forma: `create_room_template`, `update_room_layout` (ADR 0004) |
+| `supabase/migrations/20261012130000_asignar_por_grupo.sql` | «Asignar por N°» completa grupo por grupo (o mesón por mesón) |
+| `.github/workflows/migraciones.yml` | Aplica las migraciones pendientes desde GitHub, con un botón |
 | `supabase/tests/` | Emulación mínima de Supabase y pruebas de permisos, concurrencia, reintentos, historia e importación |
 
 Reglas que no cambian:
@@ -42,6 +45,49 @@ Solo con autorización explícita si el proyecto tiene datos reales.
 El conector de Supabase pide confirmar el SQL que quita permisos (`revoke`). Si el cliente no
 muestra esa confirmación, la operación se cancela y no se aplica nada. En ese caso, pega los
 archivos en el editor SQL entre `begin;` y `commit;`: se aplican completos o no se aplica nada.
+
+## Aplicar migraciones desde GitHub
+
+Configuración inicial, una sola vez. Las claves se pegan en los paneles de Supabase y GitHub:
+nunca en el chat ni en el repositorio.
+
+1. En Supabase, **Account → Access Tokens → Generate new token**. Ponle de nombre «GitHub
+   migraciones».
+2. En el proyecto, **Project Settings → Database**. Si no tienes la contraseña de la base,
+   usa **Reset database password**. La aplicación no la usa.
+3. En GitHub, **Settings → Secrets and variables → Actions**:
+   - en *Secrets*: `SUPABASE_ACCESS_TOKEN` (el token) y `SUPABASE_DB_PASSWORD` (la contraseña);
+   - en *Variables*: `SUPABASE_PROJECT_REF`, el identificador del proyecto, que es la parte
+     inicial de su URL.
+4. Si aplicaste migraciones a mano en el editor SQL, regístralas. Ve a **Actions →
+   Migraciones de Supabase → Run workflow**, elige `marcar-aplicadas` y escribe sus versiones
+   separadas por espacios.
+
+Para aplicar cambios después de fusionar un PR con migraciones nuevas:
+
+1. **Run workflow** con `ver`: muestra lo pendiente sin cambiar nada.
+2. **Run workflow** con `aplicar`.
+
+## Ingreso con Google
+
+1. En [Google Cloud Console](https://console.cloud.google.com/), crea un proyecto y configura
+   **APIs & Services → OAuth consent screen**: tipo externo, nombre «Monitoreo PI» y tu correo
+   de contacto.
+2. En **Credentials → Create credentials → OAuth client ID**, elige *Web application*. Agrega
+   esta URI de redirección autorizada:
+   `https://<identificador del proyecto>.supabase.co/auth/v1/callback`.
+3. En Supabase, **Authentication → Sign In / Providers → Google**: actívalo y pega el *Client
+   ID* y el *Client Secret*.
+4. En Supabase, **Authentication → URL Configuration**:
+   - *Site URL*: `https://monitoreo-intensivo.vercel.app`.
+   - *Redirect URLs*:
+     - `https://monitoreo-intensivo.vercel.app/**`;
+     - `https://monitoreo-intensivo-*-muni-app.vercel.app/**`, para las vistas previas;
+     - `http://localhost:3000/**`.
+
+El botón «Continuar con Google» aparece solo cuando el proveedor está activo. Quien entra por
+primera vez recibe su espacio personal y puede crear cursos de inmediato. Nadie ve los
+espacios de otras personas.
 
 ## Primer establecimiento y administración
 

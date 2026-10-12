@@ -50,6 +50,27 @@ export function ClassroomMap(props: ClassroomMapProps) {
   const rowCount = roomTemplate?.rowCount ?? 7;
   const columnCount = roomTemplate?.columnCount ?? 6;
   const isWorkshop = roomTemplate?.id === WORKSHOP_ROOM_TEMPLATE_ID;
+  // Salas con forma (ADR 0004): los pasillos son columnas y filas angostas, y
+  // cada grupo o mesón muestra su nombre en su primer puesto.
+  const designed = Boolean(roomTemplate?.layout && roomTemplate.layout !== "classic");
+  const usedRows = new Set(roomSlots.map((slot) => slot.seatRow));
+  const usedCols = new Set(roomSlots.map((slot) => slot.seatCol));
+  const groupStarts = new Set<string>();
+  const seenGroups = new Set<string>();
+  [...roomSlots]
+    .sort((first, second) => first.seatRow - second.seatRow || first.seatCol - second.seatCol)
+    .forEach((slot) => {
+      if (slot.groupLabel && !seenGroups.has(slot.groupLabel)) {
+        seenGroups.add(slot.groupLabel);
+        groupStarts.add(`${slot.seatRow}-${slot.seatCol}`);
+      }
+    });
+  const gridStyle = designed
+    ? {
+      gridTemplateColumns: Array.from({ length: columnCount }, (_, col) => (usedCols.has(col) ? "minmax(112px, 1fr)" : "22px")).join(" "),
+      gridTemplateRows: Array.from({ length: rowCount }, (_, row) => (usedRows.has(row) ? "auto" : "14px")).join(" "),
+    }
+    : { gridTemplateColumns: `repeat(${columnCount}, minmax(112px, 1fr))` };
 
   return (
     <section className="classroom card">
@@ -65,8 +86,8 @@ export function ClassroomMap(props: ClassroomMapProps) {
       </div>
       <div className="seat-scroll">
         <div
-          className={`seat-grid ${isWorkshop ? "workshop-grid" : ""}`}
-          style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(112px, 1fr))` }}
+          className={`seat-grid ${isWorkshop ? "workshop-grid" : ""} ${designed ? "designed-grid" : ""}`}
+          style={gridStyle}
         >
           {Array.from({ length: rowCount * columnCount }, (_, index) => {
             const row = Math.floor(index / columnCount);
@@ -77,7 +98,7 @@ export function ClassroomMap(props: ClassroomMapProps) {
               return (
                 <div
                   key={`${row}-${col}`}
-                  className={`seat-cell col-${col} hidden-seat`}
+                  className={`seat-cell col-${col} hidden-seat ${designed ? "gap-cell" : ""}`}
                   aria-hidden="true"
                 />
               );
@@ -85,6 +106,9 @@ export function ClassroomMap(props: ClassroomMapProps) {
 
             return (
               <div key={`${row}-${col}`} className={`seat-cell col-${col}`}>
+                {designed && slot.groupLabel && groupStarts.has(`${row}-${col}`) ? (
+                  <span className="seat-group-label">{slot.groupLabel}</span>
+                ) : null}
                 {student ? (
                   <StudentCard
                     student={student}

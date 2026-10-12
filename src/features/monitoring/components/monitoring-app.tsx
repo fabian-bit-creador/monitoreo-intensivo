@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Activity,
   AlertTriangle,
@@ -16,6 +17,8 @@ import { PendingCourseState } from "@/components/ui/empty-state";
 import { NoAccessScreen } from "@/features/auth/components/no-access-screen";
 import { SupabaseGate, type AuthSession } from "@/features/auth/components/supabase-gate";
 import { ImportCourseModal } from "@/features/courses/components/import-course-modal";
+import { RoomModal } from "@/features/courses/components/room-modal";
+import { labLayout, layoutFromTemplate, suggestedLab } from "@/features/courses/lib/room-layouts";
 import { HistoryView } from "@/features/history/components/history-view";
 import { useMonitoringController } from "@/features/monitoring/hooks/use-monitoring-controller";
 import type { StoreRepository } from "@/features/monitoring/hooks/use-monitoring-store";
@@ -130,9 +133,18 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     listSavedCopies,
     deleteSavedCopy,
     assignSeats,
+    createRoom,
+    updateRoom,
+    selectRoomTemplate,
     importToServer,
     updateProfileName,
   } = controller;
+  const [roomModal, setRoomModal] = useState<"create" | "edit" | null>(null);
+  // Espacios donde la cuenta puede crear cursos; el personal va primero.
+  const adminSpaces = account?.schools
+    .filter((school) => school.role === "admin")
+    .map((school) => ({ id: school.id, name: school.name })) ?? [];
+  const spaces = account?.schools.map((school) => ({ id: school.id, name: school.name })) ?? [];
 
   if (blocked) {
     return (
@@ -195,6 +207,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
           onViewChange={setView}
           onTeacherChange={chooseTeacher}
           onCourseChange={chooseCourse}
+          spaces={spaces}
         />
         <main className="main-content">
           <MobileContextBar
@@ -204,6 +217,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
             readyCourseIds={readyCourseIds}
             onTeacherChange={chooseTeacher}
             onCourseChange={chooseCourse}
+            spaces={spaces}
           />
           {error ? (
             <div className="error-banner">
@@ -239,6 +253,10 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
               movingStudent={movingStudent}
               moveTo={moveTo}
               onAssignSeats={() => void assignSeats()}
+              roomTemplates={courseRoomTemplates}
+              onSelectRoom={selectRoomTemplate}
+              onNewRoom={() => setRoomModal("create")}
+              onEditRoom={() => setRoomModal("edit")}
               onStart={openSessionForm}
               onClose={() => void closeSession()}
               busy={busy}
@@ -342,11 +360,26 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
           data={data}
           currentCourseId={courseId}
           suggestedCourseName={courseReady ? "Nuevo curso" : course?.name ?? "Nuevo curso"}
+          spaces={adminSpaces}
           busy={busy}
           error={error}
           onImport={importCourse}
           onUpdate={updateCourseRoster}
           onClose={() => setShowImport(false)}
+        />
+      ) : null}
+
+      {roomModal ? (
+        <RoomModal
+          mode={roomModal}
+          studentCount={visibleStudents.length}
+          initial={roomModal === "edit" && activeRoomTemplate
+            ? { name: activeRoomTemplate.name, layout: layoutFromTemplate(activeRoomTemplate, activeRoomSlots) }
+            : { name: "Laboratorio", layout: labLayout(suggestedLab(visibleStudents.length)) }}
+          busy={busy}
+          error={error}
+          onSave={(draft) => (roomModal === "edit" ? updateRoom(draft) : createRoom(draft))}
+          onClose={() => setRoomModal(null)}
         />
       ) : null}
 

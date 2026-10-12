@@ -107,11 +107,13 @@ describe("lectura según rol, curso y establecimiento", () => {
     }
   });
 
-  it("una cuenta sin membresía no ve nada", async () => {
+  it("una cuenta sin colegio solo ve su perfil y su espacio personal vacío", async () => {
     for (const table of ["schools", "courses", "students", "enrollments", "room_templates", "class_sessions", "profiles"]) {
-      const expected = table === "profiles" ? 1 : 0; // solo su propio perfil
+      // Su perfil y su espacio personal (ADR 0004).
+      const expected = table === "profiles" || table === "schools" ? 1 : 0;
       expect(await visible(db.pool, ids.nobody, table), table).toBe(expected);
     }
+    expect(await visible(db.pool, ids.nobody, "schools", `kind = 'personal' and owner_id = '${ids.nobody}'`)).toBe(1);
   });
 
   it("un docente ve solo los cursos asignados y su nómina", async () => {
@@ -135,8 +137,11 @@ describe("lectura según rol, curso y establecimiento", () => {
   });
 
   it("un docente ve su membresía pero no la de otros; administración ve todas", async () => {
-    expect(await visible(db.pool, ids.teacher1, "school_memberships")).toBe(1);
-    expect(await visible(db.pool, ids.admin, "school_memberships")).toBe(4);
+    const inSchool = `school_id = '${ids.school}'`;
+    expect(await visible(db.pool, ids.teacher1, "school_memberships", inSchool)).toBe(1);
+    expect(await visible(db.pool, ids.admin, "school_memberships", inSchool)).toBe(4);
+    // Además, cada cuenta ve la membresía de su espacio personal.
+    expect(await visible(db.pool, ids.teacher1, "school_memberships")).toBe(2);
     expect(await visible(db.pool, ids.teacher1, "profiles")).toBe(1);
   });
 });
@@ -477,9 +482,10 @@ describe("invitaciones", () => {
     await rpc(db.pool, ids.admin, "invite_member", [ids.school, " Nueva.Docente@Ficticio.cl ", "teacher"]);
     const invited = await createUser(db.pool, "nueva.docente@ficticio.cl");
 
-    expect(await visible(db.pool, invited, "schools")).toBe(0);
+    const institutions = "kind = 'institution'";
+    expect(await visible(db.pool, invited, "schools", institutions)).toBe(0);
     expect((await one(rpc<{ claim_invitations: number }>(db.pool, invited, "claim_invitations"))).claim_invitations).toBe(1);
-    expect(await visible(db.pool, invited, "schools")).toBe(1);
+    expect(await visible(db.pool, invited, "schools", institutions)).toBe(1);
     expect(await visible(db.pool, invited, "courses")).toBe(0);
     expect((await one(rpc<{ claim_invitations: number }>(db.pool, ids.nobody, "claim_invitations"))).claim_invitations).toBe(0);
   });

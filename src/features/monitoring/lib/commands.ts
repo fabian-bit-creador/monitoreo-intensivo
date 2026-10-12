@@ -1,3 +1,4 @@
+import type { RoomLayout } from "@/features/courses/lib/room-layouts";
 import { updateRoster, type RosterUpdatePlan } from "@/features/courses/lib/roster-update";
 import type {
   MonitoringState,
@@ -7,11 +8,13 @@ import type {
 import {
   addObservation,
   assignSeatsByNumber,
+  createRoomTemplate,
   createSession,
   importStudents,
   moveStudent,
   setPresence,
   setSessionStatus,
+  updateRoomLayout,
   type AddObservationInput,
   type CreateSessionInput,
 } from "./monitoring-service";
@@ -33,9 +36,12 @@ export type MonitoringCommand =
       row: number | null;
       col: number | null;
     }
-  | { type: "importStudents"; courseName: string; entries: RosterEntry[] }
+  /** `spaceId`: espacio donde se crea el curso (solo en la nube). */
+  | { type: "importStudents"; courseName: string; entries: RosterEntry[]; spaceId?: string }
   | { type: "updateRoster"; courseId: string; entries: RosterEntry[] }
-  | { type: "assignSeatsByNumber"; roomTemplateId: string };
+  | { type: "assignSeatsByNumber"; roomTemplateId: string }
+  | { type: "createRoomTemplate"; courseId: string; name: string; layout: RoomLayout }
+  | { type: "updateRoomLayout"; roomTemplateId: string; name: string; layout: RoomLayout };
 
 type CommandOutputs = {
   createSession: { sessionId: number };
@@ -46,6 +52,8 @@ type CommandOutputs = {
   importStudents: { courseId: string; roomTemplateId: string };
   updateRoster: { plan: RosterUpdatePlan };
   assignSeatsByNumber: { assigned: number };
+  createRoomTemplate: { roomTemplateId: string };
+  updateRoomLayout: { released: number };
 };
 
 export type CommandResult<C extends MonitoringCommand = MonitoringCommand> =
@@ -69,6 +77,10 @@ function run(state: MonitoringState, command: MonitoringCommand): CommandResult 
       return updateRoster(state, command.courseId, command.entries);
     case "assignSeatsByNumber":
       return assignSeatsByNumber(state, command.roomTemplateId);
+    case "createRoomTemplate":
+      return createRoomTemplate(state, command.courseId, command.name, command.layout);
+    case "updateRoomLayout":
+      return updateRoomLayout(state, command.roomTemplateId, command.name, command.layout);
   }
 }
 

@@ -1,10 +1,11 @@
-import type { MonitoringCode, MonitoringState, Student } from "@/types/monitoring";
+import type { MonitoringCode, MonitoringState, RoomLayoutName, Student } from "@/types/monitoring";
 
 /** Filas tal como las devuelve Supabase, ya filtradas por RLS. */
 export type DbRows = {
   userId: string;
   userEmail: string;
-  schools: Array<{ id: string; name: string }>;
+  /** `kind` existe desde ADR 0004; sin él, el espacio es un establecimiento. */
+  schools: Array<{ id: string; name: string; kind?: "institution" | "personal" }>;
   memberships: Array<{ school_id: string; user_id: string; role: "admin" | "coordinator" | "teacher"; active: boolean }>;
   profiles: Array<{ id: string; full_name: string; created_at: string }>;
   courses: Array<{ id: string; school_id: string; name: string; archived_at: string | null; created_at: string }>;
@@ -25,8 +26,15 @@ export type DbRows = {
     column_count: number;
     active: boolean;
     created_at: string;
+    layout?: RoomLayoutName;
   }>;
-  roomSlots: Array<{ template_id: string; seat_row: number; seat_col: number; status: "available" | "unavailable" }>;
+  roomSlots: Array<{
+    template_id: string;
+    seat_row: number;
+    seat_col: number;
+    status: "available" | "unavailable";
+    group_label?: string | null;
+  }>;
   seatAssignments: Array<{ template_id: string; enrollment_id: string; seat_row: number; seat_col: number }>;
   sessions: Array<{
     id: string;
@@ -69,9 +77,16 @@ export type RemoteAccount = {
   userId: string;
   email: string;
   fullName: string;
-  /** Establecimientos donde la cuenta administra: puede crear cursos y nóminas. */
+  /** Espacios donde la cuenta administra: puede crear cursos y nóminas. */
   adminSchoolIds: string[];
-  schools: Array<{ id: string; name: string; role: "admin" | "coordinator" | "teacher" }>;
+  /** Espacio personal de la cuenta (ADR 0004), si existe. */
+  personalSpaceId: string | null;
+  schools: Array<{
+    id: string;
+    name: string;
+    role: "admin" | "coordinator" | "teacher";
+    kind: "institution" | "personal";
+  }>;
 };
 
 /** Traducción entre los números que usa la aplicación y los UUID del servidor. */
@@ -136,7 +151,7 @@ export function mapRowsToState(rows: DbRows): { state: MonitoringState; index: R
     courses: rows.courses
       .filter((course) => !course.archived_at)
       .sort(byText((course) => course.name))
-      .map((course) => ({ id: course.id, name: course.name, createdAt: course.created_at })),
+      .map((course) => ({ id: course.id, name: course.name, createdAt: course.created_at, spaceId: course.school_id })),
     roomTemplates: [...rows.roomTemplates].sort(byText((item) => item.created_at)).map((template) => ({
       id: template.id,
       courseId: template.course_id,
@@ -146,12 +161,14 @@ export function mapRowsToState(rows: DbRows): { state: MonitoringState; index: R
       columnCount: template.column_count,
       active: template.active,
       createdAt: template.created_at,
+      layout: template.layout ?? "classic",
     })),
     roomSlots: rows.roomSlots.map((slot) => ({
       templateId: slot.template_id,
       seatRow: slot.seat_row,
       seatCol: slot.seat_col,
       status: slot.status,
+      ...(slot.group_label ? { groupLabel: slot.group_label } : {}),
     })),
     seatAssignments: rows.seatAssignments.map((seat) => ({
       templateId: seat.template_id,
@@ -210,6 +227,17 @@ export function mapRowsToState(rows: DbRows): { state: MonitoringState; index: R
   };
 
   const roleBySchool = new Map(ownMemberships.map((item) => [item.school_id, item.role]));
+  const schools = rows.schools
+    .filter((school) => roleBySchool.has(school.id))
+    .map((school) => ({
+      id: school.id,
+      name: school.name,
+      role: roleBySchool.get(school.id)!,
+      kind: school.kind ?? "institution",
+    }))
+    // Primero el espacio personal; luego los establecimientos por nombre.
+    .sort((first, second) =>
+      Number(second.kind === "personal") - Number(first.kind === "personal") || first.name.localeCompare(second.name, "es"));
   return {
     state,
     index: { sessionUuid, sessionSeq },
@@ -217,10 +245,9 @@ export function mapRowsToState(rows: DbRows): { state: MonitoringState; index: R
       userId: rows.userId,
       email: rows.userEmail,
       fullName,
-      adminSchoolIds: ownMemberships.filter((item) => item.role === "admin").map((item) => item.school_id),
-      schools: rows.schools
-        .filter((school) => roleBySchool.has(school.id))
-        .map((school) => ({ id: school.id, name: school.name, role: roleBySchool.get(school.id)! })),
+      adminSchoolIds: schools.filter((school) => school.role === "admin").map((school) => school.id),
+      personalSpaceId: schools.find((school) => school.kind === "personal")?.id ?? null,
+      schools,
     },
   };
 }

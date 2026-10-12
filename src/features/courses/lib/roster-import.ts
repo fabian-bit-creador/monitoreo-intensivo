@@ -190,6 +190,39 @@ export function parseRoster(rows: unknown[][], firstRowNumber = 1): RosterParseR
 }
 
 /**
+ * Lista escrita o pegada: una línea por estudiante, con N° opcional al inicio
+ * («12 Ana Rivas», «12. Ana Rivas» o «12⇥Ana Rivas», como al copiar dos
+ * columnas de una planilla). Devuelve filas con el encabezado de la plantilla
+ * para validarlas igual que un Excel.
+ */
+export function rosterRowsFromText(text: string): unknown[][] {
+  const rows = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      const cells = line.split("\t").map((cell) => cell.trim()).filter(Boolean);
+      let number = "";
+      let name = line;
+      if (cells.length > 1) {
+        number = cells.find((cell) => /^\d+$/.test(cell)) ?? "";
+        name = cells.filter((cell) => !/^\d+$/.test(cell)).join(" ");
+      } else {
+        const match = line.match(/^(\d{1,3})\s*[.)\-–:]?\s+(.+)$/);
+        if (match) {
+          number = match[1];
+          name = match[2].trim();
+        }
+      }
+      // Un encabezado copiado junto con la lista se omite.
+      const isHeader = [name, ...cells].some((cell) => NAME_KEYS.includes(normalize(cell)));
+      if (!name || isHeader) return [];
+      return [[number, name]];
+    });
+  return [[ROSTER_NUMBER_HEADER, ROSTER_NAME_HEADER], ...rows];
+}
+
+/**
  * Elige la hoja de la nómina. Si alguna hoja tiene el encabezado de nombres,
  * solo esas hojas son candidatas: así una hoja de instrucciones nunca se lee
  * como nómina. Se prefiere la hoja «Nómina» y luego la que tenga más nombres.

@@ -4,13 +4,17 @@ import { metricsForSession } from "./metrics";
 import {
   addObservation,
   assignSeatsByNumber,
+  createRoomTemplate,
   createSession,
   importStudents,
   moveStudent,
   setPresence,
   setSessionStatus,
+  updateRoomLayout,
   type CreateSessionInput,
 } from "./monitoring-service";
+import { applyCommand } from "./commands";
+import { groupsLayout, labLayout, type RoomLayout } from "@/features/courses/lib/room-layouts";
 import {
   COURSE_ID,
   INACTIVE_TEACHER_ID,
@@ -640,5 +644,86 @@ describe("flujo completo de una clase", () => {
     state = setSessionStatus(state, sessionId, "active").state;
     rec("c", 3, "C");
     expect(metricsForSession(state, state.sessions[0]).counts).toEqual({ I: 0, R: 0, C: 3 });
+  });
+});
+
+describe("salas configurables", () => {
+  it("agrega una sala de trabajo grupal al curso, con sus grupos", () => {
+    const layout = groupsLayout({ groups: 2, groupSize: 4, groupsPerRow: 2 });
+    const { state, roomTemplateId } = createRoomTemplate(buildState(), COURSE_ID, " Trabajo grupal ", layout);
+
+    expect(state.roomTemplates.find((item) => item.id === roomTemplateId)).toMatchObject({
+      courseId: COURSE_ID, name: "Trabajo grupal", rowCount: 2, columnCount: 5, layout: "groups", active: true,
+    });
+    const slots = state.roomSlots.filter((slot) => slot.templateId === roomTemplateId);
+    expect(slots).toHaveLength(8);
+    expect(slots[0]).toEqual({ templateId: roomTemplateId, seatRow: 0, seatCol: 0, status: "available", groupLabel: "Grupo 1" });
+
+    const seated = assignSeatsByNumber(state, roomTemplateId);
+    expect(seated.assigned).toBe(4);
+    expect(seatOf(seated.state, roomTemplateId, "a")).toEqual([0, 0]);
+  });
+
+  it("asignar por N° completa grupo por grupo", () => {
+    const layout = groupsLayout({ groups: 2, groupSize: 4, groupsPerRow: 2 });
+    const { state, roomTemplateId } = createRoomTemplate(buildState(), COURSE_ID, "Grupos", layout);
+    const seated = assignSeatsByNumber(state, roomTemplateId).state;
+    const groupOf = (studentId: string) => {
+      const [row, col] = seatOf(seated, roomTemplateId, studentId)!;
+      return seated.roomSlots.find((slot) => slot.templateId === roomTemplateId && slot.seatRow === row && slot.seatCol === col)?.groupLabel;
+    };
+    // Los 4 estudiantes activos (N° 1 a 4) quedan en el Grupo 1, no repartidos por fila.
+    expect(["a", "b", "c", "d"].map(groupOf)).toEqual(["Grupo 1", "Grupo 1", "Grupo 1", "Grupo 1"]);
+    expect(seatOf(seated, roomTemplateId, "c")).toEqual([1, 0]);
+  });
+
+  it("no repite el id de una sala con el mismo nombre", () => {
+    const layout = groupsLayout({ groups: 1, groupSize: 4, groupsPerRow: 1 });
+    const first = createRoomTemplate(buildState(), COURSE_ID, "Laboratorio", layout);
+    const second = createRoomTemplate(first.state, COURSE_ID, "Laboratorio", layout);
+    expect(second.roomTemplateId).not.toBe(first.roomTemplateId);
+  });
+
+  it("rechaza un curso inexistente, un nombre vacío o una forma inválida", () => {
+    const layout = groupsLayout({ groups: 1, groupSize: 4, groupsPerRow: 1 });
+    const empty: RoomLayout = { kind: "custom", rows: 1, cols: 1, slots: [] };
+    expect(() => createRoomTemplate(buildState(), "no-existe", "Sala", layout)).toThrow("No se encontró el curso.");
+    expect(() => createRoomTemplate(buildState(), COURSE_ID, "  ", layout)).toThrow("Escribe el nombre de la sala.");
+    expect(() => createRoomTemplate(buildState(), COURSE_ID, "Sala", empty)).toThrow("al menos un puesto");
+  });
+
+  it("cambiar la forma conserva los puestos que siguen existiendo y libera los demás", () => {
+    // Sala principal: «a» en (0,0) y «b» en (0,1). La nueva forma no tiene (0,1).
+    const layout: RoomLayout = {
+      kind: "lab", rows: 2, cols: 3,
+      slots: [{ row: 0, col: 0, group: "Mesón 1" }, { row: 1, col: 0, group: "Mesón 1" }, { row: 0, col: 2, group: "Mesón 2" }],
+    };
+    const { state, released } = updateRoomLayout(buildState(), MAIN_TEMPLATE_ID, "Laboratorio", layout);
+
+    expect(released).toBe(1);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "a")).toEqual([0, 0]);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "b")).toBeNull();
+    expect(state.students.find((student) => student.id === "b")).toMatchObject({ seatRow: null, seatCol: null });
+    expect(state.roomTemplates.find((item) => item.id === MAIN_TEMPLATE_ID))
+      .toMatchObject({ name: "Laboratorio", rowCount: 2, columnCount: 3, layout: "lab" });
+    expect(state.roomSlots.filter((slot) => slot.templateId === MAIN_TEMPLATE_ID)).toHaveLength(3);
+    // Las otras salas no cambian.
+    expect(state.roomSlots.filter((slot) => slot.templateId === SECOND_TEMPLATE_ID))
+      .toEqual(buildState().roomSlots.filter((slot) => slot.templateId === SECOND_TEMPLATE_ID));
+  });
+
+  it("los comandos aplican las mismas reglas sin modificar el estado recibido", () => {
+    const base = buildState();
+    const before = structuredClone(base);
+    const created = applyCommand(base, {
+      type: "createRoomTemplate", courseId: COURSE_ID, name: "Lab", layout: labLayout({ benchesPerRow: 1, benchRows: 1, seatsPerSide: 2 }),
+    });
+    const changed = applyCommand(created.state, {
+      type: "updateRoomLayout", roomTemplateId: created.roomTemplateId, name: "Lab 2",
+      layout: { kind: "custom", rows: 1, cols: 1, slots: [{ row: 0, col: 0 }] },
+    });
+    expect(base).toEqual(before);
+    expect(changed.released).toBe(0);
+    expect(changed.state.roomTemplates.find((item) => item.id === created.roomTemplateId)?.name).toBe("Lab 2");
   });
 });

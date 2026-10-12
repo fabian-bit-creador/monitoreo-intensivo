@@ -1,0 +1,80 @@
+name: Migraciones de Supabase
+
+# Se ejecuta solo a mano: Actions → «Migraciones de Supabase» → Run workflow.
+# Requiere los secrets SUPABASE_ACCESS_TOKEN y SUPABASE_DB_PASSWORD y la
+# variable SUPABASE_PROJECT_REF (ver docs/supabase.md). Nunca escriben datos:
+# solo aplican los archivos de supabase/migrations que falten.
+on:
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: "ver: lista lo pendiente sin cambiar nada · aplicar: aplica lo pendiente · marcar-aplicadas: registra versiones aplicadas a mano"
+        required: true
+        default: ver
+        type: choice
+        options:
+          - ver
+          - aplicar
+          - marcar-aplicadas
+      versiones:
+        description: "Solo para marcar-aplicadas: versiones separadas por espacios (por ejemplo 20261011120000)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-migraciones
+  cancel-in-progress: false
+
+jobs:
+  migraciones:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Revisar configuración
+        run: |
+          missing=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
+          [ -n "$SUPABASE_PROJECT_REF" ] || missing="$missing SUPABASE_PROJECT_REF"
+          if [ -n "$missing" ]; then
+            echo "::error::Falta configurar:$missing (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.48.3
+
+      - name: Conectar con el proyecto
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Migraciones aplicadas y pendientes
+        run: supabase migration list --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Lo que se aplicaría
+        if: inputs.accion != 'marcar-aplicadas'
+        run: supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Aplicar
+        if: inputs.accion == 'aplicar'
+        run: supabase db push --yes --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Marcar como aplicadas
+        if: inputs.accion == 'marcar-aplicadas'
+        env:
+          VERSIONES: ${{ inputs.versiones }}
+        run: |
+          if ! echo "$VERSIONES" | grep -Eq '^[0-9]{14}( [0-9]{14})*$'; then
+            echo "::error::Escribe versiones de 14 dígitos separadas por espacios."
+            exit 1
+          fi
+          supabase migration repair --status applied $VERSIONES --password "$SUPABASE_DB_PASSWORD"
+          supabase migration list --password "$SUPABASE_DB_PASSWORD"

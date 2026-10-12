@@ -76,6 +76,7 @@ const readCourse = (row: Row, path: string): Course => ({
   id: text(row.id, `${path}.id`),
   name: text(row.name, `${path}.name`),
   createdAt: text(row.createdAt, `${path}.createdAt`),
+  ...(row.spaceId === undefined ? {} : { spaceId: text(row.spaceId, `${path}.spaceId`) }),
 });
 
 const readRoomTemplate = (row: Row, path: string): RoomTemplate => ({
@@ -87,6 +88,9 @@ const readRoomTemplate = (row: Row, path: string): RoomTemplate => ({
   columnCount: integer(row.columnCount, `${path}.columnCount`, 1, 50),
   active: bool(row.active, `${path}.active`),
   createdAt: text(row.createdAt, `${path}.createdAt`),
+  ...(row.layout === undefined
+    ? {}
+    : { layout: oneOf(row.layout, ["classic", "rows", "lab", "groups", "custom"] as const, `${path}.layout`) }),
 });
 
 const readRoomSlot = (row: Row, path: string): RoomSlot => ({
@@ -94,6 +98,9 @@ const readRoomSlot = (row: Row, path: string): RoomSlot => ({
   seatRow: integer(row.seatRow, `${path}.seatRow`, 0, 49),
   seatCol: integer(row.seatCol, `${path}.seatCol`, 0, 49),
   status: oneOf(row.status, ["available", "unavailable"], `${path}.status`),
+  ...(row.groupLabel === undefined || row.groupLabel === null
+    ? {}
+    : { groupLabel: text(row.groupLabel, `${path}.groupLabel`) }),
 });
 
 const readSeatAssignment = (row: Row, path: string): SeatAssignment => ({

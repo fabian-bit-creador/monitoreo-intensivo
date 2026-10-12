@@ -1,5 +1,7 @@
 "use client";
 
+import type { NewCourseOptions } from "@/features/courses/components/import-course-modal";
+import type { RoomDraft } from "@/features/courses/components/room-designer";
 import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_ROOM_TEMPLATE_ID,
@@ -336,14 +338,57 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     return true;
   }
 
-  async function importCourse(courseName: string, entries: RosterEntry[]) {
-    const result = await execute({ type: "importStudents", courseName, entries });
+  async function importCourse(courseName: string, entries: RosterEntry[], options?: NewCourseOptions) {
+    const result = await execute({ type: "importStudents", courseName, entries, spaceId: options?.spaceId });
     if (!result) return false;
     setCourseId(result.courseId);
     setSelectedTemplateId(result.roomTemplateId);
     setActiveSessionId(null);
-    setToast(`${Math.min(entries.length, 80)} estudiantes importados`);
+    // La sala elegida reemplaza a la habitual con que nace el curso.
+    if (options?.room) {
+      const shaped = await execute({
+        type: "updateRoomLayout",
+        roomTemplateId: result.roomTemplateId,
+        name: options.room.name,
+        layout: options.room.layout,
+      });
+      if (!shaped) {
+        setToast("Curso creado con la sala habitual: no se pudo guardar la sala elegida");
+        return true;
+      }
+    }
+    setToast(`Curso creado con ${Math.min(entries.length, 80)} estudiantes`);
     return true;
+  }
+
+  async function createRoom(draft: RoomDraft) {
+    if (!course) return false;
+    const result = await execute({ type: "createRoomTemplate", courseId: course.id, name: draft.name, layout: draft.layout });
+    if (!result) return false;
+    if (!activeSession) setSelectedTemplateId(result.roomTemplateId);
+    setMovingStudent(null);
+    setToast(`Sala «${draft.name}» creada`);
+    return true;
+  }
+
+  async function updateRoom(draft: RoomDraft) {
+    const result = await execute({
+      type: "updateRoomLayout",
+      roomTemplateId: activeRoomTemplateId,
+      name: draft.name,
+      layout: draft.layout,
+    });
+    if (!result) return false;
+    setMovingStudent(null);
+    setToast(result.released
+      ? `Sala actualizada: ${result.released} ${result.released === 1 ? "estudiante quedó" : "estudiantes quedaron"} sin puesto`
+      : "Sala actualizada");
+    return true;
+  }
+
+  function selectRoomTemplate(roomTemplateId: string) {
+    setSelectedTemplateId(roomTemplateId);
+    setMovingStudent(null);
   }
 
   async function exportExcel() {
@@ -538,6 +583,9 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     listSavedCopies,
     deleteSavedCopy,
     assignSeats,
+    createRoom,
+    updateRoom,
+    selectRoomTemplate,
     importToServer,
     updateProfileName,
   };

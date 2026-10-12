@@ -5,6 +5,8 @@ import {
   List,
   ListOrdered,
   Move,
+  PencilRuler,
+  Plus,
   Search,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -46,6 +48,11 @@ export type MonitorViewProps = {
   movingStudent: Student | null;
   moveTo: (row: number | null, col: number | null) => void;
   onAssignSeats: () => void;
+  /** Salas del curso: con más de una y sin clase en curso, se puede elegir cuál ver. */
+  roomTemplates: RoomTemplate[];
+  onSelectRoom: (roomTemplateId: string) => void;
+  onNewRoom: () => void;
+  onEditRoom: () => void;
   onStart: () => void;
   onClose: () => void;
   busy: boolean;
@@ -75,12 +82,87 @@ export function MonitorView(props: MonitorViewProps) {
     movingStudent,
     moveTo,
     onAssignSeats,
+    roomTemplates,
+    onSelectRoom,
+    onNewRoom,
+    onEditRoom,
     onStart,
     onClose,
     busy,
   } = props;
   const seated = new Set(seatAssignments.map((assignment) => assignment.studentId));
   const unseated = allStudents.filter((student) => student.active && !seated.has(student.id)).length;
+
+  const roomTools = (
+    <>
+      {reorganizing ? (
+        <div className="move-banner">
+          <Move size={18} />
+          <p>
+            {movingStudent
+              ? `Ahora toca el puesto de destino para ${movingStudent.displayName}`
+              : "Toca un estudiante y luego su puesto de destino. Si está ocupado, intercambiarán lugares."}
+          </p>
+          {movingStudent ? <button onClick={() => moveTo(null, null)}>Dejar sin puesto</button> : null}
+          {!movingStudent && unseated ? (
+            <button onClick={onAssignSeats} disabled={busy}>
+              <ListOrdered size={16} /> Asignar por N° ({unseated} sin puesto)
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {reorganizing && !movingStudent ? (
+        <div className="room-bar">
+          {roomTemplates.length > 1 ? (
+            <label>
+              <span>Sala</span>
+              <select
+                value={roomTemplate?.id ?? ""}
+                onChange={(event) => onSelectRoom(event.target.value)}
+                disabled={Boolean(session) || busy}
+                title={session ? "La clase en curso usa esta sala" : undefined}
+              >
+                {roomTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>{template.name}</option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p><strong>{roomTemplate?.name ?? "Sala"}</strong></p>
+          )}
+          <button onClick={onEditRoom} disabled={busy || !roomTemplate}>
+            <PencilRuler size={16} /> Cambiar forma
+          </button>
+          <button onClick={onNewRoom} disabled={busy}>
+            <Plus size={16} /> Nueva sala
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+  const classroomMap = (
+    <ClassroomMap
+      students={allStudents}
+      roomTemplate={roomTemplate}
+      roomSlots={roomSlots}
+      seatAssignments={seatAssignments}
+      latest={latest}
+      presenceMap={metrics?.presenceMap ?? new Map()}
+      onSelect={selectSeat}
+      movingStudent={movingStudent}
+      onEmpty={moveTo}
+      reorganizing={reorganizing}
+    />
+  );
+  const moveButton = (label: string) => (
+    <button
+      className={`move-button ${reorganizing ? "active" : ""}`}
+      onClick={() => setReorganizing(!reorganizing)}
+    >
+      <Move size={17} /> {reorganizing ? "Terminar" : label}
+    </button>
+  );
 
   if (!session) {
     return (
@@ -91,6 +173,18 @@ export function MonitorView(props: MonitorViewProps) {
           <p>La distribución de la sala ya está preparada.</p>
         </div>
         <EmptyState onStart={onStart} courseName={course?.name} />
+        {/* Antes de la clase también se puede ver y ordenar la sala. */}
+        <section className="room-prep" aria-label="Sala del curso">
+          <div className="room-prep-heading">
+            <div>
+              <p className="eyebrow">Sala del curso</p>
+              <h2>{roomTemplate?.name ?? "Sala"}</h2>
+            </div>
+            {moveButton("Ordenar puestos")}
+          </div>
+          {roomTools}
+          {classroomMap}
+        </section>
       </>
     );
   }
@@ -178,45 +272,12 @@ export function MonitorView(props: MonitorViewProps) {
             <List size={18} />
           </button>
         </div>
-        <button
-          className={`move-button ${reorganizing ? "active" : ""}`}
-          onClick={() => setReorganizing(!reorganizing)}
-        >
-          <Move size={17} /> {reorganizing ? "Terminar" : "Mover puestos"}
-        </button>
+        {moveButton("Mover puestos")}
       </section>
 
-      {reorganizing ? (
-        <div className="move-banner">
-          <Move size={18} />
-          <p>
-            {movingStudent
-              ? `Ahora toca el puesto de destino para ${movingStudent.displayName}`
-              : "Toca un estudiante y luego su puesto de destino. Si está ocupado, intercambiarán lugares."}
-          </p>
-          {movingStudent ? <button onClick={() => moveTo(null, null)}>Dejar sin puesto</button> : null}
-          {!movingStudent && unseated ? (
-            <button onClick={onAssignSeats} disabled={busy}>
-              <ListOrdered size={16} /> Asignar por N° ({unseated} sin puesto)
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+      {roomTools}
 
-      {layoutMode === "map" && !search ? (
-        <ClassroomMap
-          students={allStudents}
-          roomTemplate={roomTemplate}
-          roomSlots={roomSlots}
-          seatAssignments={seatAssignments}
-          latest={latest}
-          presenceMap={metrics?.presenceMap ?? new Map()}
-          onSelect={selectSeat}
-          movingStudent={movingStudent}
-          onEmpty={moveTo}
-          reorganizing={reorganizing}
-        />
-      ) : (
+      {layoutMode === "map" && !search ? classroomMap : (
         <StudentList
           students={students}
           latest={latest}

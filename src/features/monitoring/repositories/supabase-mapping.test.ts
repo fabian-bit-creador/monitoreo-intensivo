@@ -90,11 +90,45 @@ describe("mapRowsToState", () => {
     }]);
   });
 
+  it("el espacio personal va primero y cada curso sabe a qué espacio pertenece", () => {
+    const { account, state } = mapRowsToState(rows({
+      schools: [
+        { id: "s1", name: "Colegio Ficticio", kind: "institution" },
+        { id: "p1", name: "Mi espacio", kind: "personal" },
+      ],
+      memberships: [
+        { school_id: "s1", user_id: ME, role: "teacher", active: true },
+        { school_id: "p1", user_id: ME, role: "admin", active: true },
+      ],
+    }));
+
+    expect(account.schools.map((school) => [school.id, school.kind, school.role]))
+      .toEqual([["p1", "personal", "admin"], ["s1", "institution", "teacher"]]);
+    expect(account.personalSpaceId).toBe("p1");
+    expect(account.adminSchoolIds).toEqual(["p1"]);
+    expect(state.courses[0].spaceId).toBe("s1");
+  });
+
+  it("lee la forma de la sala y los grupos; sin la migración, la sala es clásica", () => {
+    const { state } = mapRowsToState(rows({
+      roomSlots: [
+        { template_id: "t1", seat_row: 0, seat_col: 0, status: "available", group_label: "Grupo 1" },
+        { template_id: "t1", seat_row: 0, seat_col: 1, status: "available", group_label: null },
+      ],
+    }));
+    expect(state.roomTemplates.map((template) => template.layout)).toEqual(["classic", "classic"]);
+    expect(state.roomSlots).toEqual([
+      { templateId: "t1", seatRow: 0, seatCol: 0, status: "available", groupLabel: "Grupo 1" },
+      { templateId: "t1", seatRow: 0, seatCol: 1, status: "available" },
+    ]);
+  });
+
   it("sin membresías la cuenta no tiene establecimientos", () => {
     const { account, state } = mapRowsToState(rows({ memberships: [], schools: [] }));
 
     expect(account.schools).toEqual([]);
     expect(account.adminSchoolIds).toEqual([]);
+    expect(account.personalSpaceId).toBeNull();
     expect(state.teachers[0].role).toBe("teacher");
   });
 });

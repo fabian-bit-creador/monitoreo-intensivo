@@ -4,10 +4,10 @@ import {
   Cloud,
   CloudOff,
   Database,
+  FolderPlus,
   LoaderCircle,
   Plus,
   RefreshCcw,
-  Upload,
 } from "lucide-react";
 import { APP_NAME, APP_SUBTITLE } from "@/config/app";
 import type { PersistenceStatus } from "@/features/monitoring/hooks/use-monitoring-store";
@@ -82,9 +82,14 @@ export function Topbar({
           <RefreshCcw size={18} />
         </button>
         {canImport ? (
-          <button className="secondary-button desktop-only" onClick={onImport}>
-            <Upload size={17} /> Importar curso
-          </button>
+          <>
+            <button className="secondary-button desktop-only" onClick={onImport}>
+              <FolderPlus size={17} /> Nuevo curso
+            </button>
+            <button className="icon-button mobile-only" aria-label="Nuevo curso" onClick={onImport}>
+              <FolderPlus size={18} />
+            </button>
+          </>
         ) : null}
         <button
           className="primary-button"

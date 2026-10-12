@@ -14,7 +14,12 @@ export type Course = {
   id: string;
   name: string;
   createdAt: string;
+  /** Espacio (personal o establecimiento) al que pertenece. Solo en la nube. */
+  spaceId?: string;
 };
+
+/** Forma de una sala. `classic` son las salas anteriores (ADR 0004). */
+export type RoomLayoutName = "classic" | "rows" | "lab" | "groups" | "custom";
 
 export type RoomTemplate = {
   id: string;
@@ -25,6 +30,7 @@ export type RoomTemplate = {
   columnCount: number;
   active: boolean;
   createdAt: string;
+  layout?: RoomLayoutName;
 };
 
 export type RoomSlot = {
@@ -32,6 +38,8 @@ export type RoomSlot = {
   seatRow: number;
   seatCol: number;
   status: "available" | "unavailable";
+  /** Mesón o grupo al que pertenece el puesto. */
+  groupLabel?: string | null;
 };
 
 export type SeatAssignment = {

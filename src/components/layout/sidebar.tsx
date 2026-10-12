@@ -15,6 +15,7 @@ type SidebarProps = {
   courseId: string;
   readyCourseIds: Set<string>;
   onViewChange: (view: AppView) => void;
+  spaces?: Array<{ id: string; name: string }>;
   onTeacherChange: (teacherId: string) => void;
   onCourseChange: (courseId: string) => void;
 };
@@ -29,6 +30,7 @@ export function Sidebar(props: SidebarProps) {
     onViewChange,
     onTeacherChange,
     onCourseChange,
+    spaces,
   } = props;
 
   return (
@@ -40,6 +42,7 @@ export function Sidebar(props: SidebarProps) {
         readyCourseIds={readyCourseIds}
         onTeacherChange={onTeacherChange}
         onCourseChange={onCourseChange}
+        spaces={spaces}
       />
       <nav className="sidebar-nav" aria-label="Navegación principal">
         <button className={view === "monitor" ? "active" : ""} onClick={() => onViewChange("monitor")}>

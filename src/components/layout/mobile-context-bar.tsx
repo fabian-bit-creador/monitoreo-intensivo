@@ -8,6 +8,7 @@ type MobileContextBarProps = {
   readyCourseIds: Set<string>;
   onTeacherChange: (teacherId: string) => void;
   onCourseChange: (courseId: string) => void;
+  spaces?: Array<{ id: string; name: string }>;
 };
 
 export function MobileContextBar(props: MobileContextBarProps) {

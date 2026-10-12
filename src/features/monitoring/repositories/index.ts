@@ -46,6 +46,12 @@ export function createMonitoringRepository() {
   return new LocalStorageMonitoringRepository(browserOptions());
 }
 
+/** Datos del modo sin cuenta en este navegador. Solo lectura. */
+export function inspectBrowserData() {
+  return new LocalStorageMonitoringRepository(browserOptions()).inspect();
+}
+
+export type { LocalDataSnapshot } from "./local-storage-monitoring-repository";
 export type {
   BlockedReason,
   LoadResult,
@@ -54,6 +60,6 @@ export type {
   SavedCopy,
   SavedCopyKind,
 } from "./monitoring-repository";
-export { StorageWriteError, SyncError } from "./monitoring-repository";
+export { RejectedError, StaleViewError, StorageWriteError, SyncError } from "./monitoring-repository";
 export { SupabaseMonitoringRepository } from "./supabase-monitoring-repository";
 export type { RemoteAccount } from "./supabase-mapping";

@@ -8,10 +8,11 @@ import {
 import { DEMO_COURSE_ID } from "@/config/app";
 import { CourseStatusList } from "@/features/courses/components/course-status-list";
 import { TeacherList } from "@/features/teachers/components/teacher-list";
-import type { RemoteAccount } from "@/features/monitoring/repositories";
+import type { LocalDataSnapshot, RemoteAccount } from "@/features/monitoring/repositories";
 import type { MonitoringState } from "@/types/monitoring";
 import { AccountCard } from "./account-card";
 import { BackupCard, type BackupCardProps } from "./backup-card";
+import { LocalDataNotice } from "./local-data-notice";
 import { ServerImportCard } from "./server-import-card";
 
 /** Solo en modo servidor: cuenta autenticada y operaciones de administración. */
@@ -32,6 +33,8 @@ type SettingsViewProps = {
   onSelectTeacher: (teacherId: string) => void;
   backup: Omit<BackupCardProps, "data">;
   remote: RemoteSettings | null;
+  /** Con cuentas: datos que el modo sin cuenta dejó en este navegador. */
+  localData?: LocalDataSnapshot | null;
 };
 
 export function SettingsView({
@@ -40,6 +43,7 @@ export function SettingsView({
   onSelectTeacher,
   backup,
   remote,
+  localData = null,
 }: SettingsViewProps) {
   const operationalTemplates = data.roomTemplates.filter(
     (template) => template.courseId === DEMO_COURSE_ID,
@@ -107,6 +111,8 @@ export function SettingsView({
             </ul>
           </article>
           )}
+
+          {remote && localData ? <LocalDataNotice data={localData} /> : null}
 
           <BackupCard data={data} {...backup} />
 

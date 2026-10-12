@@ -141,16 +141,19 @@ values ('<id del establecimiento>', '<id del curso>', '<id del usuario>');
 
 Sin estas variables, la aplicación funciona en modo local, como antes.
 
-Hoy están definidas solo para **Preview** y **Development**: las vistas previas de cada rama usan
-el proyecto piloto y la producción sigue en modo local. Activar Supabase en producción requiere
-autorización explícita y un nuevo despliegue, porque Next.js incorpora estas variables al
-compilar.
+`NEXT_PUBLIC_DATA_MODE=supabase` está solo en **Preview** y **Development**: las vistas previas
+de cada rama usan el proyecto piloto. Producción tiene la URL y la clave publicable (las agregó la
+integración de Supabase con Vercel), pero sin `NEXT_PUBLIC_DATA_MODE` sigue en modo local. Activar
+Supabase en producción requiere autorización explícita y un nuevo despliegue, porque Next.js
+incorpora estas variables al compilar: ver [activacion-produccion.md](activacion-produccion.md).
 
-## Subir los datos del Site anterior
+## Datos guardados en el navegador
 
-1. Descarga el JSON del Site desde tu navegador y guárdalo en un lugar privado.
-2. Ingresa con una cuenta de administración → Configuración → **Subir datos al servidor**.
-3. La vista previa muestra lo que contiene. Las clases quedan a nombre de la cuenta que importa.
-4. Se puede repetir sin duplicar: cada fila guarda su identificador anterior en `legacy_id`.
+Con cuentas, los datos del modo sin cuenta **no se borran ni se suben**. Quien los tenga ve un
+aviso en el ingreso y en Configuración con «Descargar datos de este navegador» (un respaldo que se
+puede restaurar en modo local). La demostración sin cambios no genera aviso.
 
-Los datos van directo del navegador a Supabase: no pasan por el repositorio ni por la CI.
+## Fuera del alcance actual: historial del Site anterior
+
+No se importa ni se extrae el historial del Site anterior. La operación `import_legacy_state` y la
+tarjeta «Subir datos al servidor» siguen en el código, pero no forman parte de la activación.

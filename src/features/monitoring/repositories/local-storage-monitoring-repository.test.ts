@@ -403,3 +403,56 @@ describe("respaldo y recuperación", () => {
     expect(await browser.openTab().listSavedCopies()).toEqual([]);
   });
 });
+
+describe("datos de este navegador al usar cuentas", () => {
+  /** Lo que debe seguir intacto después de revisar. */
+  function contents(browser: FakeBrowser) {
+    return new Map(browser.items);
+  }
+
+  it("la demostración sin cambios no cuenta como datos propios", async () => {
+    const browser = new FakeBrowser();
+    await browser.openTab().load();
+
+    expect(browser.openTab().inspect()).toBeNull();
+  });
+
+  it("describe los datos propios sin modificarlos", async () => {
+    const browser = new FakeBrowser();
+    const tab = browser.openTab();
+    const state = readyState(await tab.load());
+    await tab.execute({ type: "setSessionStatus", sessionId: state.sessions[0].id, status: "closed" });
+    const before = contents(browser);
+
+    const snapshot = browser.openTab().inspect();
+
+    expect(snapshot).toMatchObject({ raw: browser.stored, savedAt: NOW.toISOString(), copies: [] });
+    expect(snapshot?.state?.sessions[0].status).toBe("closed");
+    expect(contents(browser)).toEqual(before);
+  });
+
+  it("ofrece también datos de otra versión o ilegibles, tal como están", () => {
+    const browser = new FakeBrowser();
+    browser.items.set(LOCAL_STORAGE_KEY, "{dañado");
+
+    expect(browser.openTab().inspect()).toEqual({ raw: "{dañado", savedAt: null, state: null, copies: [] });
+    expect(browser.stored).toBe("{dañado");
+  });
+
+  it("las copias guardadas cuentan aunque los datos sean la demostración", async () => {
+    const browser = new FakeBrowser();
+    await browser.openTab().load();
+    browser.items.set(SAVED_COPY_KEYS.restore, JSON.stringify({ savedAt: NOW.toISOString(), raw: "{anterior}" }));
+
+    expect(browser.openTab().inspect()?.copies).toEqual([
+      { kind: "restore", savedAt: NOW.toISOString(), raw: "{anterior}" },
+    ]);
+  });
+
+  it("sin nada guardado no hay datos que ofrecer y no escribe la demostración", () => {
+    const browser = new FakeBrowser();
+
+    expect(browser.openTab().inspect()).toBeNull();
+    expect(browser.items.size).toBe(0);
+  });
+});

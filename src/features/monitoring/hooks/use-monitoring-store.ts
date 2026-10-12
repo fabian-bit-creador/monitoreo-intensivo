@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  StaleViewError,
   StorageWriteError,
   SyncError,
   type BlockedReason,
@@ -42,6 +43,8 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
     state: "saved",
     savedAt: null,
   });
+  // Aviso de «guardado, pero sin actualizar la pantalla»: se retira al releer.
+  const staleNotice = useRef("");
 
   const showLoaded = useCallback((result: LoadResult) => {
     if (result.status === "blocked") {
@@ -86,10 +89,21 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
     setPersistence((current) => (
       current.state === "saving" ? current : { ...current, state: "saved", savedAt: result.savedAt }
     ));
+    if (staleNotice.current) {
+      const notice = staleNotice.current;
+      staleNotice.current = "";
+      setError((current) => (current === notice ? "" : current));
+    }
   }), [repository]);
 
   const fail = useCallback((caught: unknown, fallback: string) => {
     setError(caught instanceof Error ? caught.message : fallback);
+    // El servidor confirmó: no es una falla de guardado, solo falta mostrarlo.
+    if (caught instanceof StaleViewError) {
+      staleNotice.current = caught.message;
+      setPersistence((current) => ({ ...current, state: "saved", savedAt: new Date().toISOString() }));
+      return;
+    }
     // Una regla rechazada no es una falla de guardado: lo confirmado sigue igual.
     const failedToPersist = caught instanceof StorageWriteError || caught instanceof SyncError;
     setPersistence((current) => ({

@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, ReactNode, useState } from "react";
 import { AlertTriangle, LoaderCircle, LogIn } from "lucide-react";
 import { BrandLockup } from "@/components/layout/brand";
 
@@ -8,6 +8,8 @@ type LoginScreenProps = {
   /** Solo si Google está activo en Supabase. Devuelve un error, o null si redirige. */
   onGoogle?: () => Promise<string | null>;
   initialError?: string;
+  /** Aviso bajo el formulario, por ejemplo, datos guardados sin cuenta. */
+  notice?: ReactNode;
 };
 
 /** Logo de Google para el botón de ingreso, según su guía de marca. */
@@ -22,7 +24,7 @@ function GoogleMark() {
   );
 }
 
-export function LoginScreen({ onSignIn, onGoogle, initialError = "" }: LoginScreenProps) {
+export function LoginScreen({ onSignIn, onGoogle, initialError = "", notice }: LoginScreenProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(initialError);
@@ -101,6 +103,7 @@ export function LoginScreen({ onSignIn, onGoogle, initialError = "" }: LoginScre
         </button>
         <p className="login-note">¿Olvidaste tu contraseña? Pide a administración que la restablezca.</p>
       </form>
+      {notice}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { AlertTriangle, Download, FileCheck2, LoaderCircle, Upload } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { APP_NAME } from "@/config/app";
 import type {
   BackupOrigin,
   BackupSummary,
@@ -19,7 +20,7 @@ type RestoreBackupModalProps = {
 };
 
 const ORIGIN_LABELS: Record<BackupOrigin, string> = {
-  backup: "Respaldo de Monitoreo PI",
+  backup: `Respaldo de ${APP_NAME}`,
   storage: "Copia del almacenamiento del navegador",
   "legacy-site": "Datos exportados del Site anterior",
 };

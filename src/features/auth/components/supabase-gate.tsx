@@ -1,8 +1,10 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { Activity, LoaderCircle } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
+import { BrandMark } from "@/components/layout/brand";
+import { APP_NAME } from "@/config/app";
 import { enabledAuthProviders, getSupabaseClient } from "@/lib/supabase";
 import { LoginScreen } from "./login-screen";
 
@@ -67,7 +69,7 @@ export function SupabaseGate({ children }: { children: (session: AuthSession) =>
   if (session === undefined) {
     return (
       <div className="loading-screen">
-        <div className="brand-mark"><Activity size={26} /></div>
+        <BrandMark label={APP_NAME} />
         <LoaderCircle className="spin" size={24} />
         <p>Verificando tu sesión…</p>
       </div>

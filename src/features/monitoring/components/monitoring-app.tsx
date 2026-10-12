@@ -2,18 +2,19 @@
 
 import { useState } from "react";
 import {
-  Activity,
   AlertTriangle,
   Check,
   LoaderCircle,
   RefreshCcw,
   X,
 } from "lucide-react";
+import { BrandMark } from "@/components/layout/brand";
 import { MobileContextBar } from "@/components/layout/mobile-context-bar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { PendingCourseState } from "@/components/ui/empty-state";
+import { APP_NAME } from "@/config/app";
 import { NoAccessScreen } from "@/features/auth/components/no-access-screen";
 import { SupabaseGate, type AuthSession } from "@/features/auth/components/supabase-gate";
 import { ImportCourseModal } from "@/features/courses/components/import-course-modal";
@@ -162,7 +163,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
   if (!data && !error) {
     return (
       <div className="loading-screen">
-        <div className="brand-mark"><Activity size={26} /></div>
+        <BrandMark label={APP_NAME} />
         <LoaderCircle className="spin" size={24} />
         <p>Preparando el monitoreo…</p>
       </div>
@@ -177,7 +178,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     return (
       <div className="loading-screen error-screen">
         <AlertTriangle size={30} />
-        <h1>No pudimos abrir Monitoreo PI</h1>
+        <h1>No pudimos abrir {APP_NAME}</h1>
         <p>{error}</p>
         <button className="primary-button" onClick={() => void reload()}>
           <RefreshCcw size={18} /> Reintentar

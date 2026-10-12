@@ -72,8 +72,8 @@ describe("createBackup y parseBackupText", () => {
 
   it.each([
     ["no es JSON", "{", "El archivo no es un JSON válido."],
-    ["es una lista", "[]", "El archivo no parece un respaldo de Monitoreo PI."],
-    ["es otro tipo de archivo", JSON.stringify({ nombre: "otro" }), "El archivo no parece un respaldo de Monitoreo PI."],
+    ["es una lista", "[]", "El archivo no parece un respaldo de Monitoreo Intensivo."],
+    ["es otro tipo de archivo", JSON.stringify({ nombre: "otro" }), "El archivo no parece un respaldo de Monitoreo Intensivo."],
     [
       "respaldo de una versión más nueva",
       JSON.stringify({ ...createBackup(sampleState()), schemaVersion: STORAGE_SCHEMA_VERSION + 1 }),

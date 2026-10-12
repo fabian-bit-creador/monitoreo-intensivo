@@ -1,7 +1,7 @@
 import { ChangeEvent, useRef, useState } from "react";
 import { AlertTriangle, CloudUpload, FileCheck2, LoaderCircle, Upload } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
-import { DEFAULT_TEACHER_ID } from "@/config/app";
+import { APP_NAME, DEFAULT_TEACHER_ID } from "@/config/app";
 import { parseBackupText, type ParsedBackup } from "@/features/monitoring/lib/backup";
 import type { RemoteAccount } from "@/features/monitoring/repositories";
 import type { MonitoringState } from "@/types/monitoring";
@@ -107,7 +107,7 @@ export function ServerImportCard({ account, busy, error, onImport }: ServerImpor
           ) : (
             <div className="form-stack">
               <div className="restore-summary">
-                <p className="eyebrow">{parsed.origin === "legacy-site" ? "Datos exportados del Site anterior" : "Respaldo de Monitoreo PI"}</p>
+                <p className="eyebrow">{parsed.origin === "legacy-site" ? "Datos exportados del Site anterior" : `Respaldo de ${APP_NAME}`}</p>
                 <strong><FileCheck2 size={17} /> {preview.fileName}</strong>
                 <ul className="settings-list">
                   <li>{parsed.summary.courses} cursos y {parsed.summary.students} estudiantes</li>

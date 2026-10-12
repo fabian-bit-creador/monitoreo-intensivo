@@ -46,6 +46,12 @@ export function createMonitoringRepository() {
   return new LocalStorageMonitoringRepository(browserOptions());
 }
 
+/** Datos del modo sin cuenta en este navegador. Solo lectura. */
+export function inspectBrowserData() {
+  return new LocalStorageMonitoringRepository(browserOptions()).inspect();
+}
+
+export type { LocalDataSnapshot } from "./local-storage-monitoring-repository";
 export type {
   BlockedReason,
   LoadResult,

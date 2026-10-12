@@ -22,6 +22,17 @@ import {
 
 export type StorageLike = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
+/**
+ * Lo que el modo sin cuenta dejó en este navegador. `state` es null si lo
+ * guardó otra versión o no se puede leer; `raw` permite descargarlo intacto.
+ */
+export type LocalDataSnapshot = {
+  raw: string;
+  savedAt: string | null;
+  state: MonitoringState | null;
+  copies: SavedCopy[];
+};
+
 export type LockRunner = <T>(name: string, task: () => T) => Promise<T>;
 
 export type LocalRepositoryOptions = {
@@ -43,7 +54,7 @@ type StorageEnvelope = {
 
 type StoredRead =
   | { kind: "empty" }
-  | { kind: "ok"; revision: number; savedAt: string | null; state: MonitoringState }
+  | { kind: "ok"; raw: string; revision: number; savedAt: string | null; state: MonitoringState }
   | { kind: "newer"; raw: string }
   | { kind: "unreadable"; raw: string };
 
@@ -184,7 +195,34 @@ implements MonitoringRepository, LocalBackupStore {
     });
   }
 
+  /**
+   * Solo lee: describe los datos de este navegador para ofrecer un respaldo
+   * cuando la aplicación usa cuentas. Devuelve null si no hay nada propio: la
+   * demostración que se guarda al abrir por primera vez (revisión 1) no cuenta.
+   */
+  inspect(): LocalDataSnapshot | null {
+    if (!this.options.storage) return null;
+    let read: StoredRead;
+    let copies: SavedCopy[];
+    try {
+      read = this.read();
+      copies = this.readSavedCopies();
+    } catch {
+      return null;
+    }
+    if (read.kind === "empty") return null;
+    if (read.kind === "ok") {
+      if (read.revision === 1 && !copies.length) return null;
+      return { raw: read.raw, savedAt: read.savedAt, state: read.state, copies };
+    }
+    return { raw: read.raw, savedAt: null, state: null, copies };
+  }
+
   async listSavedCopies(): Promise<SavedCopy[]> {
+    return this.readSavedCopies();
+  }
+
+  private readSavedCopies(): SavedCopy[] {
     const storage = this.options.storage;
     if (!storage) return [];
     return (Object.keys(SAVED_COPY_KEYS) as SavedCopyKind[]).flatMap((kind) => {
@@ -223,6 +261,7 @@ implements MonitoringRepository, LocalBackupStore {
     if (!result.ok) return { kind: "unreadable", raw };
     return {
       kind: "ok",
+      raw,
       revision: Number.isInteger(parsed.revision) ? (parsed.revision as number) : 0,
       savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : null,
       state: result.state,

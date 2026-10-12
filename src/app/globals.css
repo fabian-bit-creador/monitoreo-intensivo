@@ -518,6 +518,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .login-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
 .login-card .login-note { font-size: 11px; }
 .login-card .google-button { gap: 10px; }
+/* Datos guardados sin cuenta: se avisan y se descargan, nunca se borran ni se suben. */
+.local-data-notice p { margin: 0 0 8px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.local-data-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.local-data-notice.compact { width: min(410px, 100%); text-align: left; }
 .login-divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
 .login-divider::before, .login-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .account-form { margin-top: 16px; }

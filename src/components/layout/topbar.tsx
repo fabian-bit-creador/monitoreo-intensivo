@@ -1,7 +1,10 @@
 import {
   Activity,
   AlertTriangle,
+  Cloud,
+  CloudOff,
   Database,
+  LoaderCircle,
   Plus,
   RefreshCcw,
   Upload,
@@ -14,14 +17,46 @@ type TopbarProps = {
   onNewSession: () => void;
   onRefresh: () => void;
   courseReady: boolean;
+  canImport: boolean;
   persistence: PersistenceStatus;
 };
 
-function savedTitle(savedAt: string | null) {
-  if (!savedAt) return "Datos guardados en este navegador";
+function savedTitle(persistence: PersistenceStatus) {
+  const place = persistence.mode === "remote" ? "Confirmado por el servidor" : "Guardado en este navegador";
+  if (!persistence.savedAt) return place;
   const time = new Intl.DateTimeFormat("es-CL", { hour: "2-digit", minute: "2-digit" })
-    .format(new Date(savedAt));
-  return `Guardado en este navegador a las ${time}`;
+    .format(new Date(persistence.savedAt));
+  return `${place} a las ${time}`;
+}
+
+/** Nunca dice «Sincronizado» antes de la confirmación del servidor (ADR 0002). */
+function PersistenceBadge({ persistence }: { persistence: PersistenceStatus }) {
+  const remote = persistence.mode === "remote";
+  if (persistence.state === "saving") {
+    return (
+      <span className="connectivity offline" role="status" title="Esperando la confirmación del servidor">
+        <LoaderCircle className="spin" size={14} /> Guardando…
+      </span>
+    );
+  }
+  if (persistence.state === "error") {
+    return (
+      <span
+        className="connectivity error"
+        role="status"
+        title={remote ? "El último cambio no llegó al servidor" : "El último cambio no se pudo guardar en este navegador"}
+      >
+        {remote ? <CloudOff size={14} /> : <AlertTriangle size={14} />}
+        {remote ? " Sin sincronizar" : " Sin guardar"}
+      </span>
+    );
+  }
+  return (
+    <span className="connectivity online" role="status" title={savedTitle(persistence)}>
+      {remote ? <Cloud size={14} /> : <Database size={14} />}
+      {remote ? " Sincronizado" : " Guardado local"}
+    </span>
+  );
 }
 
 export function Topbar({
@@ -29,6 +64,7 @@ export function Topbar({
   onNewSession,
   onRefresh,
   courseReady,
+  canImport,
   persistence,
 }: TopbarProps) {
   return (
@@ -41,25 +77,15 @@ export function Topbar({
         </div>
       </div>
       <div className="topbar-actions">
-        {persistence.state === "error" ? (
-          <span
-            className="connectivity error"
-            role="status"
-            title="El último cambio no se pudo guardar en este navegador"
-          >
-            <AlertTriangle size={14} /> Sin guardar
-          </span>
-        ) : (
-          <span className="connectivity online" role="status" title={savedTitle(persistence.savedAt)}>
-            <Database size={14} /> Guardado local
-          </span>
-        )}
+        <PersistenceBadge persistence={persistence} />
         <button className="icon-button mobile-only" aria-label="Actualizar" onClick={onRefresh}>
           <RefreshCcw size={18} />
         </button>
-        <button className="secondary-button desktop-only" onClick={onImport}>
-          <Upload size={17} /> Importar curso
-        </button>
+        {canImport ? (
+          <button className="secondary-button desktop-only" onClick={onImport}>
+            <Upload size={17} /> Importar curso
+          </button>
+        ) : null}
         <button
           className="primary-button"
           onClick={onNewSession}

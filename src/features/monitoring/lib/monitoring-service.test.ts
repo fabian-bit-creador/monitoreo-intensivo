@@ -3,6 +3,7 @@ import type { MonitoringState } from "@/types/monitoring";
 import { metricsForSession } from "./metrics";
 import {
   addObservation,
+  assignSeatsByNumber,
   createSession,
   importStudents,
   moveStudent,
@@ -419,6 +420,48 @@ describe("moveStudent", () => {
     moveStudent(base, "a", MAIN_TEMPLATE_ID, 0, 1);
 
     expect(base).toEqual(before);
+  });
+});
+
+describe("assignSeatsByNumber", () => {
+  it("ubica a quienes no tienen puesto en los libres, por N° y en orden de lectura", () => {
+    // Sala principal: «a» en (0,0), «b» en (0,1); libres (0,2), (1,0) y (1,1); (1,2) no disponible.
+    const { state, assigned } = assignSeatsByNumber(buildState(), MAIN_TEMPLATE_ID);
+
+    expect(assigned).toBe(2);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "c")).toEqual([0, 2]);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "d")).toEqual([1, 0]);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "a")).toEqual([0, 0]);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "inactivo")).toBeNull();
+    expect(state.students.find((student) => student.id === "c")).toMatchObject({ seatRow: 0, seatCol: 2 });
+  });
+
+  it("si faltan puestos, ubica a los primeros por N° y deja al resto sin puesto", () => {
+    const base = buildState();
+    base.roomSlots = base.roomSlots.filter((slot) => !(slot.templateId === MAIN_TEMPLATE_ID && slot.seatRow === 1));
+
+    const { state, assigned } = assignSeatsByNumber(base, MAIN_TEMPLATE_ID);
+
+    expect(assigned).toBe(1);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "c")).toEqual([0, 2]);
+    expect(seatOf(state, MAIN_TEMPLATE_ID, "d")).toBeNull();
+  });
+
+  it("repetirla no mueve a nadie", () => {
+    const once = assignSeatsByNumber(buildState(), MAIN_TEMPLATE_ID).state;
+    const twice = assignSeatsByNumber(once, MAIN_TEMPLATE_ID);
+
+    expect(twice.assigned).toBe(0);
+    expect(twice.state.seatAssignments).toEqual(once.seatAssignments);
+  });
+
+  it("rechaza una plantilla inexistente y no modifica el estado recibido", () => {
+    const state = buildState();
+    const before = structuredClone(state);
+
+    expect(() => assignSeatsByNumber(state, "no-existe")).toThrow("Plantilla no válida.");
+    assignSeatsByNumber(state, MAIN_TEMPLATE_ID);
+    expect(state).toEqual(before);
   });
 });
 

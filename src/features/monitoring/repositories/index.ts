@@ -54,4 +54,6 @@ export type {
   SavedCopy,
   SavedCopyKind,
 } from "./monitoring-repository";
-export { StorageWriteError } from "./monitoring-repository";
+export { StorageWriteError, SyncError } from "./monitoring-repository";
+export { SupabaseMonitoringRepository } from "./supabase-monitoring-repository";
+export type { RemoteAccount } from "./supabase-mapping";

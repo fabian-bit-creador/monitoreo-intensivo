@@ -255,6 +255,50 @@ export function moveStudent(
   return { state };
 }
 
+/**
+ * Asignar puestos por N°: ubica a los estudiantes activos sin puesto en los
+ * puestos libres de la plantilla, en orden de lectura (fila y columna) y por
+ * N° de lista. Es una acción explícita; no mueve a quien ya tiene puesto.
+ */
+export function assignSeatsByNumber(
+  current: MonitoringState,
+  roomTemplateId: string,
+): StateResult & { assigned: number } {
+  const state = structuredClone(current);
+  const template = state.roomTemplates.find((item) => item.id === roomTemplateId);
+  if (!template) throw new Error("Plantilla no válida.");
+
+  const assignments = state.seatAssignments.filter((item) => item.templateId === roomTemplateId);
+  const taken = new Set(assignments.map((item) => `${item.seatRow}-${item.seatCol}`));
+  const seated = new Set(assignments.map((item) => item.studentId));
+  const freeSlots = state.roomSlots
+    .filter((slot) =>
+      slot.templateId === roomTemplateId
+      && slot.status === "available"
+      && !taken.has(`${slot.seatRow}-${slot.seatCol}`))
+    .sort((first, second) => first.seatRow - second.seatRow || first.seatCol - second.seatCol);
+  const unseated = state.students
+    .filter((student) => student.courseId === template.courseId && student.active && !seated.has(student.id))
+    .sort((first, second) =>
+      (first.number ?? Infinity) - (second.number ?? Infinity)
+      || first.fullName.localeCompare(second.fullName, "es"));
+
+  const pairs = unseated.slice(0, freeSlots.length).map((student, index) => ({ student, slot: freeSlots[index] }));
+  for (const { student, slot } of pairs) {
+    state.seatAssignments.push({
+      templateId: roomTemplateId,
+      studentId: student.id,
+      seatRow: slot.seatRow,
+      seatCol: slot.seatCol,
+    });
+    if (roomTemplateId === DEFAULT_ROOM_TEMPLATE_ID) {
+      student.seatRow = slot.seatRow;
+      student.seatCol = slot.seatCol;
+    }
+  }
+  return { state, assigned: pairs.length };
+}
+
 export function setSessionStatus(
   current: MonitoringState,
   sessionId: number,

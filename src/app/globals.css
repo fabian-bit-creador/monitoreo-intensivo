@@ -204,6 +204,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .move-banner { display: flex; align-items: center; gap: 10px; padding: 11px 14px; margin-bottom: 13px; border-radius: 12px; background: #edf4fb; border: 1px solid #cddceb; color: var(--navy); }
 .move-banner p { margin: 0; flex: 1; font-size: 13px; }
 .move-banner button { border: 0; background: #fff; color: var(--navy); border-radius: 8px; padding: 7px 10px; font-weight: 700; cursor: pointer; }
+.move-banner button { display: inline-flex; align-items: center; gap: 6px; }
+.move-banner button:disabled { opacity: 0.55; cursor: default; }
 
 .classroom { padding: 18px; overflow: hidden; }
 .room-topline { display: flex; justify-content: space-between; align-items: center; color: #718096; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 13px; }
@@ -513,6 +515,11 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .recovery-error { max-width: 480px; color: #9d3131; font-size: 12px; }
 .recovery-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
 .recovery-hint { font-size: 11px; }
+.login-card { width: min(410px, 100%); padding: 24px; text-align: left; }
+.login-card h1 { margin: 10px 0 6px; color: var(--navy); font-size: 24px; }
+.login-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.login-card .login-note { font-size: 11px; }
+.account-form { margin-top: 16px; }
 .mobile-nav, .mobile-only { display: none; }
 
 @media (max-width: 1120px) {
@@ -550,6 +557,7 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
   .brand-lockup strong { font-size: 15px; }
   .connectivity { width: 9px; height: 9px; padding: 0; font-size: 0; background: var(--c) !important; }
   .connectivity.error { background: var(--danger) !important; }
+  .connectivity.offline { background: var(--i) !important; }
   .connectivity svg { display: none; }
   .topbar-actions { gap: 6px; }
   .topbar-actions .primary-button { min-height: 40px; padding: 0 12px; }

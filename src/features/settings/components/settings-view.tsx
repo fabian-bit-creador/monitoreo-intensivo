@@ -8,14 +8,30 @@ import {
 import { DEMO_COURSE_ID } from "@/config/app";
 import { CourseStatusList } from "@/features/courses/components/course-status-list";
 import { TeacherList } from "@/features/teachers/components/teacher-list";
+import type { RemoteAccount } from "@/features/monitoring/repositories";
 import type { MonitoringState } from "@/types/monitoring";
+import { AccountCard } from "./account-card";
 import { BackupCard, type BackupCardProps } from "./backup-card";
+import { ServerImportCard } from "./server-import-card";
+
+/** Solo en modo servidor: cuenta autenticada y operaciones de administración. */
+export type RemoteSettings = {
+  account: RemoteAccount;
+  onSignOut: () => void;
+  onUpdateName: (fullName: string) => Promise<boolean>;
+  onImportToServer: (
+    schoolId: string,
+    state: MonitoringState,
+    teacherMap: Record<string, string>,
+  ) => Promise<Record<string, number> | null>;
+};
 
 type SettingsViewProps = {
   data: MonitoringState;
   selectedTeacherId: string;
   onSelectTeacher: (teacherId: string) => void;
   backup: Omit<BackupCardProps, "data">;
+  remote: RemoteSettings | null;
 };
 
 export function SettingsView({
@@ -23,6 +39,7 @@ export function SettingsView({
   selectedTeacherId,
   onSelectTeacher,
   backup,
+  remote,
 }: SettingsViewProps) {
   const operationalTemplates = data.roomTemplates.filter(
     (template) => template.courseId === DEMO_COURSE_ID,
@@ -58,6 +75,25 @@ export function SettingsView({
             <CourseStatusList data={data} />
           </article>
 
+          {remote ? (
+            <AccountCard
+              account={remote.account}
+              busy={backup.busy}
+              onUpdateName={remote.onUpdateName}
+              onSignOut={remote.onSignOut}
+            />
+          ) : null}
+
+          {remote?.account.adminSchoolIds.length ? (
+            <ServerImportCard
+              account={remote.account}
+              busy={backup.busy}
+              error={backup.error}
+              onImport={remote.onImportToServer}
+            />
+          ) : null}
+
+          {remote ? null : (
           <article className="card settings-card">
             <div className="card-heading">
               <div><p className="eyebrow">Alcance actual</p><h2>III°A operativo</h2></div>
@@ -70,18 +106,22 @@ export function SettingsView({
               <li><Check size={16} /> El historial y las tendencias se separan por profesor.</li>
             </ul>
           </article>
+          )}
 
           <BackupCard data={data} {...backup} />
 
           <article className="card settings-card beta-warning">
             <div className="card-heading">
-              <div><p className="eyebrow">Importante</p><h2>Identificación, no contraseña</h2></div>
+              <div>
+                <p className="eyebrow">Importante</p>
+                <h2>{remote ? "Datos del establecimiento" : "Identificación, no contraseña"}</h2>
+              </div>
               <CircleHelp size={20} />
             </div>
             <p>
-              Seleccionar un nombre no verifica la identidad. En esta etapa los cambios quedan
-              en este navegador; usa nombres abreviados y no registres diagnósticos,
-              calificaciones ni antecedentes personales.
+              {remote
+                ? "Los registros se guardan en el servidor del establecimiento y solo los ve quien tiene permiso: cada docente, sus clases; coordinación y administración, las del establecimiento. No registres diagnósticos, calificaciones ni antecedentes personales."
+                : "Seleccionar un nombre no verifica la identidad. En esta etapa los cambios quedan en este navegador; usa nombres abreviados y no registres diagnósticos, calificaciones ni antecedentes personales."}
             </p>
           </article>
         </div>

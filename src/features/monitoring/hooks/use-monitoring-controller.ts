@@ -19,7 +19,8 @@ import type {
   RosterEntry,
   Student,
 } from "@/types/monitoring";
-import { useMonitoringStore } from "./use-monitoring-store";
+import { useMonitoringStore, type StoreRepository } from "./use-monitoring-store";
+import { SupabaseMonitoringRepository } from "../repositories/supabase-monitoring-repository";
 import { backupFileName, createBackup } from "../lib/backup";
 import type { CreateSessionInput } from "../lib/monitoring-service";
 import {
@@ -49,21 +50,25 @@ function resolveCourseId(data: MonitoringState | null, choice: string) {
   )?.id ?? choice;
 }
 
-export function useMonitoringController() {
+export function useMonitoringController(createRepository: () => StoreRepository) {
   const {
+    repository,
     data,
+    account,
     blocked,
     error,
     busy,
     persistence,
+    localBackup,
     reload,
     execute,
+    run,
     restore,
     resetToDemo,
     listSavedCopies,
     deleteSavedCopy,
     setError,
-  } = useMonitoringStore();
+  } = useMonitoringStore(createRepository);
   const [view, setView] = useState<AppView>("monitor");
   const [courseChoice, setCourseId] = useState(DEMO_COURSE_ID);
   const [teacherChoice, setSelectedTeacherId] = useState(DEFAULT_TEACHER_ID);
@@ -429,6 +434,35 @@ export function useMonitoringController() {
     setNote("");
   }
 
+  async function assignSeats() {
+    const result = await execute({ type: "assignSeatsByNumber", roomTemplateId: activeRoomTemplateId });
+    if (!result) return;
+    setMovingStudent(null);
+    setToast(result.assigned
+      ? `${result.assigned} ${result.assigned === 1 ? "estudiante ubicado" : "estudiantes ubicados"} por N°`
+      : "No quedan estudiantes sin puesto o no hay puestos libres");
+  }
+
+  async function importToServer(schoolId: string, state: MonitoringState, teacherMap: Record<string, string>) {
+    if (!(repository instanceof SupabaseMonitoringRepository)) return null;
+    const result = await run(
+      () => repository.importLegacyState(schoolId, state, teacherMap),
+      "No fue posible importar los datos al servidor.",
+    );
+    if (!result) return null;
+    setActiveSessionId(null);
+    setView("monitor");
+    setToast(`Importado: ${result.courses} cursos, ${result.students} estudiantes, ${result.sessions} clases y ${result.observations} observaciones`);
+    return result;
+  }
+
+  async function updateProfileName(fullName: string) {
+    if (!(repository instanceof SupabaseMonitoringRepository)) return false;
+    const done = await run(() => repository.updateProfileName(fullName), "No fue posible guardar tu nombre.");
+    if (done !== null) setToast("Nombre actualizado");
+    return done !== null;
+  }
+
   function toggleReorganizing(value: boolean) {
     setReorganizing(value);
     setMovingStudent(null);
@@ -436,10 +470,12 @@ export function useMonitoringController() {
 
   return {
     data,
+    account,
     blocked,
     error,
     busy,
     persistence,
+    localBackup,
     reload,
     setError,
     view,
@@ -501,5 +537,8 @@ export function useMonitoringController() {
     startFresh,
     listSavedCopies,
     deleteSavedCopy,
+    assignSeats,
+    importToServer,
+    updateProfileName,
   };
 }

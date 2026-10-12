@@ -13,6 +13,8 @@ export type BackupCardProps = {
   data: MonitoringState;
   busy: boolean;
   error: string;
+  /** Solo en modo local: restaurar reemplaza los datos de este navegador. */
+  allowRestore: boolean;
   onDownload: () => void;
   onRestore: (state: MonitoringState) => Promise<boolean>;
   onDownloadCopy: (raw: string, prefix: string) => void;
@@ -39,6 +41,7 @@ export function BackupCard(props: BackupCardProps) {
     data,
     busy,
     error,
+    allowRestore,
     onDownload,
     onRestore,
     onDownloadCopy,
@@ -85,7 +88,7 @@ export function BackupCard(props: BackupCardProps) {
     <>
       <article className="card settings-card">
         <div className="card-heading">
-          <div><p className="eyebrow">Respaldo</p><h2>Datos de este navegador</h2></div>
+          <div><p className="eyebrow">Respaldo</p><h2>{allowRestore ? "Datos de este navegador" : "Copia de tus datos"}</h2></div>
           <DatabaseBackup size={20} />
         </div>
         <ul className="settings-list">
@@ -94,8 +97,9 @@ export function BackupCard(props: BackupCardProps) {
             {summary.observations} observaciones.
           </li>
           <li>
-            Descarga un respaldo antes de cambiar de navegador o de equipo. Restaurar acepta
-            también los datos exportados del Site anterior.
+            {allowRestore
+              ? "Descarga un respaldo antes de cambiar de navegador o de equipo. Restaurar acepta también los datos exportados del Site anterior."
+              : "Descarga una copia de lo que ves en el servidor, por ejemplo antes de una revisión. Guárdala en un lugar privado."}
           </li>
         </ul>
         <input
@@ -109,9 +113,11 @@ export function BackupCard(props: BackupCardProps) {
           <button className="secondary-button" onClick={onDownload}>
             <Download size={17} /> Descargar respaldo
           </button>
-          <button className="secondary-button" onClick={() => fileInput.current?.click()} disabled={busy}>
-            <Upload size={17} /> Restaurar respaldo
-          </button>
+          {allowRestore ? (
+            <button className="secondary-button" onClick={() => fileInput.current?.click()} disabled={busy}>
+              <Upload size={17} /> Restaurar respaldo
+            </button>
+          ) : null}
         </div>
         {copies.length ? (
           <div className="saved-copies">

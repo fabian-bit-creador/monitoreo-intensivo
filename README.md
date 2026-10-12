@@ -68,6 +68,7 @@ npm run dev        # servidor de desarrollo
 npm run typecheck  # revisión de TypeScript
 npm run lint       # revisión estática
 npm run test       # pruebas del dominio (requiere Node.js 22.12 o superior)
+npm run test:db    # pruebas de la base con un PostgreSQL local (ver docs/supabase.md)
 npm run build      # compilación de producción
 npm run start      # ejecuta la compilación
 npm run check      # tipos + lint + pruebas + build
@@ -126,15 +127,20 @@ La aplicación nunca reemplaza por su cuenta datos que no puede abrir: si fueron
 
 ## Variables de entorno
 
-La versión 0.1 no necesita secretos ni servicios externos.
+Sin variables, la aplicación funciona en **modo local**, con los datos en el navegador.
 
-| Variable | Uso actual |
+| Variable | Uso |
 | --- | --- |
-| `NEXT_PUBLIC_DATA_MODE` | Documenta el modo local de esta etapa |
-| `NEXT_PUBLIC_SUPABASE_URL` | Reservada; dejar vacía |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Reservada; dejar vacía |
+| `NEXT_PUBLIC_DATA_MODE` | `local` o `supabase` |
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase (solo modo `supabase`) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave publicable; los permisos los aplica RLS |
 
-Nunca confirmes `.env.local`, tokens, claves, credenciales ni archivos con datos reales.
+En **modo Supabase** se inicia sesión con correo y contraseña. Las clases y los registros quedan a
+nombre de la cuenta, y los datos se comparten entre dispositivos según el rol. Migraciones,
+pruebas (`npm run test:db`) y pasos de operación: [docs/supabase.md](docs/supabase.md).
+
+Nunca confirmes `.env.local`, tokens, claves, credenciales ni archivos con datos reales. La clave
+`service_role` de Supabase no se usa en la aplicación.
 
 ## Desarrollar una funcionalidad
 

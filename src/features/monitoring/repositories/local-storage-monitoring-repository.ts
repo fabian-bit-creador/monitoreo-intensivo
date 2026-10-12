@@ -76,6 +76,7 @@ const READ_FAILED =
  */
 export class LocalStorageMonitoringRepository
 implements MonitoringRepository, LocalBackupStore {
+  readonly kind = "local" as const;
   private state: MonitoringState | null = null;
   private revision = 0;
   private blocked: BlockedReason | null = null;

@@ -1,5 +1,6 @@
 import type { CommandResult, MonitoringCommand } from "../lib/commands";
 import type { MonitoringState } from "@/types/monitoring";
+import type { RemoteAccount } from "./supabase-mapping";
 
 /**
  * - `newer-version`: los datos los guardó una versión más nueva de la aplicación.
@@ -13,11 +14,15 @@ export type LoadResult =
   | { status: "blocked"; reason: BlockedReason; raw: string };
 
 export interface MonitoringRepository {
+  /** `local`: este navegador. `remote`: servidor compartido (Supabase). */
+  readonly kind: "local" | "remote";
   load(): Promise<LoadResult>;
   /** Aplica una operación del docente sobre los datos más recientes y la guarda. */
   execute<C extends MonitoringCommand>(command: C): Promise<CommandResult<C>>;
   /** Avisa cuando otra pestaña o dispositivo cambia los datos. */
   subscribe(listener: (result: LoadResult) => void): () => void;
+  /** Cuenta autenticada, solo en modo servidor. */
+  getAccount?(): RemoteAccount | null;
 }
 
 /**
@@ -40,3 +45,6 @@ export interface LocalBackupStore {
 
 /** Fallo al escribir en el almacenamiento, distinto de una regla del dominio. */
 export class StorageWriteError extends Error {}
+
+/** Sin conexión o sin sesión: el cambio no llegó al servidor. */
+export class SyncError extends Error {}

@@ -2,30 +2,43 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  createMonitoringRepository,
   StorageWriteError,
+  SyncError,
   type BlockedReason,
   type LoadResult,
+  type LocalBackupStore,
+  type MonitoringRepository,
+  type RemoteAccount,
   type SavedCopyKind,
 } from "@/features/monitoring/repositories";
 import type { CommandResult, MonitoringCommand } from "@/features/monitoring/lib/commands";
 import type { MonitoringState } from "@/types/monitoring";
 
-/** Estado de guardado que se muestra en la barra superior (ADR 0002). */
+/**
+ * Estado de guardado que se muestra en la barra superior (ADR 0002).
+ * - local: «Guardado local» o «Sin guardar».
+ * - remote: «Guardando…» mientras espera, «Sincronizado» solo con la
+ *   confirmación del servidor, o «Sin sincronizar» si falló.
+ */
 export type PersistenceStatus = {
-  state: "saved" | "error";
+  mode: "local" | "remote";
+  state: "saved" | "saving" | "error";
   savedAt: string | null;
 };
 
 export type BlockedStorage = { reason: BlockedReason; raw: string };
 
-export function useMonitoringStore() {
-  const [repository] = useState(createMonitoringRepository);
+export type StoreRepository = MonitoringRepository & Partial<LocalBackupStore>;
+
+export function useMonitoringStore(createRepository: () => StoreRepository) {
+  const [repository] = useState(createRepository);
   const [data, setData] = useState<MonitoringState | null>(null);
+  const [account, setAccount] = useState<RemoteAccount | null>(null);
   const [blocked, setBlocked] = useState<BlockedStorage | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [persistence, setPersistence] = useState<PersistenceStatus>({
+    mode: repository.kind,
     state: "saved",
     savedAt: null,
   });
@@ -37,12 +50,13 @@ export function useMonitoringStore() {
     }
     setBlocked(null);
     setData(result.state);
-    setPersistence({ state: result.savedAt ? "saved" : "error", savedAt: result.savedAt });
+    setAccount(repository.getAccount?.() ?? null);
+    setPersistence({ mode: repository.kind, state: result.savedAt ? "saved" : "error", savedAt: result.savedAt });
     setError("");
-  }, []);
+  }, [repository]);
 
-  const showLoadError = useCallback(() => {
-    setError("No fue posible cargar los datos del monitoreo.");
+  const showLoadError = useCallback((caught: unknown) => {
+    setError(caught instanceof Error ? caught.message : "No fue posible cargar los datos del monitoreo.");
   }, []);
 
   const reload = useCallback(
@@ -54,38 +68,46 @@ export function useMonitoringStore() {
     let active = true;
     repository.load().then(
       (result) => active && showLoaded(result),
-      () => active && showLoadError(),
+      (caught) => active && showLoadError(caught),
     );
     return () => {
       active = false;
     };
   }, [repository, showLoadError, showLoaded]);
 
-  // Cambios guardados por otra pestaña.
+  // Cambios guardados por otra pestaña u otro dispositivo.
   useEffect(() => repository.subscribe((result) => {
     if (result.status === "blocked") {
       setBlocked({ reason: result.reason, raw: result.raw });
       return;
     }
     setData(result.state);
-    setPersistence({ state: "saved", savedAt: result.savedAt });
+    setAccount(repository.getAccount?.() ?? null);
+    setPersistence((current) => (
+      current.state === "saving" ? current : { ...current, state: "saved", savedAt: result.savedAt }
+    ));
   }), [repository]);
 
   const fail = useCallback((caught: unknown, fallback: string) => {
     setError(caught instanceof Error ? caught.message : fallback);
-    if (caught instanceof StorageWriteError) {
-      setPersistence((current) => ({ ...current, state: "error" }));
-    }
+    // Una regla rechazada no es una falla de guardado: lo confirmado sigue igual.
+    const failedToPersist = caught instanceof StorageWriteError || caught instanceof SyncError;
+    setPersistence((current) => ({
+      ...current,
+      state: failedToPersist ? "error" : current.state === "saving" ? "saved" : current.state,
+    }));
   }, []);
 
   const execute = useCallback(async <C extends MonitoringCommand>(
     command: C,
   ): Promise<CommandResult<C> | null> => {
     setBusy(true);
+    if (repository.kind === "remote") setPersistence((current) => ({ ...current, state: "saving" }));
     try {
       const result = await repository.execute(command);
       setData(result.state);
-      setPersistence({ state: "saved", savedAt: new Date().toISOString() });
+      setAccount(repository.getAccount?.() ?? null);
+      setPersistence({ mode: repository.kind, state: "saved", savedAt: new Date().toISOString() });
       setError("");
       return result;
     } catch (caught) {
@@ -96,12 +118,28 @@ export function useMonitoringStore() {
     }
   }, [fail, repository]);
 
+  /** Para operaciones propias de un repositorio, como importar al servidor. */
+  const run = useCallback(async <T>(task: () => Promise<T>, fallback: string): Promise<T | null> => {
+    setBusy(true);
+    try {
+      const value = await task();
+      showLoaded(await repository.load());
+      return value;
+    } catch (caught) {
+      fail(caught, fallback);
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }, [fail, repository, showLoaded]);
+
   const restore = useCallback(async (state: MonitoringState) => {
+    if (!repository.replaceState) return null;
     setBusy(true);
     try {
       const result = await repository.replaceState(state);
       setData(state);
-      setPersistence({ state: "saved", savedAt: new Date().toISOString() });
+      setPersistence({ mode: repository.kind, state: "saved", savedAt: new Date().toISOString() });
       setError("");
       return result;
     } catch (caught) {
@@ -113,12 +151,13 @@ export function useMonitoringStore() {
   }, [fail, repository]);
 
   const resetToDemo = useCallback(async () => {
+    if (!repository.resetToDemo) return null;
     setBusy(true);
     try {
       const state = await repository.resetToDemo();
       setBlocked(null);
       setData(state);
-      setPersistence({ state: "saved", savedAt: new Date().toISOString() });
+      setPersistence({ mode: repository.kind, state: "saved", savedAt: new Date().toISOString() });
       setError("");
       return state;
     } catch (caught) {
@@ -129,20 +168,27 @@ export function useMonitoringStore() {
     }
   }, [fail, repository]);
 
-  const listSavedCopies = useCallback(() => repository.listSavedCopies(), [repository]);
+  const listSavedCopies = useCallback(
+    () => repository.listSavedCopies?.() ?? Promise.resolve([]),
+    [repository],
+  );
   const deleteSavedCopy = useCallback(
-    (kind: SavedCopyKind) => repository.deleteSavedCopy(kind),
+    (kind: SavedCopyKind) => repository.deleteSavedCopy?.(kind) ?? Promise.resolve(),
     [repository],
   );
 
   return {
+    repository,
     data,
+    account,
     blocked,
     error,
     busy,
     persistence,
+    localBackup: Boolean(repository.replaceState),
     reload,
     execute,
+    run,
     restore,
     resetToDemo,
     listSavedCopies,

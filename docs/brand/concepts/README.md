@@ -1,5 +1,8 @@
 # Conceptos de marca
 
+> **Reemplazados.** La identidad aprobada es la del [ADR 0005](../../decisions/0005-identidad-de-marca.md)
+> ([guía de uso](../../marca.md)). Estos archivos se conservan solo como historial.
+
 Propuestas para reemplazar el ícono actual, que es `Activity` de lucide: una línea de
 electrocardiograma genérica que no dice nada de una sala de clases.
 

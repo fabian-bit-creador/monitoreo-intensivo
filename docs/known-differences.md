@@ -10,6 +10,7 @@
 | Datos | Registros y nómina reales en el despliegue original | 40 estudiantes ficticios y sesiones demo | Privacidad y repositorio seguro |
 | Indicador superior | “Sincronizado” | “Guardado local” | Describir honestamente la persistencia |
 | Infraestructura | Vinext, Wrangler, D1 y scripts de Sites | Next.js estándar compatible con Vercel | Independencia de ChatGPT Work |
+| Marca | «Monitoreo PI», subtítulo e ícono `Activity` en recuadro marino | «Monitoreo Intensivo» con isotipo propio (ADR 0005) | Identidad oficial aprobada |
 
 ## No trasladado
 

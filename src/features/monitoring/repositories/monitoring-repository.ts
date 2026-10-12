@@ -46,5 +46,22 @@ export interface LocalBackupStore {
 /** Fallo al escribir en el almacenamiento, distinto de una regla del dominio. */
 export class StorageWriteError extends Error {}
 
-/** Sin conexión o sin sesión: el cambio no llegó al servidor. */
-export class SyncError extends Error {}
+/**
+ * Sin conexión o sin sesión: el cambio no se confirmó. `code` es el código del
+ * servidor; vacío si no hubo respuesta.
+ */
+export class SyncError extends Error {
+  constructor(message: string, readonly code = "") {
+    super(message);
+  }
+}
+
+/** El servidor rechazó la operación por una de sus reglas: no se guardó. */
+export class RejectedError extends Error {
+  constructor(message: string, readonly code = "") {
+    super(message);
+  }
+}
+
+/** El servidor confirmó el cambio, pero no se pudo releer para mostrarlo. */
+export class StaleViewError extends Error {}

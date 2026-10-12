@@ -58,4 +58,4 @@ docs/
 
 ## Compatibilidad futura con Supabase
 
-La etapa actual no instala el SDK ni crea tablas. Un adaptador futuro deberá implementar las mismas operaciones de carga y guardado que `LocalStorageMonitoringRepository`. Las variables se anticipan en `.env.example`, pero quedan vacías.
+La etapa actual no instala el SDK ni crea tablas. La persistencia evoluciona hacia comandos (ADR 0002) y Supabase Auth con PostgreSQL y RLS (ADR 0003); el plan por etapas está en `docs/plan-supabase.md`. Las variables se anticipan en `.env.example`, pero quedan vacías.

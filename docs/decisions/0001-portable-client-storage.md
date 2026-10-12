@@ -1,6 +1,6 @@
 # ADR 0001: persistencia portable en la primera migración
 
-- Estado: aceptada
+- Estado: aceptada para el modo local; complementada por los ADR 0002 y 0003
 - Fecha: 2026-08-15
 
 ## Contexto

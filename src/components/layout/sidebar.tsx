@@ -4,6 +4,7 @@ import {
   LayoutGrid,
   Settings,
   ShieldCheck,
+  BookOpen,
 } from "lucide-react";
 import { ContextSelectors } from "./context-selectors";
 import type { AppView, MonitoringState } from "@/types/monitoring";
@@ -16,7 +17,6 @@ type SidebarProps = {
   readyCourseIds: Set<string>;
   onViewChange: (view: AppView) => void;
   spaces?: Array<{ id: string; name: string }>;
-  onTeacherChange: (teacherId: string) => void;
   onCourseChange: (courseId: string) => void;
 };
 
@@ -28,7 +28,6 @@ export function Sidebar(props: SidebarProps) {
     courseId,
     readyCourseIds,
     onViewChange,
-    onTeacherChange,
     onCourseChange,
     spaces,
   } = props;
@@ -40,13 +39,15 @@ export function Sidebar(props: SidebarProps) {
         teacherId={teacherId}
         courseId={courseId}
         readyCourseIds={readyCourseIds}
-        onTeacherChange={onTeacherChange}
         onCourseChange={onCourseChange}
         spaces={spaces}
       />
       <nav className="sidebar-nav" aria-label="Navegación principal">
         <button className={view === "monitor" ? "active" : ""} onClick={() => onViewChange("monitor")}>
           <LayoutGrid size={19} /><span>Monitorear</span>
+        </button>
+        <button className={view === "courses" ? "active" : ""} onClick={() => onViewChange("courses")}>
+          <BookOpen size={19} /><span>Mis cursos</span>
         </button>
         <button className={view === "report" ? "active" : ""} onClick={() => onViewChange("report")}>
           <BarChart3 size={19} /><span>Informe</span>

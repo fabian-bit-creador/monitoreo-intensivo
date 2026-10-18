@@ -1,4 +1,4 @@
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -21,10 +21,16 @@ import { layoutError } from "@/features/courses/lib/room-layouts";
 import { rosterOverlap } from "@/features/courses/lib/roster-update";
 import type { MonitoringState, RosterEntry } from "@/types/monitoring";
 import { downloadRosterTemplate } from "@/features/courses/lib/roster-template";
+import { clearCourseSetupDraft, loadCourseSetupDraft, saveCourseSetupDraft } from "@/features/courses/lib/course-draft-storage";
 import { initialRoomDraft, RoomDesigner, type RoomDraft } from "./room-designer";
 import { RosterPreview, type ImportTarget } from "./roster-preview";
 
-export type NewCourseOptions = { room: RoomDraft; spaceId?: string };
+export type NewCourseOptions = {
+  room: RoomDraft;
+  spaceId?: string;
+  academicYear: number;
+  focusNumbers: number[];
+};
 
 type ImportCourseModalProps = {
   data: MonitoringState;
@@ -90,6 +96,18 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
   const [reading, setReading] = useState(false);
   const [readError, setReadError] = useState("");
   const [text, setText] = useState("");
+  const [initialDraft] = useState(() => loadCourseSetupDraft() ?? {
+    courseName: suggestedCourseName,
+    academicYear: new Date().getFullYear(),
+    expectedCount: 30,
+    focusCount: 0,
+  });
+  const [courseName, setCourseName] = useState(initialDraft.courseName);
+  const [academicYear, setAcademicYear] = useState(initialDraft.academicYear);
+  const [expectedCount, setExpectedCount] = useState(initialDraft.expectedCount);
+  const [focusCount, setFocusCount] = useState(initialDraft.focusCount);
+  const [focusNumbers, setFocusNumbers] = useState<number[]>([]);
+  const [validationError, setValidationError] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [target, setTarget] = useState<ImportTarget>({ mode: "new", courseName: suggestedCourseName });
   const [pending, setPending] = useState<RosterEntry[] | null>(null);
@@ -98,10 +116,14 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
   // El error del store solo se muestra si surge al confirmar.
   const [attempted, setAttempted] = useState(false);
 
+  useEffect(() => {
+    saveCourseSetupDraft({ courseName, academicYear, expectedCount, focusCount });
+  }, [academicYear, courseName, expectedCount, focusCount]);
+
   function showSheet(next: Preview) {
     const result = next.workbook.options[next.sheetIndex].result;
     setPreview(next);
-    setTarget(suggestTarget(data, currentCourseId, result.ok ? result.entries : [], suggestedCourseName));
+    setTarget(suggestTarget(data, currentCourseId, result.ok ? result.entries : [], courseName));
   }
 
   function readText() {
@@ -143,9 +165,15 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
 
   async function confirm(entries: RosterEntry[]) {
     if (target.mode === "new") {
+      if (entries.length !== expectedCount) {
+        setValidationError(`La plantilla indica ${expectedCount} estudiantes y se detectaron ${entries.length}. Corrige la nómina o ajusta la cantidad esperada.`);
+        return;
+      }
+      setValidationError("");
       // Un curso nuevo sigue con su sala.
       setPending(entries);
       setRoom(initialRoomDraft(entries.length));
+      setFocusNumbers([]);
       return;
     }
     setAttempted(true);
@@ -155,15 +183,22 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
   async function create() {
     if (!pending || target.mode !== "new") return;
     setAttempted(true);
-    if (layoutError(room.layout) || !room.name.trim()) return;
+    if (layoutError(room.layout) || !room.name.trim() || focusNumbers.length !== focusCount) return;
     const done = await onImport(target.courseName.trim(), pending, {
       room: { name: room.name.trim(), layout: room.layout },
       spaceId: spaceId || undefined,
+      academicYear,
+      focusNumbers,
     });
-    if (done) onClose();
+    if (done) {
+      clearCourseSetupDraft();
+      onClose();
+    }
   }
 
-  const roomProblem = !room.name.trim() ? "Escribe el nombre de la sala." : layoutError(room.layout);
+  const roomProblem = focusNumbers.length !== focusCount
+    ? `Elige ${focusCount} ${focusCount === 1 ? "estudiante foco" : "estudiantes foco"}.`
+    : !room.name.trim() ? "Escribe el nombre de la sala." : layoutError(room.layout);
 
   if (pending && target.mode === "new") {
     return (
@@ -177,6 +212,32 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
               </select>
             </label>
           ) : null}
+          <section className="focus-picker" aria-labelledby="focus-title">
+            <div className="card-heading">
+              <div><p className="eyebrow">Seguimiento prioritario</p><h3 id="focus-title">Estudiantes foco</h3></div>
+              <strong>{focusNumbers.length}/{focusCount}</strong>
+            </div>
+            {focusCount ? (
+              <div className="focus-picker-grid">
+                {pending.map((entry) => {
+                  const selected = focusNumbers.includes(entry.number);
+                  return (
+                    <label key={entry.number} className={selected ? "selected" : ""}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={!selected && focusNumbers.length >= focusCount}
+                        onChange={() => setFocusNumbers((current) => selected
+                          ? current.filter((number) => number !== entry.number)
+                          : [...current, entry.number])}
+                      />
+                      <span><b>{entry.number}</b> {entry.fullName}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : <p className="form-help">Este curso no tendrá estudiantes foco por ahora. Podrás cambiarlos desde «Mis cursos».</p>}
+          </section>
           <RoomDesigner studentCount={pending.length} value={room} onChange={setRoom} />
           <p className="room-note">
             Podrás cambiar la forma o agregar otra sala (por ejemplo, el laboratorio) desde
@@ -212,7 +273,7 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
           onTargetChange={setTarget}
           suggestedCourseName={suggestedCourseName}
           busy={busy}
-          error={attempted ? error : ""}
+          error={validationError || (attempted ? error : "")}
           onBack={() => setPreview(null)}
           onConfirm={(entries) => void confirm(entries)}
           backLabel={preview.source === "text" ? "Editar la lista" : "Elegir otro archivo"}
@@ -220,11 +281,22 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
         />
       ) : (
         <div className="course-sources">
+          <section className="course-setup card">
+            <div className="card-heading">
+              <div><p className="eyebrow">Paso 1</p><h3>Configura tu curso</h3></div>
+            </div>
+            <div className="course-setup-grid">
+              <label><span>Nombre del curso</span><input value={courseName} onChange={(event) => setCourseName(event.target.value)} placeholder="Ej.: Kínder A" /></label>
+              <label><span>Año académico</span><input type="number" min="2000" max="2200" value={academicYear} onChange={(event) => setAcademicYear(Number(event.target.value))} /></label>
+              <label><span>Cantidad de estudiantes</span><input type="number" min="1" max="80" value={expectedCount} onChange={(event) => setExpectedCount(Math.max(1, Math.min(80, Number(event.target.value) || 1)))} /></label>
+              <label><span>Estudiantes foco</span><input type="number" min="0" max={expectedCount} value={focusCount} onChange={(event) => setFocusCount(Math.max(0, Math.min(expectedCount, Number(event.target.value) || 0)))} /></label>
+            </div>
+          </section>
           <section className="import-panel">
             <div className="import-icon"><ClipboardList size={30} /></div>
             <h3>Escribir o pegar la lista</h3>
             <p>
-              Un estudiante por línea. Puedes anteponer su N° («12 Ana Rivas Soto») o pegar dos
+              Un estudiante por línea. Puedes anteponer su N° («12 Ana R.») o pegar dos
               columnas copiadas de una planilla. Sin N°, se numera en el orden de la lista.
             </p>
             <textarea
@@ -232,7 +304,7 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
               value={text}
               onChange={(event) => setText(event.target.value)}
               rows={7}
-              placeholder={"1 Ana Rivas Soto\n2 Bruno Díaz Pérez\n3 Camila Ruiz Tapia"}
+              placeholder={"1 Ana R.\n2 Bruno D.\n3 Camila T."}
               aria-label="Lista de estudiantes"
             />
             <button className="primary-button wide" onClick={readText} disabled={!text.trim()}>
@@ -261,7 +333,7 @@ export function ImportCourseModal(props: ImportCourseModalProps) {
             <div className="import-actions">
               <button
                 className="secondary-button wide"
-                onClick={() => void downloadRosterTemplate().catch(
+                onClick={() => void downloadRosterTemplate(expectedCount, courseName, academicYear).catch(
                   () => setReadError("No fue posible generar la plantilla."),
                 )}
               >

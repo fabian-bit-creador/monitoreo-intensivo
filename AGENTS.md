@@ -49,7 +49,7 @@ No renombrar clases CSS visuales ni cambiar sus valores sin comparación antes/d
 
 ## Funcionalidades que no deben romperse
 
-- Cambio de docente y curso.
+- Identidad fija de la cuenta autenticada y cambio entre sus propios cursos.
 - Curso operativo solo con nómina y plantilla.
 - Nueva sesión con fecha, módulo, objetivo, criterios y plantilla.
 - Recorridos 1, 2 y 3.
@@ -58,7 +58,7 @@ No renombrar clases CSS visuales ni cambiar sus valores sin comparación antes/d
 - Asistencia, búsqueda, mapa/lista y movimiento/intercambio de puestos.
 - Cobertura, I/R/C, avance promedio, progresión y ausencias.
 - Priorización de sin registro, I y R menor a 50 %.
-- Lectura pedagógica, recomendaciones, tendencia e historial por docente.
+- Lectura pedagógica, recomendaciones, tendencia e historial de la cuenta activa.
 - Exportación PDF/Excel e importación Excel/CSV.
 - Persistencia local entre recargas.
 

@@ -70,6 +70,7 @@ function withSnapshot(student: Student, row: SessionStudent): Student {
     number: row.number !== undefined ? row.number : student.number,
     fullName: row.fullName ?? student.fullName,
     displayName: row.displayName ?? student.displayName,
+    isFocus: row.isFocus ?? student.isFocus,
   };
 }
 

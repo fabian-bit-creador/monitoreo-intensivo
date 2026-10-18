@@ -1,5 +1,5 @@
 export type MonitoringCode = "I" | "R" | "C";
-export type AppView = "monitor" | "report" | "history" | "settings";
+export type AppView = "monitor" | "courses" | "report" | "history" | "settings";
 export type SessionStatus = "active" | "closed";
 
 export type Teacher = {
@@ -16,6 +16,9 @@ export type Course = {
   createdAt: string;
   /** Espacio (personal o establecimiento) al que pertenece. Solo en la nube. */
   spaceId?: string;
+  academicYear?: number;
+  archivedAt?: string | null;
+  focusStudentCount?: number;
 };
 
 /** Forma de una sala. `classic` son las salas anteriores (ADR 0004). */
@@ -58,6 +61,8 @@ export type Student = {
   seatRow: number | null;
   seatCol: number | null;
   active: boolean;
+  /** Selección vigente del docente para seguimiento prioritario. */
+  isFocus?: boolean;
 };
 
 export type ClassSession = {
@@ -89,6 +94,8 @@ export type SessionStudent = {
   displayName?: string;
   seatRow?: number | null;
   seatCol?: number | null;
+  /** Fotografía de la selección foco al iniciar la clase. */
+  isFocus?: boolean;
 };
 
 export type Observation = {

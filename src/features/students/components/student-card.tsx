@@ -1,4 +1,5 @@
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Star } from "lucide-react";
 import type { Observation, Student } from "@/types/monitoring";
 
 type StudentCardProps = {
@@ -25,7 +26,7 @@ export function StudentCard({
       onClick={onClick}
     >
       <span className="student-number">{student.number ?? "—"}</span>
-      <strong>{student.displayName}</strong>
+      <strong>{student.displayName}{student.isFocus ? <Star className="focus-star" size={15} fill="currentColor" aria-label="Estudiante foco" /> : null}</strong>
       <StatusBadge observation={observation} absent={absent} />
       {observation
         ? <small>Recorrido {observation.round}</small>

@@ -7,7 +7,7 @@ const INSTRUCTIONS: string[][] = [
   ["Cómo completar esta plantilla"],
   [],
   ["1", `Escribe un estudiante por fila en la hoja "${ROSTER_SHEET_NAME}", desde la fila 2.`],
-  ["2", `La columna "${ROSTER_NAME_HEADER}" es la única obligatoria.`],
+  ["2", `La columna "${ROSTER_NAME_HEADER}" es la única obligatoria. Para cuidar la privacidad, usa nombre e inicial del apellido (por ejemplo, "Ana R.").`],
   [
     "3",
     `La columna "${ROSTER_NUMBER_HEADER}" es el número de lista y la nómina se ordena según él.`
@@ -44,11 +44,12 @@ const INSTRUCTIONS: string[][] = [
  * Es el mismo formato que espera la importación, para que los cursos no
  * lleguen cada uno con una planilla distinta.
  */
-export async function downloadRosterTemplate() {
+export async function downloadRosterTemplate(studentCount = 0, courseName = "curso", academicYear?: number) {
   const XLSX = await import("xlsx");
   const workbook = XLSX.utils.book_new();
 
-  const roster = XLSX.utils.aoa_to_sheet([[ROSTER_NUMBER_HEADER, ROSTER_NAME_HEADER]]);
+  const rows = Array.from({ length: Math.max(0, Math.min(80, studentCount)) }, (_, index) => [index + 1, ""]);
+  const roster = XLSX.utils.aoa_to_sheet([[ROSTER_NUMBER_HEADER, ROSTER_NAME_HEADER], ...rows]);
   roster["!cols"] = [{ wch: 6 }, { wch: 42 }];
   XLSX.utils.book_append_sheet(workbook, roster, ROSTER_SHEET_NAME);
 
@@ -56,5 +57,7 @@ export async function downloadRosterTemplate() {
   instructions["!cols"] = [{ wch: 4 }, { wch: 92 }];
   XLSX.utils.book_append_sheet(workbook, instructions, "Instrucciones");
 
-  XLSX.writeFile(workbook, ROSTER_TEMPLATE_FILENAME);
+  const safeName = courseName.trim().toLocaleLowerCase("es").replace(/[^a-z0-9áéíóúñ]+/gi, "-").replace(/^-|-$/g, "") || "curso";
+  const suffix = academicYear ? `-${academicYear}` : "";
+  XLSX.writeFile(workbook, `plantilla-nomina-${safeName}${suffix}.xlsx`);
 }

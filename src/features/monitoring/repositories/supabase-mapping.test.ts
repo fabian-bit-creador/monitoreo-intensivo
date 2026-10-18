@@ -64,7 +64,7 @@ describe("mapRowsToState", () => {
   it("cada matrícula es un estudiante del curso, en orden de lista y con su puesto en la primera plantilla", () => {
     const { state } = mapRowsToState(rows());
 
-    expect(state.courses.map((course) => course.id)).toEqual(["c1"]);
+    expect(state.courses.map((course) => course.id)).toEqual(["c0", "c1"]);
     expect(state.students).toEqual([
       { id: "e1", courseId: "c1", number: 1, fullName: "Ana Ficticia Uno", displayName: "Ana F.", seatRow: 0, seatCol: 0, active: true },
       { id: "e2", courseId: "c1", number: 2, fullName: "Bruno Ficticio Dos", displayName: "Bruno F.", seatRow: null, seatCol: null, active: true },

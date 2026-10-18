@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { Observation, Student } from "@/types/monitoring";
 
@@ -30,7 +30,7 @@ export function StudentList({
           >
             <span className="list-number">{student.number ?? "—"}</span>
             <span className="list-name">
-              <strong>{student.displayName}</strong>
+              <strong>{student.displayName}{student.isFocus ? <Star className="focus-star" size={14} fill="currentColor" aria-label="Estudiante foco" /> : null}</strong>
               <small>{student.fullName}</small>
             </span>
             <StatusBadge observation={observation} absent={absent} />

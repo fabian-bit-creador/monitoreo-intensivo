@@ -6,7 +6,6 @@ type ContextSelectorsProps = {
   teacherId: string;
   courseId: string;
   readyCourseIds: Set<string>;
-  onTeacherChange: (teacherId: string) => void;
   onCourseChange: (courseId: string) => void;
   mobile?: boolean;
   /** Espacios de la cuenta (ADR 0004): con más de uno, los cursos se agrupan. */
@@ -18,7 +17,6 @@ export function ContextSelectors({
   teacherId,
   courseId,
   readyCourseIds,
-  onTeacherChange,
   onCourseChange,
   mobile = false,
   spaces = [],
@@ -30,19 +28,10 @@ export function ContextSelectors({
   );
   const grouped = spaces.length > 1
     ? spaces
-      .map((space) => ({ ...space, courses: data.courses.filter((course) => course.spaceId === space.id) }))
+      .map((space) => ({ ...space, courses: data.courses.filter((course) => course.spaceId === space.id && !course.archivedAt) }))
       .filter((space) => space.courses.length)
     : [];
-  const teacherSelect = (
-    <div className="select-wrap">
-      <select value={teacherId} onChange={(event) => onTeacherChange(event.target.value)}>
-        {data.teachers.map((teacher) => (
-          <option key={teacher.id} value={teacher.id}>{teacher.fullName}</option>
-        ))}
-      </select>
-      <ChevronDown size={16} />
-    </div>
-  );
+  const teacher = data.teachers.find((item) => item.id === teacherId) ?? data.teachers[0];
   const courseSelect = (
     <div className="select-wrap">
       <select value={courseId} onChange={(event) => onCourseChange(event.target.value)}>
@@ -50,7 +39,7 @@ export function ContextSelectors({
           ? grouped.map((space) => (
             <optgroup key={space.id} label={space.name}>{space.courses.map(courseOption)}</optgroup>
           ))
-          : data.courses.map(courseOption)}
+          : data.courses.filter((course) => !course.archivedAt).map(courseOption)}
       </select>
       <ChevronDown size={16} />
     </div>
@@ -59,7 +48,7 @@ export function ContextSelectors({
   if (mobile) {
     return (
       <>
-        <label><span>Docente</span>{teacherSelect}</label>
+        <label><span>Mi cuenta</span><strong className="account-name">{teacher?.fullName ?? "Docente"}</strong></label>
         <label><span>Curso</span>{courseSelect}</label>
       </>
     );
@@ -67,7 +56,7 @@ export function ContextSelectors({
 
   return (
     <div className="context-controls">
-      <div className="course-control"><label>Docente activo</label>{teacherSelect}</div>
+      <div className="course-control"><label>Mi cuenta</label><strong className="account-name">{teacher?.fullName ?? "Docente"}</strong></div>
       <div className="course-control"><label>Curso</label>{courseSelect}</div>
     </div>
   );

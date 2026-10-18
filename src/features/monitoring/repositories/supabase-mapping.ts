@@ -8,7 +8,15 @@ export type DbRows = {
   schools: Array<{ id: string; name: string; kind?: "institution" | "personal" }>;
   memberships: Array<{ school_id: string; user_id: string; role: "admin" | "coordinator" | "teacher"; active: boolean }>;
   profiles: Array<{ id: string; full_name: string; created_at: string }>;
-  courses: Array<{ id: string; school_id: string; name: string; archived_at: string | null; created_at: string }>;
+  courses: Array<{
+    id: string;
+    school_id: string;
+    name: string;
+    academic_year?: number;
+    focus_student_count?: number;
+    archived_at: string | null;
+    created_at: string;
+  }>;
   students: Array<{ id: string; full_name: string; display_name: string }>;
   enrollments: Array<{
     id: string;
@@ -16,6 +24,7 @@ export type DbRows = {
     student_id: string;
     list_number: number | null;
     active: boolean;
+    is_focus?: boolean;
   }>;
   roomTemplates: Array<{
     id: string;
@@ -59,6 +68,7 @@ export type DbRows = {
     seat_row: number | null;
     seat_col: number | null;
     present: boolean;
+    is_focus?: boolean;
   }>;
   observations: Array<{
     id: string;
@@ -133,6 +143,7 @@ export function mapRowsToState(rows: DbRows): { state: MonitoringState; index: R
         seatRow: seat?.seat_row ?? null,
         seatCol: seat?.seat_col ?? null,
         active: enrollment.active,
+        ...(enrollment.is_focus === undefined ? {} : { isFocus: enrollment.is_focus }),
       };
     })
     .sort((first, second) =>
@@ -149,9 +160,16 @@ export function mapRowsToState(rows: DbRows): { state: MonitoringState; index: R
       createdAt: profile?.created_at ?? "",
     }],
     courses: rows.courses
-      .filter((course) => !course.archived_at)
       .sort(byText((course) => course.name))
-      .map((course) => ({ id: course.id, name: course.name, createdAt: course.created_at, spaceId: course.school_id })),
+      .map((course) => ({
+        id: course.id,
+        name: course.name,
+        academicYear: course.academic_year ?? new Date().getFullYear(),
+        archivedAt: course.archived_at,
+        focusStudentCount: course.focus_student_count ?? 0,
+        createdAt: course.created_at,
+        spaceId: course.school_id,
+      })),
     roomTemplates: [...rows.roomTemplates].sort(byText((item) => item.created_at)).map((template) => ({
       id: template.id,
       courseId: template.course_id,
@@ -204,6 +222,7 @@ export function mapRowsToState(rows: DbRows): { state: MonitoringState; index: R
         displayName: row.display_name,
         seatRow: row.seat_row,
         seatCol: row.seat_col,
+        ...(row.is_focus === undefined ? {} : { isFocus: row.is_focus }),
       })),
     observations: rows.observations
       .filter((row) => sessionSeq.has(row.session_id))

@@ -77,6 +77,9 @@ const readCourse = (row: Row, path: string): Course => ({
   name: text(row.name, `${path}.name`),
   createdAt: text(row.createdAt, `${path}.createdAt`),
   ...(row.spaceId === undefined ? {} : { spaceId: text(row.spaceId, `${path}.spaceId`) }),
+  ...(row.academicYear === undefined ? {} : { academicYear: integer(row.academicYear, `${path}.academicYear`, 2000, 2100) }),
+  ...(row.archivedAt === undefined ? {} : { archivedAt: nullableText(row.archivedAt, `${path}.archivedAt`) }),
+  ...(row.focusStudentCount === undefined ? {} : { focusStudentCount: integer(row.focusStudentCount, `${path}.focusStudentCount`, 0, 80) }),
 });
 
 const readRoomTemplate = (row: Row, path: string): RoomTemplate => ({
@@ -87,6 +90,7 @@ const readRoomTemplate = (row: Row, path: string): RoomTemplate => ({
   rowCount: integer(row.rowCount, `${path}.rowCount`, 1, 50),
   columnCount: integer(row.columnCount, `${path}.columnCount`, 1, 50),
   active: bool(row.active, `${path}.active`),
+  ...(row.isFocus === undefined ? {} : { isFocus: bool(row.isFocus, `${path}.isFocus`) }),
   createdAt: text(row.createdAt, `${path}.createdAt`),
   ...(row.layout === undefined
     ? {}
@@ -153,6 +157,7 @@ function readSessionStudent(row: Row, path: string): SessionStudent {
   if ("displayName" in row) result.displayName = text(row.displayName, `${path}.displayName`);
   if ("seatRow" in row) result.seatRow = nullableInteger(row.seatRow, `${path}.seatRow`, 0);
   if ("seatCol" in row) result.seatCol = nullableInteger(row.seatCol, `${path}.seatCol`, 0);
+  if ("isFocus" in row) result.isFocus = bool(row.isFocus, `${path}.isFocus`);
   return result;
 }
 

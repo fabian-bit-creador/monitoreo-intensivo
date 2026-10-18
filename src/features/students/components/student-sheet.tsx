@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, UserRoundX, X } from "lucide-react";
+import { AlertTriangle, Star, UserRoundX, X } from "lucide-react";
 import { CODE_META } from "@/config/app";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { MonitoringCode, Observation, Student } from "@/types/monitoring";
@@ -49,7 +49,7 @@ export function StudentSheet(props: StudentSheetProps) {
         <div className="student-sheet-header">
           <div className="student-avatar">{student.displayName.slice(0, 1)}</div>
           <div>
-            <p>Recorrido {round}</p>
+            <p>Recorrido {round}{student.isFocus ? <span className="focus-label"><Star size={13} fill="currentColor" /> Estudiante foco</span> : null}</p>
             <h2>{student.displayName}</h2>
             <span>{student.fullName}</span>
           </div>

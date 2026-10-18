@@ -10,6 +10,9 @@ import {
   moveStudent,
   setPresence,
   setSessionStatus,
+  setCourseArchived,
+  setFocusStudents,
+  updateCourseDetails,
   updateRoomLayout,
   type CreateSessionInput,
 } from "./monitoring-service";
@@ -725,5 +728,50 @@ describe("salas configurables", () => {
     expect(base).toEqual(before);
     expect(changed.released).toBe(0);
     expect(changed.state.roomTemplates.find((item) => item.id === created.roomTemplateId)?.name).toBe("Lab 2");
+  });
+
+  it("crea un curso con año y foco, y fotografía el foco al iniciar la clase", () => {
+    const imported = importStudents(
+      buildState(),
+      "Kínder A",
+      2027,
+      [{ number: 1, fullName: "Ana Rojas" }, { number: 2, fullName: "Bruno Díaz" }],
+      [2],
+    );
+    expect(imported.state.courses.find((item) => item.id === imported.courseId))
+      .toMatchObject({ name: "Kínder A", academicYear: 2027, focusStudentCount: 1, archivedAt: null });
+    const focus = imported.state.students.find((student) => student.courseId === imported.courseId && student.number === 2);
+    expect(focus?.isFocus).toBe(true);
+
+    const session = createSession(imported.state, {
+      courseId: imported.courseId,
+      teacherId: TEACHER_ID,
+      roomTemplateId: imported.roomTemplateId,
+      date: "2026-03-10",
+      module: "Módulo 1",
+      objective: "Objetivo",
+      successCriteria: "Criterio",
+    });
+    expect(session.state.sessionStudents.find((row) => row.studentId === focus?.id)?.isFocus).toBe(true);
+  });
+
+  it("cambia foco y datos del curso, y exige cerrar la clase antes de archivarlo", () => {
+    const base = buildState();
+    base.sessions = [buildSession()];
+    const focused = setFocusStudents(base, COURSE_ID, ["a"]);
+    expect(focused.state.students.find((student) => student.id === "a")?.isFocus).toBe(true);
+    expect(focused.state.courses.find((course) => course.id === COURSE_ID)?.focusStudentCount).toBe(1);
+
+    const renamed = updateCourseDetails(focused.state, COURSE_ID, "Kínder B", 2028);
+    expect(renamed.state.courses.find((course) => course.id === COURSE_ID))
+      .toMatchObject({ name: "Kínder B", academicYear: 2028 });
+    expect(() => setCourseArchived(renamed.state, COURSE_ID, true)).toThrow("Cierra la clase");
+
+    const closed = {
+      ...renamed.state,
+      sessions: renamed.state.sessions.map((session) => ({ ...session, status: "closed" as const, closedAt: NOW })),
+    };
+    expect(setCourseArchived(closed, COURSE_ID, true).state.courses.find((course) => course.id === COURSE_ID)?.archivedAt)
+      .toBe(NOW);
   });
 });

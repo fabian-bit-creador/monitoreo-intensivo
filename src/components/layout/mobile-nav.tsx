@@ -1,4 +1,4 @@
-import { BarChart3, History, LayoutGrid, Settings } from "lucide-react";
+import { BarChart3, BookOpen, History, LayoutGrid, Settings } from "lucide-react";
 import type { AppView } from "@/types/monitoring";
 
 type MobileNavProps = {
@@ -14,6 +14,9 @@ export function MobileNav({ view, onViewChange }: MobileNavProps) {
       </button>
       <button className={view === "report" ? "active" : ""} onClick={() => onViewChange("report")}>
         <BarChart3 size={19} /><span>Informe</span>
+      </button>
+      <button className={view === "courses" ? "active" : ""} onClick={() => onViewChange("courses")}>
+        <BookOpen size={19} /><span>Cursos</span>
       </button>
       <button className={view === "history" ? "active" : ""} onClick={() => onViewChange("history")}>
         <History size={19} /><span>Historial</span>

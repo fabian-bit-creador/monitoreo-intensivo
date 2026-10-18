@@ -18,6 +18,7 @@ import { APP_NAME } from "@/config/app";
 import { NoAccessScreen } from "@/features/auth/components/no-access-screen";
 import { SupabaseGate, type AuthSession } from "@/features/auth/components/supabase-gate";
 import { ImportCourseModal } from "@/features/courses/components/import-course-modal";
+import { CoursesView } from "@/features/courses/components/courses-view";
 import { RoomModal } from "@/features/courses/components/room-modal";
 import { labLayout, layoutFromTemplate, suggestedLab } from "@/features/courses/lib/room-layouts";
 import { HistoryView } from "@/features/history/components/history-view";
@@ -110,7 +111,6 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     reorganizing,
     movingStudent,
     toast,
-    chooseTeacher,
     chooseCourse,
     openSessionForm,
     createNewSession,
@@ -122,6 +122,9 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     reopenSession,
     importCourse,
     updateCourseRoster,
+    updateFocusStudents,
+    archiveCourse,
+    updateCourseDetails,
     exportExcel,
     exportPdf,
     openHistorySession,
@@ -141,11 +144,13 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     updateProfileName,
   } = controller;
   const [roomModal, setRoomModal] = useState<"create" | "edit" | null>(null);
-  // Espacios donde la cuenta puede crear cursos; el personal va primero.
-  const adminSpaces = account?.schools
-    .filter((school) => school.role === "admin")
+  const personalSpace = account?.schools
+    .filter((school) => school.id === account.personalSpaceId)
     .map((school) => ({ id: school.id, name: school.name })) ?? [];
-  const spaces = account?.schools.map((school) => ({ id: school.id, name: school.name })) ?? [];
+
+  const displayedView = account && data && view === "monitor" && !data.courses.some((item) => !item.archivedAt)
+    ? "courses"
+    : view;
 
   if (blocked) {
     return (
@@ -194,21 +199,20 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
         onNewSession={openSessionForm}
         onRefresh={() => void reload()}
         courseReady={courseReady}
-        canImport={!account || account.adminSchoolIds.length > 0}
+        canImport={!account || Boolean(account.personalSpaceId)}
         persistence={persistence}
       />
 
       <div className="workspace">
         <Sidebar
           data={data}
-          view={view}
+          view={displayedView}
           teacherId={selectedTeacherId}
           courseId={courseId}
           readyCourseIds={readyCourseIds}
           onViewChange={setView}
-          onTeacherChange={chooseTeacher}
           onCourseChange={chooseCourse}
-          spaces={spaces}
+          spaces={personalSpace}
         />
         <main className="main-content">
           <MobileContextBar
@@ -216,9 +220,8 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
             teacherId={selectedTeacherId}
             courseId={courseId}
             readyCourseIds={readyCourseIds}
-            onTeacherChange={chooseTeacher}
             onCourseChange={chooseCourse}
-            spaces={spaces}
+            spaces={personalSpace}
           />
           {error ? (
             <div className="error-banner">
@@ -227,10 +230,23 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
             </div>
           ) : null}
 
-          {view === "monitor" && !courseReady ? (
+          {displayedView === "monitor" && !courseReady ? (
             <PendingCourseState course={course} onImport={() => setShowImport(true)} />
           ) : null}
-          {view === "monitor" && courseReady ? (
+
+          {displayedView === "courses" ? (
+            <CoursesView
+              data={data}
+              selectedCourseId={courseId}
+              busy={busy}
+              onSelect={(id) => { chooseCourse(id); setView("monitor"); }}
+              onCreate={() => setShowImport(true)}
+              onUpdateDetails={updateCourseDetails}
+              onUpdateFocus={updateFocusStudents}
+              onArchive={archiveCourse}
+            />
+          ) : null}
+          {displayedView === "monitor" && courseReady ? (
             <MonitorView
               course={course}
               teacher={selectedTeacher}
@@ -264,10 +280,10 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
             />
           ) : null}
 
-          {view === "report" && !courseReady ? (
+          {displayedView === "report" && !courseReady ? (
             <PendingCourseState course={course} onImport={() => setShowImport(true)} />
           ) : null}
-          {view === "report" && courseReady ? (
+          {displayedView === "report" && courseReady ? (
             <ReportView
               data={data}
               course={course}
@@ -283,10 +299,10 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
             />
           ) : null}
 
-          {view === "history" && !courseReady ? (
+          {displayedView === "history" && !courseReady ? (
             <PendingCourseState course={course} onImport={() => setShowImport(true)} />
           ) : null}
-          {view === "history" && courseReady ? (
+          {displayedView === "history" && courseReady ? (
             <HistoryView
               data={data}
               courseId={courseId}
@@ -298,11 +314,9 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
             />
           ) : null}
 
-          {view === "settings" ? (
+          {displayedView === "settings" ? (
             <SettingsView
               data={data}
-              selectedTeacherId={selectedTeacherId}
-              onSelectTeacher={chooseTeacher}
               backup={{
                 busy,
                 error,
@@ -324,7 +338,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
         </main>
       </div>
 
-      <MobileNav view={view} onViewChange={setView} />
+      <MobileNav view={displayedView} onViewChange={setView} />
 
       {selectedStudent && activeSession && metrics ? (
         <StudentSheet
@@ -361,7 +375,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
           data={data}
           currentCourseId={courseId}
           suggestedCourseName={courseReady ? "Nuevo curso" : course?.name ?? "Nuevo curso"}
-          spaces={adminSpaces}
+          spaces={personalSpace}
           busy={busy}
           error={error}
           onImport={importCourse}

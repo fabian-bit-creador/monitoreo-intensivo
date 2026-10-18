@@ -46,9 +46,11 @@ function resolveTeacherId(data: MonitoringState | null, choice: string) {
 }
 
 function resolveCourseId(data: MonitoringState | null, choice: string) {
-  if (!data || data.courses.some((course) => course.id === choice)) return choice;
+  if (!data || data.courses.some((course) => course.id === choice && !course.archivedAt)) return choice;
   return (
-    data.courses.find((course) => hasRosterAndTemplate(data, course.id)) ?? data.courses[0]
+    data.courses.find((course) => !course.archivedAt && hasRosterAndTemplate(data, course.id))
+    ?? data.courses.find((course) => !course.archivedAt)
+    ?? data.courses[0]
   )?.id ?? choice;
 }
 
@@ -142,7 +144,7 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     if (!data) return new Set<string>();
     return new Set(
       data.courses
-        .filter((item) => hasRosterAndTemplate(data, item.id))
+        .filter((item) => !item.archivedAt && hasRosterAndTemplate(data, item.id))
         .map((item) => item.id),
     );
   }, [data]);
@@ -339,7 +341,14 @@ export function useMonitoringController(createRepository: () => StoreRepository)
   }
 
   async function importCourse(courseName: string, entries: RosterEntry[], options?: NewCourseOptions) {
-    const result = await execute({ type: "importStudents", courseName, entries, spaceId: options?.spaceId });
+    const result = await execute({
+      type: "importStudents",
+      courseName,
+      academicYear: options?.academicYear ?? new Date().getFullYear(),
+      entries,
+      focusNumbers: options?.focusNumbers ?? [],
+      spaceId: options?.spaceId,
+    });
     if (!result) return false;
     setCourseId(result.courseId);
     setSelectedTemplateId(result.roomTemplateId);
@@ -358,6 +367,31 @@ export function useMonitoringController(createRepository: () => StoreRepository)
       }
     }
     setToast(`Curso creado con ${Math.min(entries.length, 80)} estudiantes`);
+    return true;
+  }
+
+  async function updateFocusStudents(targetCourseId: string, studentIds: string[]) {
+    const result = await execute({ type: "setFocusStudents", courseId: targetCourseId, studentIds });
+    if (!result) return false;
+    setToast("Estudiantes foco actualizados");
+    return true;
+  }
+
+  async function archiveCourse(targetCourseId: string, archived: boolean) {
+    const result = await execute({ type: "setCourseArchived", courseId: targetCourseId, archived });
+    if (!result) return false;
+    if (archived && targetCourseId === courseId) {
+      const next = result.state.courses.find((item) => !item.archivedAt && item.id !== targetCourseId);
+      if (next) chooseCourse(next.id);
+    }
+    setToast(archived ? "Curso archivado" : "Curso restaurado");
+    return true;
+  }
+
+  async function updateCourseDetails(targetCourseId: string, name: string, academicYear: number) {
+    const result = await execute({ type: "updateCourseDetails", courseId: targetCourseId, name, academicYear });
+    if (!result) return false;
+    setToast("Curso actualizado");
     return true;
   }
 
@@ -571,6 +605,9 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     reopenSession,
     importCourse,
     updateCourseRoster,
+    updateFocusStudents,
+    archiveCourse,
+    updateCourseDetails,
     exportExcel,
     exportPdf,
     openHistorySession,

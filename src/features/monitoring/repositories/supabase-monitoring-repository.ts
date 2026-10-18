@@ -76,9 +76,9 @@ async function fetchRows(client: SupabaseClient, user: { id: string; email: stri
     table("schools", "id, name", ["id"], ["kind"]),
     table("school_memberships", "school_id, user_id, role, active", ["school_id", "user_id"]),
     table("profiles", "id, full_name, created_at", ["id"]),
-    table("courses", "id, school_id, name, archived_at, created_at", ["id"]),
+    table("courses", "id, school_id, name, academic_year, archived_at, created_at", ["id"], ["focus_student_count"]),
     table("students", "id, full_name, display_name", ["id"]),
-    table("enrollments", "id, course_id, student_id, list_number, active", ["id"]),
+    table("enrollments", "id, course_id, student_id, list_number, active", ["id"], ["is_focus"]),
     table("room_templates", "id, course_id, name, description, row_count, column_count, active, created_at", ["id"], ["layout"]),
     table("room_slots", "template_id, seat_row, seat_col, status", ["template_id", "seat_row", "seat_col"], ["group_label"]),
     table("seat_assignments", "template_id, enrollment_id, seat_row, seat_col", ["template_id", "enrollment_id"]),
@@ -91,6 +91,7 @@ async function fetchRows(client: SupabaseClient, user: { id: string; email: stri
       "session_students",
       "session_id, enrollment_id, list_number, full_name, display_name, seat_row, seat_col, present",
       ["session_id", "enrollment_id"],
+      ["is_focus"],
     ),
     table("observations", "id, seq, session_id, enrollment_id, round, code, progress, note, observed_at", ["seq"]),
   ]);
@@ -248,14 +249,14 @@ export class SupabaseMonitoringRepository implements MonitoringRepository {
         return { assigned };
       }
       case "importStudents": {
-        const schoolId = command.spaceId
-          ?? this.account?.personalSpaceId
-          ?? this.account?.adminSchoolIds[0];
-        if (!schoolId) throw new Error("Solo administración puede crear cursos.");
+        const schoolId = this.account?.personalSpaceId ?? command.spaceId;
+        if (!schoolId) throw new Error("No encontramos tu espacio personal.");
         const created = await this.rpc<{ courseId: string; roomTemplateId: string }>("create_course", {
           p_school_id: schoolId,
           p_name: command.courseName,
+          p_academic_year: command.academicYear ?? new Date().getFullYear(),
           p_entries: command.entries,
+          p_focus_numbers: command.focusNumbers ?? [],
         });
         return created;
       }
@@ -275,6 +276,15 @@ export class SupabaseMonitoringRepository implements MonitoringRepository {
         });
         return { plan };
       }
+      case "setFocusStudents":
+        await this.rpc("set_focus_students", { p_course_id: command.courseId, p_enrollment_ids: command.studentIds });
+        return {};
+      case "setCourseArchived":
+        await this.rpc("set_course_archived", { p_course_id: command.courseId, p_archived: command.archived });
+        return {};
+      case "updateCourseDetails":
+        await this.rpc("update_course_details", { p_course_id: command.courseId, p_name: command.name, p_academic_year: command.academicYear });
+        return {};
       case "createRoomTemplate": {
         const roomTemplateId = await this.rpc<string>("create_room_template", {
           p_id: crypto.randomUUID(),

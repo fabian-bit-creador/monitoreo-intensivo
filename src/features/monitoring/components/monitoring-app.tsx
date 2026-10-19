@@ -20,7 +20,13 @@ import { SupabaseGate, type AuthSession } from "@/features/auth/components/supab
 import { ImportCourseModal } from "@/features/courses/components/import-course-modal";
 import { CoursesView } from "@/features/courses/components/courses-view";
 import { RoomModal } from "@/features/courses/components/room-modal";
-import { labLayout, layoutFromTemplate, suggestedLab } from "@/features/courses/lib/room-layouts";
+import {
+  groupsLayout,
+  labLayout,
+  layoutFromTemplate,
+  suggestedGroups,
+  suggestedLab,
+} from "@/features/courses/lib/room-layouts";
 import { HistoryView } from "@/features/history/components/history-view";
 import { useMonitoringController } from "@/features/monitoring/hooks/use-monitoring-controller";
 import type { StoreRepository } from "@/features/monitoring/hooks/use-monitoring-store";
@@ -143,7 +149,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     importToServer,
     updateProfileName,
   } = controller;
-  const [roomModal, setRoomModal] = useState<"create" | "edit" | null>(null);
+  const [roomModal, setRoomModal] = useState<"create" | "edit" | "group" | null>(null);
   const personalSpace = account?.schools
     .filter((school) => school.id === account.personalSpaceId)
     .map((school) => ({ id: school.id, name: school.name })) ?? [];
@@ -201,6 +207,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
         courseReady={courseReady}
         canImport={!account || Boolean(account.personalSpaceId)}
         persistence={persistence}
+        onSignOut={session ? () => void session.signOut() : undefined}
       />
 
       <div className="workspace">
@@ -273,6 +280,7 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
               roomTemplates={courseRoomTemplates}
               onSelectRoom={selectRoomTemplate}
               onNewRoom={() => setRoomModal("create")}
+              onNewGroup={() => setRoomModal("group")}
               onEditRoom={() => setRoomModal("edit")}
               onStart={openSessionForm}
               onClose={() => void closeSession()}
@@ -386,11 +394,18 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
 
       {roomModal ? (
         <RoomModal
-          mode={roomModal}
+          mode={roomModal === "edit" ? "edit" : "create"}
+          title={roomModal === "group" ? "Nuevo grupo de trabajo" : undefined}
+          submitLabel={roomModal === "group" ? "Crear grupo" : undefined}
           studentCount={visibleStudents.length}
           initial={roomModal === "edit" && activeRoomTemplate
             ? { name: activeRoomTemplate.name, layout: layoutFromTemplate(activeRoomTemplate, activeRoomSlots) }
-            : { name: "Laboratorio", layout: labLayout(suggestedLab(visibleStudents.length)) }}
+            : roomModal === "group"
+              ? {
+                name: `Trabajo grupal ${courseRoomTemplates.filter((template) => template.layout === "groups").length + 1}`,
+                layout: groupsLayout(suggestedGroups(visibleStudents.length)),
+              }
+              : { name: "Laboratorio", layout: labLayout(suggestedLab(visibleStudents.length)) }}
           busy={busy}
           error={error}
           onSave={(draft) => (roomModal === "edit" ? updateRoom(draft) : createRoom(draft))}
@@ -402,3 +417,4 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     </div>
   );
 }
+

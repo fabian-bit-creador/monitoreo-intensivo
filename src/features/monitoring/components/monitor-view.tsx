@@ -8,6 +8,7 @@ import {
   PencilRuler,
   Plus,
   Search,
+  UsersRound,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClassroomMap } from "./classroom-map";
@@ -52,6 +53,7 @@ export type MonitorViewProps = {
   roomTemplates: RoomTemplate[];
   onSelectRoom: (roomTemplateId: string) => void;
   onNewRoom: () => void;
+  onNewGroup: () => void;
   onEditRoom: () => void;
   onStart: () => void;
   onClose: () => void;
@@ -85,6 +87,7 @@ export function MonitorView(props: MonitorViewProps) {
     roomTemplates,
     onSelectRoom,
     onNewRoom,
+    onNewGroup,
     onEditRoom,
     onStart,
     onClose,
@@ -180,7 +183,12 @@ export function MonitorView(props: MonitorViewProps) {
               <p className="eyebrow">Sala del curso</p>
               <h2>{roomTemplate?.name ?? "Sala"}</h2>
             </div>
-            {moveButton("Ordenar puestos")}
+            <div className="heading-actions">
+              <button className="secondary-button" onClick={onNewGroup} disabled={busy}>
+                <UsersRound size={17} /> Nuevo grupo de trabajo
+              </button>
+              {moveButton("Ordenar puestos")}
+            </div>
           </div>
           {roomTools}
           {classroomMap}
@@ -273,6 +281,9 @@ export function MonitorView(props: MonitorViewProps) {
           </button>
         </div>
         {moveButton("Mover puestos")}
+        <button className="secondary-button" onClick={onNewGroup} disabled={busy}>
+          <UsersRound size={17} /> Nuevo grupo de trabajo
+        </button>
       </section>
 
       {roomTools}
@@ -289,3 +300,4 @@ export function MonitorView(props: MonitorViewProps) {
     </>
   );
 }
+

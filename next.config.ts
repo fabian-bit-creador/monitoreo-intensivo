@@ -1,12 +1,13 @@
 import type { NextConfig } from "next";
 
-// Producción usa el proyecto oficial incluso si Vercel todavía no tiene las
-// variables configuradas. Estos dos valores son públicos por diseño; RLS
-// mantiene la autorización y nunca se incorpora una clave service_role.
+// Producción usa siempre el proyecto oficial. La asignación explícita evita
+// que una variable antigua de Vercel dirija el inicio de sesión a otro
+// proyecto. Estos dos valores son públicos por diseño; RLS mantiene la
+// autorización y nunca se incorpora una clave service_role.
 if (process.env.VERCEL_ENV === "production") {
-  process.env.NEXT_PUBLIC_DATA_MODE ??= "supabase";
-  process.env.NEXT_PUBLIC_SUPABASE_URL ??= "https://kuqrulqfmpchmmjfellf.supabase.co";
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??= "sb_publishable__0XfaSDNqKnl92LWTNdoJQ_TgdBH3qL";
+  process.env.NEXT_PUBLIC_DATA_MODE = "supabase";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://kuqrulqfmpchmmjfellf.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable__0XfaSDNqKnl92LWTNdoJQ_TgdBH3qL";
 }
 
 /**

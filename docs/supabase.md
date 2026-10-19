@@ -141,10 +141,11 @@ values ('<id del establecimiento>', '<id del curso>', '<id del usuario>');
 
 Sin estas variables, la aplicación funciona en modo local, como antes.
 
-Hoy están definidas solo para **Preview** y **Development**: las vistas previas de cada rama usan
-el proyecto piloto y la producción sigue en modo local. Activar Supabase en producción requiere
-autorización explícita y un nuevo despliegue, porque Next.js incorpora estas variables al
-compilar.
+Producción usa el proyecto oficial `kuqrulqfmpchmmjfellf`. `next.config.ts` incluye como respaldo
+su URL y su clave publicable cuando `VERCEL_ENV=production`, de modo que el despliegue conserva
+el inicio de sesión aunque falten las variables del panel. Las variables de Vercel siguen teniendo
+prioridad y permiten cambiar el proyecto sin modificar el código. Nunca se incorpora una clave
+`service_role`.
 
 ## Subir los datos del Site anterior
 
@@ -154,3 +155,4 @@ compilar.
 4. Se puede repetir sin duplicar: cada fila guarda su identificador anterior en `legacy_id`.
 
 Los datos van directo del navegador a Supabase: no pasan por el repositorio ni por la CI.
+

@@ -5,6 +5,7 @@ import {
   Database,
   FolderPlus,
   LoaderCircle,
+  LogOut,
   Plus,
   RefreshCcw,
 } from "lucide-react";
@@ -18,6 +19,7 @@ type TopbarProps = {
   courseReady: boolean;
   canImport: boolean;
   persistence: PersistenceStatus;
+  onSignOut?: () => void;
 };
 
 function savedTitle(persistence: PersistenceStatus) {
@@ -65,6 +67,7 @@ export function Topbar({
   courseReady,
   canImport,
   persistence,
+  onSignOut,
 }: TopbarProps) {
   return (
     <header className="topbar">
@@ -94,7 +97,18 @@ export function Topbar({
           <span className="desktop-only">Nueva clase</span>
           <span className="mobile-only">Clase</span>
         </button>
+        {onSignOut ? (
+          <>
+            <button className="secondary-button desktop-only" onClick={onSignOut}>
+              <LogOut size={17} /> Cerrar sesión
+            </button>
+            <button className="icon-button mobile-only" aria-label="Cerrar sesión" onClick={onSignOut}>
+              <LogOut size={18} />
+            </button>
+          </>
+        ) : null}
       </div>
     </header>
   );
 }
+

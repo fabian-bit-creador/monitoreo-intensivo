@@ -159,7 +159,6 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
     createRoom,
     updateRoom,
     selectRoomTemplate,
-    importToServer,
     updateProfileName,
   } = controller;
   const [roomModal, setRoomModal] = useState<"create" | "edit" | "group" | null>(null);
@@ -353,7 +352,6 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
                 account,
                 onSignOut: () => void session.signOut(),
                 onUpdateName: updateProfileName,
-                onImportToServer: importToServer,
               } : null}
             />
           ) : null}

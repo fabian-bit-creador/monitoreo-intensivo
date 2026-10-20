@@ -11,18 +11,15 @@ import type { MonitoringState } from "@/types/monitoring";
 import { AccountCard } from "./account-card";
 import { BackupCard, type BackupCardProps } from "./backup-card";
 import { LocalDataNotice } from "./local-data-notice";
-import { ServerImportCard } from "./server-import-card";
 
-/** Solo en modo servidor: cuenta autenticada y operaciones de administración. */
+/**
+ * Solo en modo servidor: cuenta autenticada. Subir datos al servidor (el
+ * historial del Site o un respaldo) quedó fuera del alcance actual.
+ */
 export type RemoteSettings = {
   account: RemoteAccount;
   onSignOut: () => void;
   onUpdateName: (fullName: string) => Promise<boolean>;
-  onImportToServer: (
-    schoolId: string,
-    state: MonitoringState,
-    teacherMap: Record<string, string>,
-  ) => Promise<Record<string, number> | null>;
 };
 
 type SettingsViewProps = {
@@ -67,15 +64,6 @@ export function SettingsView({
               busy={backup.busy}
               onUpdateName={remote.onUpdateName}
               onSignOut={remote.onSignOut}
-            />
-          ) : null}
-
-          {remote?.account.adminSchoolIds.length ? (
-            <ServerImportCard
-              account={remote.account}
-              busy={backup.busy}
-              error={backup.error}
-              onImport={remote.onImportToServer}
             />
           ) : null}
 

@@ -522,19 +522,6 @@ export function useMonitoringController(createRepository: () => StoreRepository)
       : "No quedan estudiantes sin puesto o no hay puestos libres");
   }
 
-  async function importToServer(schoolId: string, state: MonitoringState, teacherMap: Record<string, string>) {
-    if (!(repository instanceof SupabaseMonitoringRepository)) return null;
-    const result = await run(
-      () => repository.importLegacyState(schoolId, state, teacherMap),
-      "No fue posible importar los datos al servidor.",
-    );
-    if (!result) return null;
-    setActiveSessionId(null);
-    setView("monitor");
-    setToast(`Importado: ${result.courses} cursos, ${result.students} estudiantes, ${result.sessions} clases y ${result.observations} observaciones`);
-    return result;
-  }
-
   async function updateProfileName(fullName: string) {
     if (!(repository instanceof SupabaseMonitoringRepository)) return false;
     const done = await run(() => repository.updateProfileName(fullName), "No fue posible guardar tu nombre.");
@@ -623,7 +610,6 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     createRoom,
     updateRoom,
     selectRoomTemplate,
-    importToServer,
     updateProfileName,
   };
 }

@@ -72,6 +72,8 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     listSavedCopies,
     deleteSavedCopy,
     setError,
+    notice,
+    setNotice,
   } = useMonitoringStore(createRepository);
   const [view, setView] = useState<AppView>("monitor");
   const [courseChoice, setCourseId] = useState(DEMO_COURSE_ID);
@@ -204,7 +206,8 @@ export function useMonitoringController(createRepository: () => StoreRepository)
   }
 
   async function createNewSession(input: CreateSessionInput) {
-    const result = await execute({ type: "createSession", input });
+    // Si el servidor confirmó sin poder releer, la clase aparece al actualizarse.
+    const result = await execute({ type: "createSession", input }, { onStaleSave: () => setShowSessionForm(false) });
     if (!result) return;
     setActiveSessionId(result.sessionId);
     setSelectedTemplateId(input.roomTemplateId);
@@ -226,6 +229,12 @@ export function useMonitoringController(createRepository: () => StoreRepository)
         code,
         progress,
         note,
+      },
+    }, {
+      // Guardado en el servidor: la hoja se cierra igual que al confirmar.
+      onStaleSave: () => {
+        setSelectedStudent(null);
+        setNote("");
       },
     });
     if (!result) return;
@@ -522,19 +531,6 @@ export function useMonitoringController(createRepository: () => StoreRepository)
       : "No quedan estudiantes sin puesto o no hay puestos libres");
   }
 
-  async function importToServer(schoolId: string, state: MonitoringState, teacherMap: Record<string, string>) {
-    if (!(repository instanceof SupabaseMonitoringRepository)) return null;
-    const result = await run(
-      () => repository.importLegacyState(schoolId, state, teacherMap),
-      "No fue posible importar los datos al servidor.",
-    );
-    if (!result) return null;
-    setActiveSessionId(null);
-    setView("monitor");
-    setToast(`Importado: ${result.courses} cursos, ${result.students} estudiantes, ${result.sessions} clases y ${result.observations} observaciones`);
-    return result;
-  }
-
   async function updateProfileName(fullName: string) {
     if (!(repository instanceof SupabaseMonitoringRepository)) return false;
     const done = await run(() => repository.updateProfileName(fullName), "No fue posible guardar tu nombre.");
@@ -552,6 +548,8 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     account,
     blocked,
     error,
+    notice,
+    setNotice,
     busy,
     persistence,
     localBackup,
@@ -623,7 +621,6 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     createRoom,
     updateRoom,
     selectRoomTemplate,
-    importToServer,
     updateProfileName,
   };
 }

@@ -141,18 +141,22 @@ values ('<id del establecimiento>', '<id del curso>', '<id del usuario>');
 
 Sin estas variables, la aplicación funciona en modo local, como antes.
 
-Producción usa el proyecto oficial `kuqrulqfmpchmmjfellf`. `next.config.ts` incluye como respaldo
-su URL y su clave publicable cuando `VERCEL_ENV=production`, de modo que el despliegue conserva
-el inicio de sesión aunque falten las variables del panel. Las variables de Vercel siguen teniendo
-prioridad y permiten cambiar el proyecto sin modificar el código. Nunca se incorpora una clave
-`service_role`.
+**Producción** usa el proyecto `kuqrulqfmpchmmjfellf`, activado el 19-10-2026 (PR #18).
+`next.config.ts` fija su URL y su clave publicable cuando `VERCEL_ENV=production`: desde el commit
+`95d42ce`, esos valores **reemplazan** las variables del panel de Vercel, así que cambiar de
+proyecto en producción requiere modificar el código. Nunca se incorpora una clave `service_role`.
 
-## Subir los datos del Site anterior
+Las **vistas previas** usan las variables de Preview: hoy, el proyecto piloto
+`kpgtydpzslxkhwhbjkak`. Ese proyecto no tiene la migración `20261018193145_cursos_personales_y_foco`.
+Ver [activacion-produccion.md](activacion-produccion.md).
 
-1. Descarga el JSON del Site desde tu navegador y guárdalo en un lugar privado.
-2. Ingresa con una cuenta de administración → Configuración → **Subir datos al servidor**.
-3. La vista previa muestra lo que contiene. Las clases quedan a nombre de la cuenta que importa.
-4. Se puede repetir sin duplicar: cada fila guarda su identificador anterior en `legacy_id`.
+## Datos guardados en el navegador
 
-Los datos van directo del navegador a Supabase: no pasan por el repositorio ni por la CI.
+Con cuentas, los datos del modo sin cuenta **no se borran ni se suben**. Quien los tenga ve un
+aviso en el ingreso y en Configuración con «Descargar datos de este navegador» (un respaldo que se
+puede restaurar en modo local). La demostración sin cambios no genera aviso.
 
+## Fuera del alcance actual: historial del Site anterior
+
+No se importa ni se extrae el historial del Site anterior. La tarjeta «Subir datos al servidor» se
+retiró de Configuración; la operación `import_legacy_state` sigue en la base, sin uso desde la app.

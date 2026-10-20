@@ -43,7 +43,13 @@ function signInMessage(message: string) {
  * Pide iniciar sesión con Supabase Auth y entrega la sesión a la aplicación.
  * La autoría de clases y registros sale de esta cuenta, no de un selector.
  */
-export function SupabaseGate({ children }: { children: (session: AuthSession) => ReactNode }) {
+type SupabaseGateProps = {
+  children: (session: AuthSession) => ReactNode;
+  /** Se muestra bajo el formulario de ingreso. */
+  loginNotice?: ReactNode;
+};
+
+export function SupabaseGate({ children, loginNotice }: SupabaseGateProps) {
   const [client] = useState(getSupabaseClient);
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [google, setGoogle] = useState(false);
@@ -80,6 +86,7 @@ export function SupabaseGate({ children }: { children: (session: AuthSession) =>
     return (
       <LoginScreen
         initialError={returnError}
+        notice={loginNotice}
         onSignIn={async (email, password) => {
           const { error } = await client.auth.signInWithPassword({ email, password });
           return error ? signInMessage(error.message) : null;

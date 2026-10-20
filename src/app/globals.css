@@ -503,6 +503,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .error-banner { min-height: 43px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 11px; background: #fff0f0; border: 1px solid #f4c7c7; color: #9d3131; font-size: 12px; }
 .error-banner button { margin-left: auto; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .error-banner > svg { flex: 0 0 auto; }
+/* Información, no error: por ejemplo, «guardado, falta actualizar la pantalla». */
+.notice-banner { min-height: 43px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 11px; background: var(--teal-soft); border: 1px solid #bfe4df; color: var(--navy); font-size: 12px; }
+.notice-banner > svg { flex: 0 0 auto; color: var(--teal); }
+.notice-banner button { margin-left: auto; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .toast { position: fixed; z-index: 100; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; border-radius: 999px; background: #122d4d; color: #fff; padding: 11px 16px; box-shadow: 0 16px 36px rgba(10, 28, 49, 0.3); font-size: 12px; font-weight: 700; animation: toast-in 0.25s ease; }
 @keyframes toast-in { from { transform: translate(-50%, 12px); opacity: 0; } }
 .loading-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--muted); background: var(--canvas); text-align: center; padding: 20px; }
@@ -518,6 +522,10 @@ button:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important
 .login-card p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
 .login-card .login-note { font-size: 11px; }
 .login-card .google-button { gap: 10px; }
+/* Datos guardados sin cuenta: se avisan y se descargan, nunca se borran ni se suben. */
+.local-data-notice p { margin: 0 0 8px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.local-data-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.local-data-notice.compact { width: min(410px, 100%); text-align: left; }
 .login-divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 11px; }
 .login-divider::before, .login-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .account-form { margin-top: 16px; }

@@ -6,34 +6,35 @@ import {
 } from "lucide-react";
 import { DEMO_COURSE_ID } from "@/config/app";
 import { CourseStatusList } from "@/features/courses/components/course-status-list";
-import type { RemoteAccount } from "@/features/monitoring/repositories";
+import type { LocalDataSnapshot, RemoteAccount } from "@/features/monitoring/repositories";
 import type { MonitoringState } from "@/types/monitoring";
 import { AccountCard } from "./account-card";
 import { BackupCard, type BackupCardProps } from "./backup-card";
-import { ServerImportCard } from "./server-import-card";
+import { LocalDataNotice } from "./local-data-notice";
 
-/** Solo en modo servidor: cuenta autenticada y operaciones de administración. */
+/**
+ * Solo en modo servidor: cuenta autenticada. Subir datos al servidor (el
+ * historial del Site o un respaldo) quedó fuera del alcance actual.
+ */
 export type RemoteSettings = {
   account: RemoteAccount;
   onSignOut: () => void;
   onUpdateName: (fullName: string) => Promise<boolean>;
-  onImportToServer: (
-    schoolId: string,
-    state: MonitoringState,
-    teacherMap: Record<string, string>,
-  ) => Promise<Record<string, number> | null>;
 };
 
 type SettingsViewProps = {
   data: MonitoringState;
   backup: Omit<BackupCardProps, "data">;
   remote: RemoteSettings | null;
+  /** Con cuentas: datos que el modo sin cuenta dejó en este navegador. */
+  localData?: LocalDataSnapshot | null;
 };
 
 export function SettingsView({
   data,
   backup,
   remote,
+  localData = null,
 }: SettingsViewProps) {
   const operationalTemplates = data.roomTemplates.filter(
     (template) => template.courseId === DEMO_COURSE_ID,
@@ -66,15 +67,6 @@ export function SettingsView({
             />
           ) : null}
 
-          {remote?.account.adminSchoolIds.length ? (
-            <ServerImportCard
-              account={remote.account}
-              busy={backup.busy}
-              error={backup.error}
-              onImport={remote.onImportToServer}
-            />
-          ) : null}
-
           {remote ? null : (
           <article className="card settings-card">
             <div className="card-heading">
@@ -89,6 +81,8 @@ export function SettingsView({
             </ul>
           </article>
           )}
+
+          {remote && localData ? <LocalDataNotice data={localData} /> : null}
 
           <BackupCard data={data} {...backup} />
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   AlertTriangle,
   Check,
+  CircleCheck,
   LoaderCircle,
   RefreshCcw,
   X,
@@ -28,13 +29,16 @@ import {
   suggestedLab,
 } from "@/features/courses/lib/room-layouts";
 import { HistoryView } from "@/features/history/components/history-view";
+import { useBrowserLocalData } from "@/features/monitoring/hooks/use-browser-local-data";
 import { useMonitoringController } from "@/features/monitoring/hooks/use-monitoring-controller";
 import type { StoreRepository } from "@/features/monitoring/hooks/use-monitoring-store";
 import {
   createMonitoringRepository,
   SupabaseMonitoringRepository,
+  type LocalDataSnapshot,
 } from "@/features/monitoring/repositories";
 import { ReportView } from "@/features/reports/components/report-view";
+import { LocalDataNotice } from "@/features/settings/components/local-data-notice";
 import { SettingsView } from "@/features/settings/components/settings-view";
 import { StudentSheet } from "@/features/students/components/student-sheet";
 import { MonitorView } from "./monitor-view";
@@ -47,31 +51,41 @@ import { getSupabaseClient, supabaseConfig } from "@/lib/supabase";
  * sin configuración, funciona como siempre en este navegador.
  */
 export function MonitoringApp() {
-  if (supabaseConfig()) {
-    return (
-      <SupabaseGate>
-        {(session) => (
-          <MonitoringWorkspace
-            key={session.userId}
-            session={session}
-            createRepository={() => new SupabaseMonitoringRepository(
-              getSupabaseClient(),
-              { id: session.userId, email: session.email },
-            )}
-          />
-        )}
-      </SupabaseGate>
-    );
-  }
+  if (supabaseConfig()) return <RemoteMonitoringApp />;
   return <MonitoringWorkspace session={null} createRepository={createMonitoringRepository} />;
+}
+
+/**
+ * Con cuentas, los datos que el modo sin cuenta dejó en este navegador no se
+ * borran ni se suben: se avisan en el ingreso y en Configuración para
+ * descargarlos.
+ */
+function RemoteMonitoringApp() {
+  const localData = useBrowserLocalData();
+  return (
+    <SupabaseGate loginNotice={localData ? <LocalDataNotice data={localData} compact /> : null}>
+      {(session) => (
+        <MonitoringWorkspace
+          key={session.userId}
+          session={session}
+          localData={localData}
+          createRepository={() => new SupabaseMonitoringRepository(
+            getSupabaseClient(),
+            { id: session.userId, email: session.email },
+          )}
+        />
+      )}
+    </SupabaseGate>
+  );
 }
 
 type MonitoringWorkspaceProps = {
   session: AuthSession | null;
   createRepository: () => StoreRepository;
+  localData?: LocalDataSnapshot | null;
 };
 
-function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceProps) {
+function MonitoringWorkspace({ session, createRepository, localData = null }: MonitoringWorkspaceProps) {
   const controller = useMonitoringController(createRepository);
   const {
     data,
@@ -83,6 +97,8 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     persistence,
     reload,
     setError,
+    notice,
+    setNotice,
     view,
     setView,
     courseId,
@@ -146,7 +162,6 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
     createRoom,
     updateRoom,
     selectRoomTemplate,
-    importToServer,
     updateProfileName,
   } = controller;
   const [roomModal, setRoomModal] = useState<"create" | "edit" | "group" | null>(null);
@@ -234,6 +249,12 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
             <div className="error-banner">
               <AlertTriangle size={17} /> {error}
               <button onClick={() => setError("")}><X size={16} /></button>
+            </div>
+          ) : null}
+          {notice ? (
+            <div className="notice-banner" role="status">
+              <CircleCheck size={17} /> {notice}
+              <button onClick={() => setNotice("")} aria-label="Cerrar aviso"><X size={16} /></button>
             </div>
           ) : null}
 
@@ -335,11 +356,11 @@ function MonitoringWorkspace({ session, createRepository }: MonitoringWorkspaceP
                 listSavedCopies,
                 deleteSavedCopy,
               }}
+              localData={localData}
               remote={session && account ? {
                 account,
                 onSignOut: () => void session.signOut(),
                 onUpdateName: updateProfileName,
-                onImportToServer: importToServer,
               } : null}
             />
           ) : null}

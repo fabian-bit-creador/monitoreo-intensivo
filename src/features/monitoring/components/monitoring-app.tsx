@@ -18,8 +18,15 @@ import { APP_NAME } from "@/config/app";
 import { NoAccessScreen } from "@/features/auth/components/no-access-screen";
 import { SupabaseGate, type AuthSession } from "@/features/auth/components/supabase-gate";
 import { ImportCourseModal } from "@/features/courses/components/import-course-modal";
+import { CoursesView } from "@/features/courses/components/courses-view";
 import { RoomModal } from "@/features/courses/components/room-modal";
-import { labLayout, layoutFromTemplate, suggestedLab } from "@/features/courses/lib/room-layouts";
+import {
+  groupsLayout,
+  labLayout,
+  layoutFromTemplate,
+  suggestedGroups,
+  suggestedLab,
+} from "@/features/courses/lib/room-layouts";
 import { HistoryView } from "@/features/history/components/history-view";
 import { useBrowserLocalData } from "@/features/monitoring/hooks/use-browser-local-data";
 import { useMonitoringController } from "@/features/monitoring/hooks/use-monitoring-controller";
@@ -123,7 +130,6 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
     reorganizing,
     movingStudent,
     toast,
-    chooseTeacher,
     chooseCourse,
     openSessionForm,
     createNewSession,
@@ -135,6 +141,9 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
     reopenSession,
     importCourse,
     updateCourseRoster,
+    updateFocusStudents,
+    archiveCourse,
+    updateCourseDetails,
     exportExcel,
     exportPdf,
     openHistorySession,
@@ -153,12 +162,14 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
     importToServer,
     updateProfileName,
   } = controller;
-  const [roomModal, setRoomModal] = useState<"create" | "edit" | null>(null);
-  // Espacios donde la cuenta puede crear cursos; el personal va primero.
-  const adminSpaces = account?.schools
-    .filter((school) => school.role === "admin")
+  const [roomModal, setRoomModal] = useState<"create" | "edit" | "group" | null>(null);
+  const personalSpace = account?.schools
+    .filter((school) => school.id === account.personalSpaceId)
     .map((school) => ({ id: school.id, name: school.name })) ?? [];
-  const spaces = account?.schools.map((school) => ({ id: school.id, name: school.name })) ?? [];
+
+  const displayedView = account && data && view === "monitor" && !data.courses.some((item) => !item.archivedAt)
+    ? "courses"
+    : view;
 
   if (blocked) {
     return (
@@ -207,21 +218,21 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
         onNewSession={openSessionForm}
         onRefresh={() => void reload()}
         courseReady={courseReady}
-        canImport={!account || account.adminSchoolIds.length > 0}
+        canImport={!account || Boolean(account.personalSpaceId)}
         persistence={persistence}
+        onSignOut={session ? () => void session.signOut() : undefined}
       />
 
       <div className="workspace">
         <Sidebar
           data={data}
-          view={view}
+          view={displayedView}
           teacherId={selectedTeacherId}
           courseId={courseId}
           readyCourseIds={readyCourseIds}
           onViewChange={setView}
-          onTeacherChange={chooseTeacher}
           onCourseChange={chooseCourse}
-          spaces={spaces}
+          spaces={personalSpace}
         />
         <main className="main-content">
           <MobileContextBar
@@ -229,9 +240,8 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
             teacherId={selectedTeacherId}
             courseId={courseId}
             readyCourseIds={readyCourseIds}
-            onTeacherChange={chooseTeacher}
             onCourseChange={chooseCourse}
-            spaces={spaces}
+            spaces={personalSpace}
           />
           {error ? (
             <div className="error-banner">
@@ -240,10 +250,23 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
             </div>
           ) : null}
 
-          {view === "monitor" && !courseReady ? (
+          {displayedView === "monitor" && !courseReady ? (
             <PendingCourseState course={course} onImport={() => setShowImport(true)} />
           ) : null}
-          {view === "monitor" && courseReady ? (
+
+          {displayedView === "courses" ? (
+            <CoursesView
+              data={data}
+              selectedCourseId={courseId}
+              busy={busy}
+              onSelect={(id) => { chooseCourse(id); setView("monitor"); }}
+              onCreate={() => setShowImport(true)}
+              onUpdateDetails={updateCourseDetails}
+              onUpdateFocus={updateFocusStudents}
+              onArchive={archiveCourse}
+            />
+          ) : null}
+          {displayedView === "monitor" && courseReady ? (
             <MonitorView
               course={course}
               teacher={selectedTeacher}
@@ -270,6 +293,7 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
               roomTemplates={courseRoomTemplates}
               onSelectRoom={selectRoomTemplate}
               onNewRoom={() => setRoomModal("create")}
+              onNewGroup={() => setRoomModal("group")}
               onEditRoom={() => setRoomModal("edit")}
               onStart={openSessionForm}
               onClose={() => void closeSession()}
@@ -277,10 +301,10 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
             />
           ) : null}
 
-          {view === "report" && !courseReady ? (
+          {displayedView === "report" && !courseReady ? (
             <PendingCourseState course={course} onImport={() => setShowImport(true)} />
           ) : null}
-          {view === "report" && courseReady ? (
+          {displayedView === "report" && courseReady ? (
             <ReportView
               data={data}
               course={course}
@@ -296,10 +320,10 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
             />
           ) : null}
 
-          {view === "history" && !courseReady ? (
+          {displayedView === "history" && !courseReady ? (
             <PendingCourseState course={course} onImport={() => setShowImport(true)} />
           ) : null}
-          {view === "history" && courseReady ? (
+          {displayedView === "history" && courseReady ? (
             <HistoryView
               data={data}
               courseId={courseId}
@@ -311,11 +335,9 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
             />
           ) : null}
 
-          {view === "settings" ? (
+          {displayedView === "settings" ? (
             <SettingsView
               data={data}
-              selectedTeacherId={selectedTeacherId}
-              onSelectTeacher={chooseTeacher}
               backup={{
                 busy,
                 error,
@@ -338,7 +360,7 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
         </main>
       </div>
 
-      <MobileNav view={view} onViewChange={setView} />
+      <MobileNav view={displayedView} onViewChange={setView} />
 
       {selectedStudent && activeSession && metrics ? (
         <StudentSheet
@@ -375,7 +397,7 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
           data={data}
           currentCourseId={courseId}
           suggestedCourseName={courseReady ? "Nuevo curso" : course?.name ?? "Nuevo curso"}
-          spaces={adminSpaces}
+          spaces={personalSpace}
           busy={busy}
           error={error}
           onImport={importCourse}
@@ -386,11 +408,18 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
 
       {roomModal ? (
         <RoomModal
-          mode={roomModal}
+          mode={roomModal === "edit" ? "edit" : "create"}
+          title={roomModal === "group" ? "Nuevo grupo de trabajo" : undefined}
+          submitLabel={roomModal === "group" ? "Crear grupo" : undefined}
           studentCount={visibleStudents.length}
           initial={roomModal === "edit" && activeRoomTemplate
             ? { name: activeRoomTemplate.name, layout: layoutFromTemplate(activeRoomTemplate, activeRoomSlots) }
-            : { name: "Laboratorio", layout: labLayout(suggestedLab(visibleStudents.length)) }}
+            : roomModal === "group"
+              ? {
+                name: `Trabajo grupal ${courseRoomTemplates.filter((template) => template.layout === "groups").length + 1}`,
+                layout: groupsLayout(suggestedGroups(visibleStudents.length)),
+              }
+              : { name: "Laboratorio", layout: labLayout(suggestedLab(visibleStudents.length)) }}
           busy={busy}
           error={error}
           onSave={(draft) => (roomModal === "edit" ? updateRoom(draft) : createRoom(draft))}
@@ -402,3 +431,4 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
     </div>
   );
 }
+

@@ -3,11 +3,9 @@ import {
   CircleHelp,
   LayoutGrid,
   ShieldCheck,
-  Users,
 } from "lucide-react";
 import { DEMO_COURSE_ID } from "@/config/app";
 import { CourseStatusList } from "@/features/courses/components/course-status-list";
-import { TeacherList } from "@/features/teachers/components/teacher-list";
 import type { LocalDataSnapshot, RemoteAccount } from "@/features/monitoring/repositories";
 import type { MonitoringState } from "@/types/monitoring";
 import { AccountCard } from "./account-card";
@@ -29,8 +27,6 @@ export type RemoteSettings = {
 
 type SettingsViewProps = {
   data: MonitoringState;
-  selectedTeacherId: string;
-  onSelectTeacher: (teacherId: string) => void;
   backup: Omit<BackupCardProps, "data">;
   remote: RemoteSettings | null;
   /** Con cuentas: datos que el modo sin cuenta dejó en este navegador. */
@@ -39,8 +35,6 @@ type SettingsViewProps = {
 
 export function SettingsView({
   data,
-  selectedTeacherId,
-  onSelectTeacher,
   backup,
   remote,
   localData = null,
@@ -54,26 +48,14 @@ export function SettingsView({
       <div className="page-heading">
         <p className="eyebrow">Beta compartida</p>
         <h1>Configuración</h1>
-        <p>Equipo piloto, cursos disponibles y estado de preparación de cada plantilla.</p>
+        <p>Tu cuenta, tus cursos y las opciones de respaldo.</p>
       </div>
 
       <section className="settings-grid">
-        <article className="card settings-card teacher-settings">
-          <div className="card-heading">
-            <div><p className="eyebrow">Equipo piloto</p><h2>Docentes de prueba</h2></div>
-            <Users size={20} />
-          </div>
-          <TeacherList
-            teachers={data.teachers}
-            selectedTeacherId={selectedTeacherId}
-            onSelect={onSelectTeacher}
-          />
-        </article>
-
         <div className="settings-stack">
           <article className="card settings-card">
             <div className="card-heading">
-              <div><p className="eyebrow">Catálogo 2026</p><h2>Cursos piloto</h2></div>
+              <div><p className="eyebrow">Cuenta personal</p><h2>Mis cursos</h2></div>
               <LayoutGrid size={20} />
             </div>
             <CourseStatusList data={data} />
@@ -104,10 +86,10 @@ export function SettingsView({
               <ShieldCheck size={20} />
             </div>
             <ul className="settings-list">
-              <li><Check size={16} /> Los {data.teachers.length} docentes comparten la nómina de demostración de III°A.</li>
+              <li><Check size={16} /> Esta demostración funciona con una cuenta local.</li>
               <li><Check size={16} /> III°A tiene {operationalTemplates} plantillas disponibles.</li>
               <li><Check size={16} /> Cada clase queda identificada con el docente que la inició.</li>
-              <li><Check size={16} /> El historial y las tendencias se separan por profesor.</li>
+              <li><Check size={16} /> Los cursos y estudiantes pertenecen a la cuenta activa.</li>
             </ul>
           </article>
           )}
@@ -126,8 +108,8 @@ export function SettingsView({
             </div>
             <p>
               {remote
-                ? "Los registros se guardan en el servidor del establecimiento y solo los ve quien tiene permiso: cada docente, sus clases; coordinación y administración, las del establecimiento. No registres diagnósticos, calificaciones ni antecedentes personales."
-                : "Seleccionar un nombre no verifica la identidad. En esta etapa los cambios quedan en este navegador; usa nombres abreviados y no registres diagnósticos, calificaciones ni antecedentes personales."}
+                ? "Los registros se guardan en el servidor y pertenecen a tu cuenta. No registres diagnósticos, calificaciones ni antecedentes personales."
+                : "En esta demostración los cambios quedan en este navegador; usa nombres abreviados y no registres diagnósticos, calificaciones ni antecedentes personales."}
             </p>
           </article>
         </div>

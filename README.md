@@ -23,13 +23,14 @@ Incluye:
 - asistencia y movimiento/intercambio de puestos;
 - resumen en vivo;
 - informe automático, tendencias y priorización;
-- historial separado por docente;
+- cursos e historial privados para cada cuenta docente;
+- estudiantes foco identificados con una estrella y fotografiados por clase;
 - importación de nómina desde Excel o CSV;
 - exportación a PDF y Excel;
 - navegación responsive para computador y celular;
 - persistencia local en el navegador.
 
-No incluye todavía autenticación, pagos, multi-colegio, inteligencia artificial, nuevas analíticas ni base de datos permanente.
+El modo local sigue disponible para demostración. El modo Supabase incluye autenticación y persistencia permanente; pagos, inteligencia artificial y nuevas analíticas quedan fuera del alcance actual.
 
 ## Tecnologías
 
@@ -59,7 +60,7 @@ npm run dev
 
 Abre [http://localhost:3000](http://localhost:3000).
 
-La aplicación arranca con 40 estudiantes inequívocamente ficticios, cinco cursos, cinco docentes, dos plantillas y tres sesiones demostrativas. Los cambios se guardan únicamente en el navegador utilizado.
+En modo local la aplicación arranca con datos inequívocamente ficticios y guarda los cambios únicamente en el navegador utilizado. En modo Supabase, cada docente crea y consulta sus propios cursos.
 
 ## Comandos
 
@@ -135,8 +136,8 @@ Sin variables, la aplicación funciona en **modo local**, con los datos en el na
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase (solo modo `supabase`) |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave publicable; los permisos los aplica RLS |
 
-En **modo Supabase** se inicia sesión con correo y contraseña. Las clases y los registros quedan a
-nombre de la cuenta, y los datos se comparten entre dispositivos según el rol. Migraciones,
+En **modo Supabase** se inicia sesión con correo y contraseña. Los cursos, estudiantes, clases e
+informes quedan asociados a la cuenta y se comparten entre sus dispositivos. Migraciones,
 pruebas (`npm run test:db`) y pasos de operación: [docs/supabase.md](docs/supabase.md).
 
 Nunca confirmes `.env.local`, tokens, claves, credenciales ni archivos con datos reales. La clave

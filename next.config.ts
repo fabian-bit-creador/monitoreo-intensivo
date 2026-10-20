@@ -1,5 +1,15 @@
 import type { NextConfig } from "next";
 
+// Producción usa siempre el proyecto oficial. La asignación explícita evita
+// que una variable antigua de Vercel dirija el inicio de sesión a otro
+// proyecto. Estos dos valores son públicos por diseño; RLS mantiene la
+// autorización y nunca se incorpora una clave service_role.
+if (process.env.VERCEL_ENV === "production") {
+  process.env.NEXT_PUBLIC_DATA_MODE = "supabase";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://kuqrulqfmpchmmjfellf.supabase.co";
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable__0XfaSDNqKnl92LWTNdoJQ_TgdBH3qL";
+}
+
 /**
  * Orígenes a los que la página puede conectarse. Solo se agrega Supabase
  * cuando la compilación lo usa (NEXT_PUBLIC_SUPABASE_URL).
@@ -56,3 +66,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

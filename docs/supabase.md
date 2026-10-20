@@ -141,11 +141,14 @@ values ('<id del establecimiento>', '<id del curso>', '<id del usuario>');
 
 Sin estas variables, la aplicación funciona en modo local, como antes.
 
-`NEXT_PUBLIC_DATA_MODE=supabase` está solo en **Preview** y **Development**: las vistas previas
-de cada rama usan el proyecto piloto. Producción tiene la URL y la clave publicable (las agregó la
-integración de Supabase con Vercel), pero sin `NEXT_PUBLIC_DATA_MODE` sigue en modo local. Activar
-Supabase en producción requiere autorización explícita y un nuevo despliegue, porque Next.js
-incorpora estas variables al compilar: ver [activacion-produccion.md](activacion-produccion.md).
+**Producción** usa el proyecto `kuqrulqfmpchmmjfellf`, activado el 19-10-2026 (PR #18).
+`next.config.ts` fija su URL y su clave publicable cuando `VERCEL_ENV=production`: desde el commit
+`95d42ce`, esos valores **reemplazan** las variables del panel de Vercel, así que cambiar de
+proyecto en producción requiere modificar el código. Nunca se incorpora una clave `service_role`.
+
+Las **vistas previas** usan las variables de Preview: hoy, el proyecto piloto
+`kpgtydpzslxkhwhbjkak`. Ese proyecto no tiene la migración `20261018193145_cursos_personales_y_foco`.
+Ver [activacion-produccion.md](activacion-produccion.md).
 
 ## Datos guardados en el navegador
 
@@ -155,5 +158,5 @@ puede restaurar en modo local). La demostración sin cambios no genera aviso.
 
 ## Fuera del alcance actual: historial del Site anterior
 
-No se importa ni se extrae el historial del Site anterior. La operación `import_legacy_state` y la
-tarjeta «Subir datos al servidor» siguen en el código, pero no forman parte de la activación.
+No se importa ni se extrae el historial del Site anterior. La tarjeta «Subir datos al servidor» se
+retiró de Configuración; la operación `import_legacy_state` sigue en la base, sin uso desde la app.

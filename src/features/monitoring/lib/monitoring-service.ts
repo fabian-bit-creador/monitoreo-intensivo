@@ -85,6 +85,7 @@ export function createSession(
       displayName: student.displayName,
       seatRow: seats.get(student.id)?.seatRow ?? null,
       seatCol: seats.get(student.id)?.seatCol ?? null,
+      ...(student.isFocus === undefined ? {} : { isFocus: student.isFocus }),
     })),
   );
 
@@ -367,8 +368,24 @@ export function importStudents(
   current: MonitoringState,
   courseName: string,
   entries: RosterEntry[],
+): StateResult & { courseId: string; roomTemplateId: string };
+export function importStudents(
+  current: MonitoringState,
+  courseName: string,
+  academicYear: number,
+  entries: RosterEntry[],
+  focusNumbers?: number[],
+): StateResult & { courseId: string; roomTemplateId: string };
+export function importStudents(
+  current: MonitoringState,
+  courseName: string,
+  yearOrEntries: number | RosterEntry[],
+  nextEntries: RosterEntry[] = [],
+  focusNumbers: number[] = [],
 ): StateResult & { courseId: string; roomTemplateId: string } {
   const state = structuredClone(current);
+  const academicYear = typeof yearOrEntries === "number" ? yearOrEntries : new Date().getFullYear();
+  const entries = Array.isArray(yearOrEntries) ? yearOrEntries : nextEntries;
   // La validación de N° vacíos, inválidos y repetidos ocurre al leer la planilla
   // (features/courses/lib/roster-import.ts); aquí se ordena por N° de lista.
   const roster = entries
@@ -380,7 +397,23 @@ export function importStudents(
 
   const courseId = nextAvailableCourseId(state, courseName);
   const now = new Date().toISOString();
-  state.courses.push({ id: courseId, name: courseName, createdAt: now });
+  const cleanName = courseName.trim();
+  if (!cleanName) throw new Error("Escribe el nombre del curso.");
+  if (!Number.isInteger(academicYear) || academicYear < 2000 || academicYear > 2100) {
+    throw new Error("El año académico no es válido.");
+  }
+  const focus = new Set(focusNumbers);
+  if (focus.size > roster.length || [...focus].some((number) => !roster.some((entry) => entry.number === number))) {
+    throw new Error("La selección de estudiantes foco no coincide con la nómina.");
+  }
+  state.courses.push({
+    id: courseId,
+    name: cleanName,
+    academicYear,
+    archivedAt: null,
+    focusStudentCount: focus.size,
+    createdAt: now,
+  });
   const roomTemplateId = addDefaultRoomTemplate(state, courseId, courseName, now);
 
   const importedStudents: Student[] = roster.map((entry, index) => ({
@@ -392,6 +425,7 @@ export function importStudents(
     seatRow: null,
     seatCol: null,
     active: true,
+    isFocus: focus.has(entry.number),
   }));
   state.students.push(...importedStudents);
   state.source = {
@@ -402,6 +436,51 @@ export function importStudents(
   };
 
   return { state, courseId, roomTemplateId };
+}
+
+export function setFocusStudents(current: MonitoringState, courseId: string, studentIds: string[]): StateResult {
+  const state = structuredClone(current);
+  const course = state.courses.find((item) => item.id === courseId);
+  if (!course) throw new Error("No se encontró el curso.");
+  const selected = new Set(studentIds);
+  const courseStudents = state.students.filter((student) => student.courseId === courseId && student.active);
+  if ([...selected].some((id) => !courseStudents.some((student) => student.id === id))) {
+    throw new Error("La selección foco contiene un estudiante que no pertenece al curso.");
+  }
+  for (const student of state.students) {
+    if (student.courseId === courseId) student.isFocus = student.active && selected.has(student.id);
+  }
+  course.focusStudentCount = selected.size;
+  return { state };
+}
+
+export function setCourseArchived(current: MonitoringState, courseId: string, archived: boolean): StateResult {
+  const state = structuredClone(current);
+  const course = state.courses.find((item) => item.id === courseId);
+  if (!course) throw new Error("No se encontró el curso.");
+  if (archived && state.sessions.some((session) => session.courseId === courseId && session.status === "active")) {
+    throw new Error("Cierra la clase en curso antes de archivar este curso.");
+  }
+  course.archivedAt = archived ? new Date().toISOString() : null;
+  return { state };
+}
+
+export function updateCourseDetails(
+  current: MonitoringState,
+  courseId: string,
+  name: string,
+  academicYear: number,
+): StateResult {
+  const state = structuredClone(current);
+  const course = state.courses.find((item) => item.id === courseId);
+  if (!course) throw new Error("No se encontró el curso.");
+  if (!name.trim()) throw new Error("Escribe el nombre del curso.");
+  if (!Number.isInteger(academicYear) || academicYear < 2000 || academicYear > 2100) {
+    throw new Error("El año académico no es válido.");
+  }
+  course.name = name.trim();
+  course.academicYear = academicYear;
+  return { state };
 }
 
 function slotsFor(templateId: string, layout: RoomLayout): RoomSlot[] {

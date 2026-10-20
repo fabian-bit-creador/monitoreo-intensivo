@@ -6,6 +6,8 @@ import { RoomDesigner, type RoomDraft } from "./room-designer";
 
 type RoomModalProps = {
   mode: "create" | "edit";
+  title?: string;
+  submitLabel?: string;
   studentCount: number;
   initial: RoomDraft;
   busy: boolean;
@@ -15,7 +17,7 @@ type RoomModalProps = {
 };
 
 /** Agregar una sala al curso o cambiar la forma de la actual. */
-export function RoomModal({ mode, studentCount, initial, busy, error, onSave, onClose }: RoomModalProps) {
+export function RoomModal({ mode, title, submitLabel, studentCount, initial, busy, error, onSave, onClose }: RoomModalProps) {
   const [draft, setDraft] = useState(initial);
   const [attempted, setAttempted] = useState(false);
   const problem = draft.name.trim() ? layoutError(draft.layout) : "Escribe el nombre de la sala.";
@@ -27,7 +29,7 @@ export function RoomModal({ mode, studentCount, initial, busy, error, onSave, on
   }
 
   return (
-    <Modal title={mode === "create" ? "Nueva sala para el curso" : "Cambiar la forma de la sala"} onClose={onClose}>
+    <Modal title={title ?? (mode === "create" ? "Nueva sala para el curso" : "Cambiar la forma de la sala")} onClose={onClose}>
       <RoomDesigner studentCount={studentCount} value={draft} onChange={setDraft} />
       {mode === "edit" ? (
         <p className="room-note">
@@ -42,9 +44,10 @@ export function RoomModal({ mode, studentCount, initial, busy, error, onSave, on
         <button className="secondary-button" onClick={onClose} disabled={busy}>Cancelar</button>
         <button className="primary-button" onClick={() => void save()} disabled={busy}>
           {busy ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}
-          {mode === "create" ? "Crear sala" : "Guardar forma"}
+          {submitLabel ?? (mode === "create" ? "Crear sala" : "Guardar forma")}
         </button>
       </div>
     </Modal>
   );
 }
+

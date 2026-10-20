@@ -15,6 +15,9 @@ import {
   setPresence,
   setSessionStatus,
   updateRoomLayout,
+  setCourseArchived,
+  setFocusStudents,
+  updateCourseDetails,
   type AddObservationInput,
   type CreateSessionInput,
 } from "./monitoring-service";
@@ -37,8 +40,18 @@ export type MonitoringCommand =
       col: number | null;
     }
   /** `spaceId`: espacio donde se crea el curso (solo en la nube). */
-  | { type: "importStudents"; courseName: string; entries: RosterEntry[]; spaceId?: string }
+  | {
+      type: "importStudents";
+      courseName: string;
+      academicYear?: number;
+      entries: RosterEntry[];
+      focusNumbers?: number[];
+      spaceId?: string;
+    }
   | { type: "updateRoster"; courseId: string; entries: RosterEntry[] }
+  | { type: "setFocusStudents"; courseId: string; studentIds: string[] }
+  | { type: "setCourseArchived"; courseId: string; archived: boolean }
+  | { type: "updateCourseDetails"; courseId: string; name: string; academicYear: number }
   | { type: "assignSeatsByNumber"; roomTemplateId: string }
   | { type: "createRoomTemplate"; courseId: string; name: string; layout: RoomLayout }
   | { type: "updateRoomLayout"; roomTemplateId: string; name: string; layout: RoomLayout };
@@ -51,6 +64,9 @@ type CommandOutputs = {
   moveStudent: object;
   importStudents: { courseId: string; roomTemplateId: string };
   updateRoster: { plan: RosterUpdatePlan };
+  setFocusStudents: object;
+  setCourseArchived: object;
+  updateCourseDetails: object;
   assignSeatsByNumber: { assigned: number };
   createRoomTemplate: { roomTemplateId: string };
   updateRoomLayout: { released: number };
@@ -72,9 +88,21 @@ function run(state: MonitoringState, command: MonitoringCommand): CommandResult 
     case "moveStudent":
       return moveStudent(state, command.studentId, command.roomTemplateId, command.row, command.col);
     case "importStudents":
-      return importStudents(state, command.courseName, command.entries);
+      return importStudents(
+        state,
+        command.courseName,
+        command.academicYear ?? new Date().getFullYear(),
+        command.entries,
+        command.focusNumbers ?? [],
+      );
     case "updateRoster":
       return updateRoster(state, command.courseId, command.entries);
+    case "setFocusStudents":
+      return setFocusStudents(state, command.courseId, command.studentIds);
+    case "setCourseArchived":
+      return setCourseArchived(state, command.courseId, command.archived);
+    case "updateCourseDetails":
+      return updateCourseDetails(state, command.courseId, command.name, command.academicYear);
     case "assignSeatsByNumber":
       return assignSeatsByNumber(state, command.roomTemplateId);
     case "createRoomTemplate":

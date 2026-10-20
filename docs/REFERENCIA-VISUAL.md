@@ -1,7 +1,7 @@
 # Monitoreo PI — Referencia visual y de interacción
 
 > Documento de contexto para Claude Code. Describe **exactamente** cómo se ve y se comporta hoy
-> `https://monitoreo-pi.fhee1997.chatgpt.site/`, para poder implementar mejoras visuales y de
+> el Site original Monitoreo PI, para poder implementar mejoras visuales y de
 > animación sin romper la identidad actual.
 >
 > Auditoría realizada el 15 de agosto de 2026 sobre el build en producción.
@@ -382,4 +382,4 @@ y su curso [animations.dev](https://animations.dev/). Librerías del mismo autor
 - [emilkowalski/sonner](https://github.com/emilkowalski/sonner)
 - [Emil Kowalski — emilkowal.ski](https://emilkowal.ski/)
 - [Animation Techniques — DeepWiki de `emilkowalski/skill`](https://deepwiki.com/emilkowalski/skill/3-animation-techniques)
-- App auditada: `https://monitoreo-pi.fhee1997.chatgpt.site/` (hoja de estilos `/assets/index-GNlIetQS.css`)
+- App auditada: el Site original Monitoreo PI, hoja de estilos `/assets/index-GNlIetQS.css`. La dirección no se publica aquí porque el Site contiene datos reales; el equipo la tiene.

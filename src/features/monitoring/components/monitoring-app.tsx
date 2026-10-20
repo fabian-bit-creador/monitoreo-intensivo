@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   AlertTriangle,
   Check,
+  CircleCheck,
   LoaderCircle,
   RefreshCcw,
   X,
@@ -96,6 +97,8 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
     persistence,
     reload,
     setError,
+    notice,
+    setNotice,
     view,
     setView,
     courseId,
@@ -246,6 +249,12 @@ function MonitoringWorkspace({ session, createRepository, localData = null }: Mo
             <div className="error-banner">
               <AlertTriangle size={17} /> {error}
               <button onClick={() => setError("")}><X size={16} /></button>
+            </div>
+          ) : null}
+          {notice ? (
+            <div className="notice-banner" role="status">
+              <CircleCheck size={17} /> {notice}
+              <button onClick={() => setNotice("")} aria-label="Cerrar aviso"><X size={16} /></button>
             </div>
           ) : null}
 

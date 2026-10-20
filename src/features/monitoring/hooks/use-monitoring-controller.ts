@@ -72,6 +72,8 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     listSavedCopies,
     deleteSavedCopy,
     setError,
+    notice,
+    setNotice,
   } = useMonitoringStore(createRepository);
   const [view, setView] = useState<AppView>("monitor");
   const [courseChoice, setCourseId] = useState(DEMO_COURSE_ID);
@@ -204,7 +206,8 @@ export function useMonitoringController(createRepository: () => StoreRepository)
   }
 
   async function createNewSession(input: CreateSessionInput) {
-    const result = await execute({ type: "createSession", input });
+    // Si el servidor confirmó sin poder releer, la clase aparece al actualizarse.
+    const result = await execute({ type: "createSession", input }, { onStaleSave: () => setShowSessionForm(false) });
     if (!result) return;
     setActiveSessionId(result.sessionId);
     setSelectedTemplateId(input.roomTemplateId);
@@ -226,6 +229,12 @@ export function useMonitoringController(createRepository: () => StoreRepository)
         code,
         progress,
         note,
+      },
+    }, {
+      // Guardado en el servidor: la hoja se cierra igual que al confirmar.
+      onStaleSave: () => {
+        setSelectedStudent(null);
+        setNote("");
       },
     });
     if (!result) return;
@@ -539,6 +548,8 @@ export function useMonitoringController(createRepository: () => StoreRepository)
     account,
     blocked,
     error,
+    notice,
+    setNotice,
     busy,
     persistence,
     localBackup,

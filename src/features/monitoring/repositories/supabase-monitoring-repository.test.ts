@@ -132,7 +132,7 @@ describe("guardado y relectura por separado", () => {
     const attempt = repository.execute(newSession);
     await expect(attempt).rejects.toBeInstanceOf(StaleViewError);
     await expect(attempt).rejects.not.toBeInstanceOf(SyncError);
-    await expect(attempt).rejects.toThrow(/se guardó/);
+    await expect(attempt).rejects.toThrow(/Guardado en el servidor/);
   });
 
   it("repetir la acción después de esa falla reutiliza el mismo id: no duplica la clase", async () => {

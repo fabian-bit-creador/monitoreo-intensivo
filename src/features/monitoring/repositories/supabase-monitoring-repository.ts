@@ -30,8 +30,8 @@ const NETWORK_WRITE =
   "No hay conexión con el servidor. Vuelve a intentarlo: si el cambio ya se había guardado, no se duplicará.";
 const NETWORK_READ = "No hay conexión con el servidor. Revisa la conexión y vuelve a intentarlo.";
 const SAVED_NOT_SHOWN =
-  "El cambio se guardó en el servidor, pero no pudimos actualizar la pantalla. Se actualizará al "
-  + "volver la conexión; si repites la acción, no se duplicará.";
+  "Guardado en el servidor. La pantalla se actualizará cuando vuelva la conexión; si repites la "
+  + "acción, no se duplicará.";
 
 /**
  * Los mensajes de las reglas vienen del servidor en español (raise exception).

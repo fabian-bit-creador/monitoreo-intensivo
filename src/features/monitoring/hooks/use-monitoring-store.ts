@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   StaleViewError,
   StorageWriteError,
@@ -43,8 +43,9 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
     state: "saved",
     savedAt: null,
   });
-  // Aviso de «guardado, pero sin actualizar la pantalla»: se retira al releer.
-  const staleNotice = useRef("");
+  // Aviso informativo, distinto de un error: «guardado, falta actualizar la
+  // pantalla». Se retira solo cuando llegan los datos releídos.
+  const [notice, setNotice] = useState("");
 
   const showLoaded = useCallback((result: LoadResult) => {
     if (result.status === "blocked") {
@@ -52,6 +53,7 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
       return;
     }
     setBlocked(null);
+    setNotice("");
     setData(result.state);
     setAccount(repository.getAccount?.() ?? null);
     setPersistence({ mode: repository.kind, state: result.savedAt ? "saved" : "error", savedAt: result.savedAt });
@@ -89,21 +91,17 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
     setPersistence((current) => (
       current.state === "saving" ? current : { ...current, state: "saved", savedAt: result.savedAt }
     ));
-    if (staleNotice.current) {
-      const notice = staleNotice.current;
-      staleNotice.current = "";
-      setError((current) => (current === notice ? "" : current));
-    }
+    setNotice("");
   }), [repository]);
 
   const fail = useCallback((caught: unknown, fallback: string) => {
-    setError(caught instanceof Error ? caught.message : fallback);
-    // El servidor confirmó: no es una falla de guardado, solo falta mostrarlo.
+    // El servidor confirmó: no es un error, solo falta mostrar el cambio.
     if (caught instanceof StaleViewError) {
-      staleNotice.current = caught.message;
+      setNotice(caught.message);
       setPersistence((current) => ({ ...current, state: "saved", savedAt: new Date().toISOString() }));
       return;
     }
+    setError(caught instanceof Error ? caught.message : fallback);
     // Una regla rechazada no es una falla de guardado: lo confirmado sigue igual.
     const failedToPersist = caught instanceof StorageWriteError || caught instanceof SyncError;
     setPersistence((current) => ({
@@ -112,8 +110,14 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
     }));
   }, []);
 
+  /**
+   * `onStaleSave`: el servidor confirmó, pero la pantalla todavía no muestra el
+   * cambio. Sirve para cerrar lo que se cierra al guardar (por ejemplo, la
+   * hoja de registro); el resultado sigue siendo null.
+   */
   const execute = useCallback(async <C extends MonitoringCommand>(
     command: C,
+    options: { onStaleSave?: () => void } = {},
   ): Promise<CommandResult<C> | null> => {
     setBusy(true);
     if (repository.kind === "remote") setPersistence((current) => ({ ...current, state: "saving" }));
@@ -123,9 +127,11 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
       setAccount(repository.getAccount?.() ?? null);
       setPersistence({ mode: repository.kind, state: "saved", savedAt: new Date().toISOString() });
       setError("");
+      setNotice("");
       return result;
     } catch (caught) {
       fail(caught, "No fue posible guardar el cambio.");
+      if (caught instanceof StaleViewError) options.onStaleSave?.();
       return null;
     } finally {
       setBusy(false);
@@ -208,5 +214,7 @@ export function useMonitoringStore(createRepository: () => StoreRepository) {
     listSavedCopies,
     deleteSavedCopy,
     setError,
+    notice,
+    setNotice,
   };
 }

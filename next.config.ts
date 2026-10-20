@@ -60,6 +60,13 @@ const nextConfig: NextConfig = {
   // `next dev` no debe agregar su bloque a AGENTS.md: ese archivo lo escribe el
   // equipo y cualquier cambio pasa por revisión.
   agentRules: false,
+  experimental: {
+    // Desde Next.js 16.3, `next build` reutiliza una caché de Turbopack en disco.
+    // Vercel la restaura entre despliegues y una vista previa salió con el CSS
+    // de la compilación anterior (sin los estilos nuevos). Cada compilación
+    // parte de cero: unos segundos más a cambio de no publicar estilos viejos.
+    turbopackFileSystemCacheForBuild: false,
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

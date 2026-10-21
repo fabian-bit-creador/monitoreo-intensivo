@@ -101,3 +101,29 @@ export async function createUser(pool: Pool, email: string) {
   );
   return result.rows[0].id as string;
 }
+
+/** Espacio personal que cada cuenta recibe al crearse (ADR 0004). */
+export async function personalSpaceOf(pool: Pool, userId: string) {
+  const result = await pool.query("select id from public.schools where kind = 'personal' and owner_id = $1", [userId]);
+  return result.rows[0].id as string;
+}
+
+/** Año académico ficticio de los cursos de prueba. */
+export const ACADEMIC_YEAR = 2026;
+
+type CreatedCourse = { courseId: string; roomTemplateId: string };
+
+/** create_course(espacio, nombre, año, nómina, N° foco) como el usuario (ADR 0006). */
+export async function createCourse(
+  pool: Pool,
+  userId: string | null,
+  schoolId: string,
+  name: string,
+  entries: unknown,
+  { academicYear = ACADEMIC_YEAR, focusNumbers = [] }: { academicYear?: number; focusNumbers?: number[] | null } = {},
+) {
+  const [row] = await rpc<{ create_course: CreatedCourse }>(pool, userId, "create_course", [
+    schoolId, name, academicYear, JSON.stringify(entries), focusNumbers,
+  ]);
+  return row.create_course;
+}

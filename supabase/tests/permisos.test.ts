@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { asUser, createTestDatabase, createUser, rpc, visible, type TestDatabase } from "./db";
+import { asUser, createCourse, createTestDatabase, createUser, personalSpaceOf, rpc, visible, type TestDatabase } from "./db";
 
 type Ids = {
   admin: string;
@@ -11,6 +11,7 @@ type Ids = {
   nobody: string;
   school: string;
   otherSchool: string;
+  personal1: string;
   courseX: string;
   templateX: string;
   courseY: string;
@@ -79,19 +80,17 @@ beforeAll(async () => {
      values ($1, $2, 'teacher'), ($1, $3, 'teacher'), ($1, $4, 'coordinator')`,
     [school, teacher1, teacher2, coordinator],
   );
-  const x = (await one(rpc<{ create_course: { courseId: string; roomTemplateId: string } }>(
-    pool, admin, "create_course", [school, "III°A Ficticio", JSON.stringify(ROSTER_X)],
-  ))).create_course;
-  const y = (await one(rpc<{ create_course: { courseId: string } }>(
-    pool, admin, "create_course", [school, "III°B Ficticio", JSON.stringify([{ number: 1, fullName: "Elena Ficticia Cinco" }])],
-  ))).create_course;
-  const z = (await one(rpc<{ create_course: { courseId: string } }>(
-    pool, outsider, "create_course", [otherSchool, "Curso de Otro Colegio", JSON.stringify([{ number: 1, fullName: "Persona Ficticia Seis" }])],
-  ))).create_course;
-  await rpc(pool, admin, "assign_course_teacher", [x.courseId, teacher1]);
-  await rpc(pool, admin, "assign_course_teacher", [y.courseId, teacher2]);
+  // Cada curso pertenece a la cuenta que lo crea en su espacio personal (ADR 0006).
+  const personal1 = await personalSpaceOf(pool, teacher1);
+  const x = await createCourse(pool, teacher1, personal1, "III°A Ficticio", ROSTER_X);
+  const y = await createCourse(pool, teacher2, await personalSpaceOf(pool, teacher2), "III°B Ficticio", [
+    { number: 1, fullName: "Elena Ficticia Cinco" },
+  ]);
+  const z = await createCourse(pool, outsider, await personalSpaceOf(pool, outsider), "Curso de Otro Colegio", [
+    { number: 1, fullName: "Persona Ficticia Seis" },
+  ]);
   ids = {
-    admin, teacher1, teacher2, coordinator, outsider, nobody, school, otherSchool,
+    admin, teacher1, teacher2, coordinator, outsider, nobody, school, otherSchool, personal1,
     courseX: x.courseId, templateX: x.roomTemplateId, courseY: y.courseId, courseZ: z.courseId,
   };
 });
@@ -100,7 +99,7 @@ afterAll(async () => {
   await db?.drop();
 });
 
-describe("lectura según rol, curso y establecimiento", () => {
+describe("lectura según la cuenta dueña del curso", () => {
   it("sin sesión iniciada no se puede leer ninguna tabla", async () => {
     for (const table of ["schools", "courses", "students", "enrollments", "class_sessions", "observations"]) {
       await expect(visible(db.pool, null, table)).rejects.toThrow(/permission denied/);
@@ -116,19 +115,21 @@ describe("lectura según rol, curso y establecimiento", () => {
     expect(await visible(db.pool, ids.nobody, "schools", `kind = 'personal' and owner_id = '${ids.nobody}'`)).toBe(1);
   });
 
-  it("un docente ve solo los cursos asignados y su nómina", async () => {
+  it("un docente ve solo sus cursos y su nómina", async () => {
     expect(await visible(db.pool, ids.teacher1, "courses")).toBe(1);
     expect(await visible(db.pool, ids.teacher1, "courses", `id = '${ids.courseY}'`)).toBe(0);
     expect(await visible(db.pool, ids.teacher1, "enrollments")).toBe(4);
     expect(await visible(db.pool, ids.teacher1, "students")).toBe(4);
     expect(await visible(db.pool, ids.teacher1, "room_templates")).toBe(1);
     expect(await visible(db.pool, ids.teacher1, "room_slots")).toBe(42);
+    expect(await visible(db.pool, ids.teacher1, "course_teachers")).toBe(1);
   });
 
-  it("coordinación y administración ven todo su establecimiento, y nada del otro", async () => {
+  it("coordinación y administración de un establecimiento no ven los cursos personales de sus docentes", async () => {
     for (const user of [ids.coordinator, ids.admin]) {
-      expect(await visible(db.pool, user, "courses")).toBe(2);
-      expect(await visible(db.pool, user, "courses", `id = '${ids.courseZ}'`)).toBe(0);
+      for (const table of ["courses", "course_teachers", "students", "enrollments", "room_templates", "room_slots"]) {
+        expect(await visible(db.pool, user, table), table).toBe(0);
+      }
     }
     expect(await visible(db.pool, ids.outsider, "courses")).toBe(1);
     expect(await visible(db.pool, ids.outsider, "students")).toBe(1);
@@ -151,6 +152,8 @@ describe("escrituras directas", () => {
     ["insertar una observación", "insert into public.observations (id, session_id, enrollment_id, round, code, progress, observed_at) values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), 1, 'C', 100, now())"],
     ["crear una clase", "insert into public.class_sessions (id, school_id, course_id, teacher_id, room_template_id, date, module, objective, success_criteria) values (gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now(), 'm', 'o', 'c')"],
     ["renombrar un curso", "update public.courses set name = 'x'"],
+    ["archivar un curso", "update public.courses set archived_at = now()"],
+    ["marcar estudiantes foco", "update public.enrollments set is_focus = true"],
     ["borrar matrículas", "delete from public.enrollments"],
     ["borrar observaciones", "delete from public.observations"],
     ["darse un rol", "update public.school_memberships set role = 'admin'"],
@@ -196,21 +199,27 @@ describe("iniciar clase", () => {
   it.each([
     ["otro docente del establecimiento", "teacher2"],
     ["coordinación", "coordinator"],
+    ["administración del establecimiento", "admin"],
     ["otro establecimiento", "outsider"],
-  ] as const)("%s no puede iniciar clase en un curso que no tiene asignado", async (_case, user) => {
-    await expect(startSession(ids[user])).rejects.toThrow("No tienes asignado este curso.");
+  ] as const)("%s no puede iniciar clase en un curso de otra cuenta", async (_case, user) => {
+    await expect(startSession(ids[user])).rejects.toThrow("Este curso no pertenece a tu cuenta.");
   });
 
-  it("solo quien la dicta, coordinación y administración ven la clase", async () => {
+  it("solo quien la dicta ve la clase, su nómina y sus registros", async () => {
     const session = await startSession(ids.teacher1);
+    const [a] = await enrollmentsOf(ids.courseX);
+    await record(ids.teacher1, session.id, a.id, "C");
     const where = `id = '${session.id}'`;
+    const ofSession = `session_id = '${session.id}'`;
 
     expect(await visible(db.pool, ids.teacher1, "class_sessions", where)).toBe(1);
-    expect(await visible(db.pool, ids.coordinator, "class_sessions", where)).toBe(1);
-    expect(await visible(db.pool, ids.admin, "class_sessions", where)).toBe(1);
-    expect(await visible(db.pool, ids.teacher2, "class_sessions", where)).toBe(0);
-    expect(await visible(db.pool, ids.outsider, "class_sessions", where)).toBe(0);
-    expect(await visible(db.pool, ids.teacher2, "session_students", `session_id = '${session.id}'`)).toBe(0);
+    expect(await visible(db.pool, ids.teacher1, "session_students", ofSession)).toBe(4);
+    expect(await visible(db.pool, ids.teacher1, "observations", ofSession)).toBe(1);
+    for (const user of [ids.teacher2, ids.coordinator, ids.admin, ids.outsider]) {
+      expect(await visible(db.pool, user, "class_sessions", where)).toBe(0);
+      expect(await visible(db.pool, user, "session_students", ofSession)).toBe(0);
+      expect(await visible(db.pool, user, "observations", ofSession)).toBe(0);
+    }
   });
 });
 
@@ -366,13 +375,14 @@ describe("puestos", () => {
     expect(await seatOf(a.id)).toBeNull();
   });
 
-  it("no ubica en un puesto no disponible ni deja ordenar a quien no enseña el curso", async () => {
+  it("no ubica en un puesto no disponible ni deja ordenar a otra cuenta", async () => {
     const [a] = await enrollmentsOf(ids.courseX);
     await db.pool.query("update public.room_slots set status = 'unavailable' where template_id = $1 and seat_row = 6 and seat_col = 5", [ids.templateX]);
 
     await expect(rpc(db.pool, ids.teacher1, "move_seat", [ids.templateX, a.id, 6, 5])).rejects.toThrow("no está disponible");
-    await expect(rpc(db.pool, ids.teacher2, "move_seat", [ids.templateX, a.id, 1, 1])).rejects.toThrow("No puedes ordenar esta sala.");
-    await expect(rpc(db.pool, ids.admin, "move_seat", [ids.templateX, a.id, 1, 1])).resolves.toBeDefined();
+    for (const user of [ids.teacher2, ids.admin]) {
+      await expect(rpc(db.pool, user, "move_seat", [ids.templateX, a.id, 1, 1])).rejects.toThrow("No puedes ordenar esta sala.");
+    }
   });
 
   it("asigna por N° a quienes no tienen puesto, en orden de lectura de la sala", async () => {
@@ -407,7 +417,7 @@ describe("nómina e historia", () => {
     );
     const [a, b, , d] = await enrollmentsOf(ids.courseX);
 
-    await rpc(db.pool, ids.admin, "update_roster", [ids.courseX, JSON.stringify({
+    await rpc(db.pool, ids.teacher1, "update_roster", [ids.courseX, JSON.stringify({
       updates: [
         { enrollmentId: a.id, number: 2, fullName: a.full_name },
         { enrollmentId: b.id, number: 1, fullName: "Bruno Ficticio Dos Corregido" },
@@ -434,16 +444,18 @@ describe("nómina e historia", () => {
     await expect(record(ids.teacher1, session.id, d.id, "C")).resolves.toMatchObject({ code: "C" });
   });
 
-  it("solo administración actualiza la nómina, y sin N° repetidos", async () => {
+  it("solo la cuenta dueña actualiza la nómina, y sin N° repetidos", async () => {
     const [a, b] = await enrollmentsOf(ids.courseX);
     const plan = JSON.stringify({ updates: [{ enrollmentId: a.id, number: b.list_number, fullName: a.full_name }] });
 
-    await expect(rpc(db.pool, ids.teacher1, "update_roster", [ids.courseX, plan])).rejects.toThrow("Solo administración");
-    await expect(rpc(db.pool, ids.admin, "update_roster", [ids.courseX, plan])).rejects.toThrow("N° de lista repetidos");
+    for (const user of [ids.teacher2, ids.admin, ids.coordinator]) {
+      await expect(rpc(db.pool, user, "update_roster", [ids.courseX, plan])).rejects.toThrow("Solo administración puede actualizar la nómina.");
+    }
+    await expect(rpc(db.pool, ids.teacher1, "update_roster", [ids.courseX, plan])).rejects.toThrow("N° de lista repetidos");
   });
 
   it("no crea un curso con el mismo nombre en el mismo año", async () => {
-    await expect(rpc(db.pool, ids.admin, "create_course", [ids.school, "  iii°a ficticio ", JSON.stringify(ROSTER_X)]))
+    await expect(createCourse(db.pool, ids.teacher1, ids.personal1, "  iii°a ficticio ", ROSTER_X))
       .rejects.toThrow("Ya existe el curso");
   });
 
@@ -453,13 +465,31 @@ describe("nómina e historia", () => {
     ["un nombre vacío", [{ number: 1, fullName: " " }], "N° de lista válido"],
     ["una lista vacía", [], "No se encontraron nombres"],
   ])("rechaza una nómina con %s", async (_case, entries, message) => {
-    await expect(rpc(db.pool, ids.admin, "create_course", [ids.school, `Curso ${randomUUID()}`, JSON.stringify(entries)]))
+    await expect(createCourse(db.pool, ids.teacher1, ids.personal1, `Curso ${randomUUID()}`, entries))
       .rejects.toThrow(message);
   });
 
-  it("un docente no puede crear cursos", async () => {
-    await expect(rpc(db.pool, ids.teacher1, "create_course", [ids.school, "Curso Nuevo Ficticio", JSON.stringify(ROSTER_X)]))
-      .rejects.toThrow("Solo administración");
+  it.each([
+    ["un docente, en su establecimiento", "teacher1", "school"],
+    ["administración, en su establecimiento", "admin", "school"],
+    ["otra cuenta, en un espacio personal ajeno", "teacher2", "personal1"],
+  ] as const)("los cursos se crean solo en el espacio personal propio: rechaza a %s", async (_case, user, space) => {
+    await expect(createCourse(db.pool, ids[user], ids[space], "Curso Nuevo Ficticio", ROSTER_X))
+      .rejects.toThrow("Solo puedes crear cursos en tu espacio personal.");
+  });
+
+  it("asignar el curso a otro miembro no le da acceso: solo cuenta quien lo creó", async () => {
+    // Un curso de establecimiento como los que deja import_legacy_state.
+    const course = (await db.pool.query(
+      "insert into public.courses (school_id, name, academic_year, created_by) values ($1, 'Curso Importado Ficticio', 2026, $2) returning id",
+      [ids.school, ids.admin],
+    )).rows[0].id as string;
+    await rpc(db.pool, ids.admin, "assign_course_teacher", [course, ids.teacher1]);
+
+    expect(await visible(db.pool, ids.admin, "courses", `id = '${course}'`)).toBe(1);
+    expect(await visible(db.pool, ids.teacher1, "courses", `id = '${course}'`)).toBe(0);
+    expect(await visible(db.pool, ids.coordinator, "courses", `id = '${course}'`)).toBe(0);
+    await expect(startSession(ids.teacher1, course, randomUUID())).rejects.toThrow("Este curso no pertenece a tu cuenta.");
   });
 });
 

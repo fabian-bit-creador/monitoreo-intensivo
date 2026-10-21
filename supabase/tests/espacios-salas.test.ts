@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { groupsLayout, labLayout, rowsLayout } from "@/features/courses/lib/room-layouts";
-import { asUser, createTestDatabase, createUser, rpc, visible, type TestDatabase } from "./db";
+import { asUser, createCourse, createTestDatabase, createUser, personalSpaceOf, rpc, visible, type TestDatabase } from "./db";
 
 let db: TestDatabase;
 let docente: string;
@@ -39,15 +39,10 @@ beforeAll(async () => {
   db = await createTestDatabase();
   docente = await createUser(db.pool, "docente.independiente@ficticio.cl");
   otra = await createUser(db.pool, "otra.docente@ficticio.cl");
-  personal = (await db.pool.query(
-    "select id from public.schools where kind = 'personal' and owner_id = $1",
-    [docente],
-  )).rows[0].id;
-  const [created] = await rpc<{ create_course: { courseId: string; roomTemplateId: string } }>(
-    db.pool, docente, "create_course", [personal, "Química ficticia", JSON.stringify(ROSTER)],
-  );
-  course = created.create_course.courseId;
-  template = created.create_course.roomTemplateId;
+  personal = await personalSpaceOf(db.pool, docente);
+  const created = await createCourse(db.pool, docente, personal, "Química ficticia", ROSTER);
+  course = created.courseId;
+  template = created.roomTemplateId;
 });
 
 afterAll(async () => {
@@ -74,8 +69,8 @@ describe("espacio personal", () => {
     expect(await visible(db.pool, otra, "schools", `id = '${personal}'`)).toBe(0);
     expect(await visible(db.pool, otra, "courses")).toBe(0);
     expect(await visible(db.pool, otra, "students")).toBe(0);
-    await expect(rpc(db.pool, otra, "create_course", [personal, "Intruso", JSON.stringify(ROSTER)]))
-      .rejects.toThrow("Solo administración");
+    await expect(createCourse(db.pool, otra, personal, "Intruso", ROSTER))
+      .rejects.toThrow("Solo puedes crear cursos en tu espacio personal.");
   });
 
   it("es una sola por persona aunque se pida de nuevo", async () => {
@@ -93,8 +88,9 @@ describe("espacio personal", () => {
     );
     await rpc(db.pool, docente, "claim_invitations");
     expect(await visible(db.pool, docente, "schools")).toBe(2);
-    await expect(rpc(db.pool, docente, "create_course", [colegio, "Sin permiso", JSON.stringify(ROSTER)]))
-      .rejects.toThrow("Solo administración");
+    // Sus cursos siguen naciendo en su espacio personal (ADR 0006).
+    await expect(createCourse(db.pool, docente, colegio, "Sin permiso", ROSTER))
+      .rejects.toThrow("Solo puedes crear cursos en tu espacio personal.");
   });
 });
 
@@ -150,7 +146,7 @@ describe("salas configurables", () => {
     await expect(create(2, 2, [{ row: 0, col: 0, group: " " }])).rejects.toThrow("nombre de un grupo");
   });
 
-  it("solo quien enseña el curso o administra el espacio puede crear o cambiar salas", async () => {
+  it("solo la cuenta dueña del curso puede crear o cambiar salas", async () => {
     await expect(rpc(db.pool, otra, "create_room_template", [
       randomUUID(), course, "Ajena", "rows", 1, 1, JSON.stringify([{ row: 0, col: 0 }]),
     ])).rejects.toThrow("No puedes crear salas");

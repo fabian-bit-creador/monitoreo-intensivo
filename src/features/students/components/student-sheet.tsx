@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { AlertTriangle, Star, UserRoundX, X } from "lucide-react";
 import { CODE_META } from "@/config/app";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -32,8 +31,6 @@ export function StudentSheet(props: StudentSheetProps) {
     busy,
     error,
   } = props;
-  const [showProgress, setShowProgress] = useState(false);
-
   return (
     <div
       className="modal-backdrop"
@@ -76,43 +73,25 @@ export function StudentSheet(props: StudentSheetProps) {
         ) : (
           <>
             <label className="note-field">
-              <span>Observación breve <small>opcional</small></span>
+              <span>Evidencia observada <small>opcional</small></span>
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 rows={2}
-                placeholder="Ej.: requiere ejemplo del paso 2"
+                placeholder="Ej.: explicó el procedimiento y se confundió al justificar el paso 2"
               />
             </label>
-            <p className="status-prompt">Selecciona el estado comprobado</p>
+            <p className="status-prompt">Registra qué muestra la evidencia respecto del indicador</p>
             <div className="status-actions">
               <button className="action-i" onClick={() => onRecord("I", 0)} disabled={busy}>
                 <b>I</b><span>{CODE_META.I.label}</span><small>{CODE_META.I.detail}</small>
               </button>
-              <button className="action-r" onClick={() => setShowProgress(!showProgress)} disabled={busy}>
+              <button className="action-r" onClick={() => onRecord("R")} disabled={busy}>
                 <b>R</b><span>{CODE_META.R.label}</span><small>{CODE_META.R.detail}</small>
               </button>
               <button className="action-c" onClick={() => onRecord("C", 100)} disabled={busy}>
                 <b>C</b><span>{CODE_META.C.label}</span><small>{CODE_META.C.detail}</small>
               </button>
-            </div>
-            <div className={`progress-reveal ${showProgress ? "open" : ""}`}>
-              <div className="progress-reveal-inner">
-                <div className="progress-picker">
-                  <p>¿Qué porcentaje del producto está avanzado?</p>
-                  <div>
-                    {[25, 50, 70, 90].map((value) => (
-                      <button
-                        key={value}
-                        onClick={() => onRecord("R", value)}
-                        disabled={busy || !showProgress}
-                      >
-                        {value}%
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
             <button className="absence-link" onClick={() => onPresence(student, false)}>
               <UserRoundX size={16} /> Marcar ausente

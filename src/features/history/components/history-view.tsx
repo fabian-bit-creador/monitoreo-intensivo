@@ -40,7 +40,7 @@ export function HistoryView(props: HistoryViewProps) {
         <div>
           <p className="eyebrow">Registro longitudinal</p>
           <h1>Historial de clases</h1>
-          <p>Sesiones de {teacher?.fullName}. Compara cobertura, avance y estado final.</p>
+          <p>Sesiones de {teacher?.fullName}. La cobertura describe observación; los estados resumen la evidencia de cada sesión.</p>
         </div>
         <button className="primary-button" onClick={onStart}>
           <Plus size={18} /> Nueva clase
@@ -82,8 +82,8 @@ export function HistoryView(props: HistoryViewProps) {
                 </div>
                 <div className="history-metrics">
                   <span><b>{metrics.coverage}%</b> cobertura</span>
-                  <span><b>{metrics.counts.C}</b> correctos</span>
-                  <span><b>{metrics.counts.R}</b> revisión</span>
+                  <span><b>{metrics.counts.C}</b> indicador demostrado</span>
+                  <span><b>{metrics.counts.R}</b> evidencia parcial</span>
                 </div>
                 <ArrowRight size={19} />
               </button>

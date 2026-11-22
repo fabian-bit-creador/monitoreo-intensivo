@@ -136,7 +136,9 @@ export function sessionMetrics(
     unobserved: Math.max(0, present.length - observed),
     absent: Math.max(0, roster.length - present.length),
     coverage: present.length ? Math.round((observed / present.length) * 100) : 0,
-    cRate: present.length ? Math.round((counts.C / present.length) * 100) : 0,
+    // El porcentaje de logro usa como denominador a quienes tienen evidencia.
+    // Ausentes y estudiantes sin registro nunca se interpretan como no logro.
+    cRate: observed ? Math.round((counts.C / observed) * 100) : 0,
     avgProgress,
     progressed,
   };
@@ -149,4 +151,75 @@ export function metricsForSession(state: MonitoringState, session: ClassSession)
     state.sessionStudents,
     state.observations,
   );
+}
+
+
+export type CourseIndicatorSummary = {
+  indicator: string;
+  sessions: number;
+  opportunities: number;
+  observed: number;
+  demonstrated: number;
+  unobserved: number;
+  coverage: number;
+  demonstratedRate: number;
+};
+
+/**
+ * Agrega evidencia del mismo indicador entre sesiones cerradas del curso y docente.
+ * Una oportunidad es un estudiante presente en una sesión que trabajó ese indicador;
+ * no representa estudiantes únicos ni una calificación.
+ */
+export function courseIndicatorSummaries(
+  state: MonitoringState,
+  courseId: string,
+  teacherId: string,
+): CourseIndicatorSummary[] {
+  const groups = new Map<string, CourseIndicatorSummary>();
+  state.sessions
+    .filter((session) =>
+      session.courseId === courseId
+      && sessionTeacherId(session) === teacherId
+      && session.status === "closed"
+      && session.successCriteria.trim(),
+    )
+    .forEach((session) => {
+      const indicator = session.successCriteria.trim().replace(/\s+/g, " ");
+      const key = indicator.toLocaleLowerCase("es-CL");
+      const metrics = sessionMetrics(
+        session,
+        state.students,
+        state.sessionStudents,
+        state.observations,
+      );
+      const summary = groups.get(key) ?? {
+        indicator,
+        sessions: 0,
+        opportunities: 0,
+        observed: 0,
+        demonstrated: 0,
+        unobserved: 0,
+        coverage: 0,
+        demonstratedRate: 0,
+      };
+      summary.sessions += 1;
+      summary.opportunities += metrics.present.length;
+      summary.observed += metrics.observed;
+      summary.demonstrated += metrics.counts.C;
+      summary.unobserved += metrics.unobserved;
+      groups.set(key, summary);
+    });
+  return [...groups.values()]
+    .map((summary) => ({
+      ...summary,
+      coverage: summary.opportunities
+        ? Math.round((summary.observed / summary.opportunities) * 100)
+        : 0,
+      demonstratedRate: summary.observed
+        ? Math.round((summary.demonstrated / summary.observed) * 100)
+        : 0,
+    }))
+    .sort((first, second) =>
+      second.sessions - first.sessions || first.indicator.localeCompare(second.indicator, "es"),
+    );
 }

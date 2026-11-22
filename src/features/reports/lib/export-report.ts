@@ -29,10 +29,12 @@ export async function exportSessionExcel(context: ExportContext) {
     ["Fecha", session.date],
     ["Módulo", session.module],
     ["Objetivo", session.objective],
-    ["Cobertura", `${metrics.coverage}%`],
-    ["I", metrics.counts.I],
-    ["R", metrics.counts.R],
-    ["C", metrics.counts.C],
+    ["Indicador observable", session.successCriteria],
+    ["Cobertura de observación", `${metrics.coverage}% de presentes`],
+    ["Indicador demostrado entre observados", `${metrics.counts.C} de ${metrics.observed} (${metrics.cRate}%)`],
+    ["Requiere apoyo (I)", metrics.counts.I],
+    ["Evidencia parcial (R)", metrics.counts.R],
+    ["Indicador demostrado (C)", metrics.counts.C],
     ["Sin registro", metrics.unobserved],
     ["Ausentes", metrics.absent],
   ];
@@ -50,9 +52,8 @@ export async function exportSessionExcel(context: ExportContext) {
       Estudiante: student.fullName,
       Presente: present ? "Sí" : "No",
       Estado: present ? observation?.code ?? "Sin registro" : "Ausente",
-      "Avance %": observation?.progress ?? "",
+      "Evidencia del indicador": observation?.note ?? "",
       Recorrido: observation?.round ?? "",
-      Observación: observation?.note ?? "",
     };
   });
   XLSX.utils.book_append_sheet(
@@ -81,20 +82,25 @@ export async function exportSessionPdf(context: ExportContext) {
   document.text(`${teacher?.fullName ?? "Docente"} · ${course?.name ?? "Curso"}`, 14, 26);
   document.text(`${roomTemplate?.name ?? "Sala"} · ${session.date}`, 14, 31);
   document.text(
-    `${session.module} · Cobertura ${metrics.coverage}% · I ${metrics.counts.I} · R ${metrics.counts.R} · C ${metrics.counts.C}`,
+    `${session.module} · Cobertura de observación ${metrics.coverage}%`,
     14,
     36,
   );
+  document.text(`Indicador: ${session.successCriteria}`, 14, 41, { maxWidth: 180 });
+  document.text(
+    `Demostrado: ${metrics.counts.C} de ${metrics.observed} observados (${metrics.cRate}%)`,
+    14,
+    48,
+  );
   autoTable(document, {
-    startY: 43,
-    head: [["Estudiante", "Estado", "Avance", "Recorrido", "Observación"]],
+    startY: 55,
+    head: [["Estudiante", "Estado", "Recorrido", "Evidencia observada"]],
     body: metrics.roster.map((student) => {
       const observation = metrics.latest.get(student.id);
       const present = metrics.presenceMap.get(student.id) !== false;
       return [
         student.displayName,
         present ? observation?.code ?? "Sin registro" : "Ausente",
-        observation?.code === "R" ? `${observation.progress ?? 0}%` : "—",
         observation?.round ?? "—",
         observation?.note ?? "",
       ];

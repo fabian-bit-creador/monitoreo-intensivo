@@ -26,6 +26,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import {
   sessionMetrics,
   sessionTeacherId,
+  courseIndicatorSummaries,
 } from "@/features/monitoring/lib/metrics";
 import { shortDate } from "@/lib/date";
 import type {
@@ -85,7 +86,7 @@ export function ReportView(props: ReportViewProps) {
     .filter(({ observation }) =>
       !observation
       || observation.code === "I"
-      || (observation.code === "R" && (observation.progress ?? 0) < 50),
+      || observation.code === "R",
     )
     .sort((first, second) => {
       const score = (item: typeof first) =>
@@ -105,23 +106,24 @@ export function ReportView(props: ReportViewProps) {
   const narrative = [
     `Se monitoreó a ${metrics.observed} de ${metrics.present.length} estudiantes presentes, alcanzando una cobertura del ${metrics.coverage}%.`,
     metrics.counts.C
-      ? `${metrics.counts.C} estudiantes finalizaron en C después de comprobar los criterios de éxito.`
-      : "Aún no se registran estudiantes en C; conviene revisar si los criterios de éxito fueron visibles y alcanzables.",
+      ? `${metrics.counts.C} estudiantes mostraron evidencia que satisface el indicador definido.`
+      : "En esta sesión no quedó evidencia registrada de estudiantes que demostraran el indicador.",
     metrics.counts.R
-      ? `${metrics.counts.R} ${metrics.counts.R === 1 ? "permanece" : "permanecen"} en R, con un avance promedio del ${metrics.avgProgress}%.`
-      : "No quedaron estudiantes en revisión al cierre.",
+      ? `${metrics.counts.R} estudiantes mostraron evidencia parcial y requieren retroalimentación o una nueva comprobación.`
+      : "No quedaron registros de evidencia parcial al cierre.",
   ].join(" ");
   const recommendations = [
     metrics.unobserved > 0
-      ? `Comenzar la próxima ronda por los ${metrics.unobserved} estudiantes que quedaron sin registro.`
-      : "La cobertura fue completa; mantener el recorrido sistemático.",
+      ? `Completar la observación de los ${metrics.unobserved} estudiantes presentes que quedaron sin registro.`
+      : "La cobertura fue completa; revisar si la evidencia recogida permite decidir el siguiente paso.",
     repeatedI > 0
-      ? `Reenseñar la instrucción inicial y verificar comprensión con los ${repeatedI} estudiantes que permanecieron en I durante más de una observación.`
-      : "No se detectó persistencia repetida en I dentro de la sesión.",
-    metrics.counts.R > 0 && metrics.avgProgress < 60
-      ? "Modelar nuevamente el checkpoint con mayor dificultad antes de retomar el trabajo independiente."
-      : "Realizar una retroalimentación breve y focalizada para quienes permanecen en R.",
+      ? `Revisar qué apoyo requieren los ${repeatedI} estudiantes con registros I reiterados y comprobar su comprensión con una nueva evidencia.`
+      : "Si alguien requiere apoyo, acordar una comprobación breve en la siguiente sesión.",
+    metrics.counts.R > 0
+      ? "Planificar retroalimentación o un andamiaje breve para quienes mostraron evidencia parcial y volver a comprobar el indicador."
+      : "Definir una nueva tarea o pregunta que permita comprobar el aprendizaje siguiente.",
   ];
+  const indicatorHistory = courseIndicatorSummaries(data, session.courseId, sessionTeacherId(session));
   const historical = data.sessions
     .filter((item) =>
       item.courseId === session.courseId
@@ -138,7 +140,6 @@ export function ReportView(props: ReportViewProps) {
       );
       return {
         date: shortDate(item.date),
-        logro: itemMetrics.cRate,
         cobertura: itemMetrics.coverage,
       };
     });
@@ -171,10 +172,10 @@ export function ReportView(props: ReportViewProps) {
 
       <section className="report-kpis">
         <article><span>Cobertura</span><strong>{metrics.coverage}%</strong><small>{metrics.observed} de {metrics.present.length} presentes</small></article>
-        <article><span>Correctos</span><strong>{metrics.counts.C}</strong><small>{metrics.cRate}% de presentes</small></article>
-        <article><span>En revisión</span><strong>{metrics.counts.R}</strong><small>{metrics.avgProgress}% avance promedio</small></article>
-        <article><span>En instrucciones</span><strong>{metrics.counts.I}</strong><small>{repeatedI} con I repetida</small></article>
-        <article><span>Progresaron</span><strong>{metrics.progressed}</strong><small>desde I hacia R o C</small></article>
+        <article><span>Indicador demostrado</span><strong>{metrics.counts.C}</strong><small>{metrics.cRate}% de observados ({metrics.observed})</small></article>
+        <article><span>Evidencia parcial</span><strong>{metrics.counts.R}</strong><small>requieren nueva comprobación</small></article>
+        <article><span>Requiere apoyo</span><strong>{metrics.counts.I}</strong><small>{repeatedI} con registro I reiterado</small></article>
+        <article><span>Cambio observado</span><strong>{metrics.progressed}</strong><small>de I a R o C en la sesión</small></article>
       </section>
 
       <section className="analytics-grid">
@@ -200,8 +201,8 @@ export function ReportView(props: ReportViewProps) {
             <div><i className="dot dot-empty" /><span>Sin registro</span><strong>{metrics.unobserved}</strong></div>
           </div>
           <p className="metric-definition">
-            Base: estudiantes presentes. “Sin registro” no equivale a dificultad; indica falta
-            de observación.
+            Cobertura = observados / presentes. Indicador demostrado = C / observados.
+            Ausentes y “sin registro” no se cuentan como falta de logro.
           </p>
         </article>
 
@@ -218,9 +219,10 @@ export function ReportView(props: ReportViewProps) {
 
         <article className="card analytics-card trend-panel">
           <div className="card-heading">
-            <div><p className="eyebrow">Historial</p><h2>Cobertura y C por sesión</h2></div>
+            <div><p className="eyebrow">Historial</p><h2>Cobertura por sesión</h2></div>
             <History size={19} />
           </div>
+          <p className="metric-definition">La cobertura describe qué parte del curso fue observada; no permite comparar aprendizaje entre indicadores distintos.</p>
           {historical.length > 1 ? (
             <div className="chart-wrap">
               <ResponsiveContainer width="100%" height="100%">
@@ -230,7 +232,6 @@ export function ReportView(props: ReportViewProps) {
                   <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: "#657187" }} />
                   <Tooltip formatter={(value) => `${value}%`} />
                   <Line type="monotone" dataKey="cobertura" name="Cobertura" stroke="#1e8e89" strokeWidth={3} dot={{ r: 3 }} />
-                  <Line type="monotone" dataKey="logro" name="C" stroke="#17375e" strokeWidth={3} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -250,6 +251,35 @@ export function ReportView(props: ReportViewProps) {
             ))}
           </ol>
         </article>
+      </section>
+
+      <section className="card priority-table">
+        <div className="card-heading">
+          <div><p className="eyebrow">Curso · sesiones cerradas</p><h2>Evidencia por indicador</h2></div>
+          <History size={19} />
+        </div>
+        <p className="metric-definition">
+          Solo se agrupan sesiones del mismo curso y docente cuando el indicador tiene el mismo texto.
+          “Oportunidades” cuenta estudiantes presentes por sesión, no estudiantes únicos. No es una nota.
+        </p>
+        {indicatorHistory.length ? (
+          <div className="table-scroll">
+            <table>
+              <thead><tr><th>Indicador</th><th>Sesiones</th><th>Oportunidades</th><th>Observados</th><th>Cobertura</th><th>Indicador demostrado / observados</th></tr></thead>
+              <tbody>
+                {indicatorHistory.map((item) => (
+                  <tr key={item.indicator.toLocaleLowerCase("es-CL")}>
+                    <td>{item.indicator}</td><td>{item.sessions}</td><td>{item.opportunities}</td>
+                    <td>{item.observed}</td><td>{item.coverage}%</td>
+                    <td>{item.demonstrated} · {item.demonstratedRate}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="chart-empty">Cuando cierres sesiones con un mismo indicador, aparecerá aquí la evidencia acumulada del curso.</p>
+        )}
       </section>
 
       <section className="card priority-table">

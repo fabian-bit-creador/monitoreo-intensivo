@@ -81,17 +81,17 @@ export function SessionFormModal(props: SessionFormModalProps) {
           />
         </label>
         <label>
-          <span>Criterios de éxito</span>
+          <span>Indicador observable de aprendizaje</span>
           <textarea
             name="successCriteria"
             rows={3}
-            placeholder="¿Qué comprobarás antes de marcar C?"
+            placeholder="¿Qué acción o explicación observable mostrará que alcanzaron el objetivo?"
             required
           />
         </label>
         <div className="form-help">
           <Sparkles size={17} />
-          <p>Estos datos aparecerán en el informe y ayudarán a interpretar I, R y C.</p>
+          <p>Define un indicador alineado con el objetivo. Para comparar sesiones del curso, conserva el mismo texto cuando vuelvas a medir ese indicador.</p>
         </div>
         <button className="primary-button wide" disabled={busy}>
           {busy

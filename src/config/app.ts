@@ -12,15 +12,15 @@ export const STORAGE_SCHEMA_VERSION = 1;
 
 export const CODE_META: Record<MonitoringCode, { label: string; detail: string }> = {
   I: {
-    label: "En instrucciones",
-    detail: "Aún no inicia o requiere reorientación",
+    label: "Requiere apoyo",
+    detail: "La evidencia muestra que necesita orientación para avanzar",
   },
   R: {
-    label: "En revisión",
-    detail: "Producto en avance",
+    label: "En desarrollo",
+    detail: "Hay evidencia parcial; requiere retroalimentación y nueva comprobación",
   },
   C: {
-    label: "Correcto",
-    detail: "Criterios de éxito comprobados",
+    label: "Indicador demostrado",
+    detail: "La evidencia observada satisface el criterio definido",
   },
 };
